@@ -1,0 +1,37 @@
+{
+  "name": "rakshasafe-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RakshaSafe backend — Node.js + Express.js + MongoDB (Mongoose)",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "seed:admin": "tsx src/scripts/seedAdmin.ts",
+    "verify:models": "tsx src/scripts/verifyModels.ts",
+    "verify:ai-failures": "tsx src/scripts/verifyAiFailures.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
