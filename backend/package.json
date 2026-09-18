@@ -11,6 +11,7 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "seed:admin": "tsx src/scripts/seedAdmin.ts",
+    "seed:responder": "tsx src/scripts/seedResponder.ts",
     "verify:models": "tsx src/scripts/verifyModels.ts",
     "verify:ai-failures": "tsx src/scripts/verifyAiFailures.ts"
   },

@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import { useI18n } from '../../lib/i18n'
 import { BellIcon, MenuIcon } from '../ui/icons'
 import { Logo } from '../ui/Logo'
+import { LanguageSelector } from './LanguageSelector'
 
 export interface HeaderProps {
   nav?: ReactNode
@@ -19,6 +21,7 @@ export function Header({
   className,
 }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { t } = useI18n()
 
   return (
     <header
@@ -31,7 +34,7 @@ export function Header({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            aria-label="Toggle menu"
+            aria-label={t('aria.toggleMenu')}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
             className="inline-flex size-10 items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100 lg:hidden"
@@ -41,14 +44,17 @@ export function Header({
           <Logo size="sm" />
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">{nav}</div>
+        <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">{nav}</div>
 
         <div className="flex items-center gap-2">
+          <div className="hidden sm:block">
+            <LanguageSelector />
+          </div>
           {actions}
           {showNotifications && (
             <button
               type="button"
-              aria-label="Notifications"
+              aria-label={t('nav.notifications')}
               className="relative inline-flex size-10 items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100"
             >
               <BellIcon className="size-5" />
@@ -66,10 +72,15 @@ export function Header({
         <div
           className={cn(
             'overflow-hidden transition-[max-height,opacity] duration-200 lg:hidden',
-            mobileOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0',
+            mobileOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0',
           )}
         >
-          <div className="border-t border-ink-100 px-4 py-3">{nav}</div>
+          <div className="border-t border-ink-100 px-4 py-3">
+            {nav}
+            <div className="mt-3 block sm:hidden">
+              <LanguageSelector />
+            </div>
+          </div>
         </div>
       )}
     </header>

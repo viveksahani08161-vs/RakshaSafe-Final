@@ -65,7 +65,11 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
       ...(options.signal ? { signal: options.signal } : {}),
     })
-  } catch {
+  } catch (err) {
+    // Re-throw cancellations untouched so every caller's AbortError guard
+    // works; otherwise a stale aborted request would surface as a failure
+    // and mask successfully loaded data with an error panel.
+    if (err instanceof DOMException && err.name === 'AbortError') throw err
     throw new ApiError(0, 'Cannot reach the server. Check your connection and try again.')
   }
 

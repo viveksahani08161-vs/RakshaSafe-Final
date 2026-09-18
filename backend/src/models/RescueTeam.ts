@@ -16,6 +16,7 @@ export interface IRescueTeam extends Document {
   email?: string
   isActive: boolean
   specializations?: string[]
+  members: Types.ObjectId[]
   createdAt: Date
   updatedAt: Date
 }
@@ -28,6 +29,7 @@ const RescueTeamSchema = new Schema<IRescueTeam>(
     email: { type: String, lowercase: true, trim: true },
     isActive: { type: Boolean, required: true, default: true },
     specializations: { type: [String], default: [] },
+    members: { type: [Schema.Types.ObjectId], ref: 'Users', default: [] },
   },
   { timestamps: true },
 )

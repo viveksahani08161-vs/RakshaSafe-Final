@@ -12,6 +12,7 @@ export interface SafeRescueTeam {
   email?: string
   isActive: boolean
   specializations: string[]
+  members: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -25,6 +26,7 @@ export function toSafeTeam(doc: IRescueTeam): SafeRescueTeam {
     ...(doc.email ? { email: doc.email } : {}),
     isActive: doc.isActive,
     specializations: doc.specializations ?? [],
+    members: (doc.members ?? []).map((m) => String(m)),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   }

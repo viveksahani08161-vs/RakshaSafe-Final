@@ -7,6 +7,9 @@ import routes from './routes/index.js'
 export function createApp() {
   const app = express()
 
+  // Do not fingerprint the framework in responses.
+  app.disable('x-powered-by')
+
   app.use(
     cors({
       origin: env.corsOrigin,

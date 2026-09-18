@@ -31,7 +31,10 @@ export function snapshotToRows(snapshot: Record<string, unknown>): string[][] {
 }
 
 function csvCell(value: string): string {
-  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+  // Guard against spreadsheet formula injection: values starting with a
+  // trigger character are neutralized with a leading single quote.
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 /** RFC-4180 CSV with header row. */

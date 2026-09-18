@@ -19,6 +19,15 @@ function isDuplicateKeyError(err: unknown): err is { code: number; keyValue?: Re
   )
 }
 
+function isJsonParseError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { type?: unknown }).type === 'entity.parse.failed' &&
+    (err as { status?: unknown }).status === 400
+  )
+}
+
 export function errorHandler(
   err: Error,
   _req: Request,
@@ -54,6 +63,14 @@ export function errorHandler(
         field: (e as { path?: string }).path ?? 'unknown',
         message: e.message,
       })),
+    })
+    return
+  }
+
+  if (isJsonParseError(err)) {
+    res.status(400).json({
+      success: false,
+      error: 'Invalid JSON in request body.',
     })
     return
   }

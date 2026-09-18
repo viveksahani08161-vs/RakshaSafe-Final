@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { useToast } from '../components/ui/toast-context'
+import { useI18n } from '../lib/i18n'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -65,6 +66,7 @@ function toFieldErrors(details: unknown): FieldErrors {
 
 export function EmergencyContactsPage() {
   const { notify } = useToast()
+  const { t } = useI18n()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -87,11 +89,11 @@ export function EmergencyContactsPage() {
       setContacts(res.contacts)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
-      setLoadError(err instanceof ApiError ? err.message : 'Could not load emergency contacts.')
+      setLoadError(err instanceof ApiError ? err.message : t('contacts.errorTitle'))
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -144,13 +146,13 @@ export function EmergencyContactsPage() {
       }
       if (modal.mode === 'create') {
         await api<{ contact: Contact }>('/emergency-contacts', { method: 'POST', body })
-        notify({ title: 'Contact added', description: `${body.name} will be notified in emergencies.`, variant: 'success' })
+        notify({ title: t('contacts.form.addContact'), description: `${body.name} ${t('contacts.modal.description').split('.')[0]}.`, variant: 'success' })
       } else if (modal.contact) {
         await api<{ contact: Contact }>(`/emergency-contacts/${modal.contact.id}`, {
           method: 'PATCH',
           body,
         })
-        notify({ title: 'Contact updated', variant: 'success' })
+        notify({ title: t('contacts.modal.editTitle'), variant: 'success' })
       }
       setModal(null)
       await load()
@@ -163,7 +165,7 @@ export function EmergencyContactsPage() {
           setFormError(err.message)
         }
       } else {
-        setFormError('Something went wrong. Please try again.')
+        setFormError(t('contacts.form.saveError'))
       }
     } finally {
       setSaving(false)
@@ -175,13 +177,13 @@ export function EmergencyContactsPage() {
     setDeleting(true)
     try {
       await api(`/emergency-contacts/${deleteTarget.id}`, { method: 'DELETE' })
-      notify({ title: 'Contact deleted', description: deleteTarget.name, variant: 'info' })
+      notify({ title: t('contacts.delete.confirm'), description: deleteTarget.name, variant: 'info' })
       setDeleteTarget(null)
       await load()
     } catch (err) {
       notify({
-        title: 'Delete failed',
-        description: err instanceof ApiError ? err.message : 'Please try again.',
+        title: t('contacts.delete.confirm'),
+        description: err instanceof ApiError ? err.message : t('contacts.delete.body'),
         variant: 'danger',
       })
     } finally {
@@ -193,34 +195,34 @@ export function EmergencyContactsPage() {
     <div className="mx-auto grid w-full max-w-5xl gap-6">
       <Card>
         <CardHeader
-          title="Emergency contacts"
-          description="People to notify when you raise an SOS. Only you can see and manage these contacts."
+          title={t('contacts.title')}
+          description={t('contacts.description')}
           action={
             <Button size="sm" variant="primary" onClick={openCreate}>
-              + Add Contact
+              + {t('contacts.add')}
             </Button>
           }
         />
         <CardBody>
           {loading && (
-            <div className="space-y-2" aria-label="Loading emergency contacts">
+            <div className="space-y-2" aria-label={t('contacts.loading')}>
               <Skeleton lines={4} />
             </div>
           )}
           {!loading && loadError && (
             <ErrorState
-              title="Could not load contacts"
+              title={t('contacts.errorTitle')}
               description={loadError}
               onRetry={() => void load()}
             />
           )}
           {!loading && !loadError && contacts.length === 0 && (
             <EmptyState
-              title="No emergency contacts yet"
-              description="Add the people you trust — they will be notified first when you need help."
+              title={t('contacts.emptyTitle')}
+              description={t('contacts.emptyDescription')}
               action={
                 <Button size="sm" variant="primary" onClick={openCreate}>
-                  Add your first contact
+                  {t('contacts.addFirst')}
                 </Button>
               }
             />
@@ -253,21 +255,21 @@ export function EmergencyContactsPage() {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {contact.notifyViaSms && (
-                      <Badge variant="secondary">SMS alerts</Badge>
+                      <Badge variant="secondary">{t('contacts.smsAlerts')}</Badge>
                     )}
                     {contact.notifyViaEmail && (
-                      <Badge variant="primary">Email alerts</Badge>
+                      <Badge variant="primary">{t('contacts.emailAlerts')}</Badge>
                     )}
                     {!contact.notifyViaSms && !contact.notifyViaEmail && (
-                      <Badge variant="neutral">No auto alerts</Badge>
+                      <Badge variant="neutral">{t('contacts.noAutoAlerts')}</Badge>
                     )}
                   </div>
                   <div className="mt-auto flex gap-2 pt-1">
                     <Button size="sm" variant="outline" onClick={() => openEdit(contact)}>
-                      Edit
+                      {t('contacts.edit')}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(contact)}>
-                      Delete
+                      {t('contacts.delete')}
                     </Button>
                   </div>
                 </li>
@@ -280,48 +282,48 @@ export function EmergencyContactsPage() {
       <Modal
         open={modal !== null}
         onClose={closeModal}
-        title={modal?.mode === 'edit' ? 'Edit emergency contact' : 'Add emergency contact'}
-        description="Contact details are visible only to you."
+        title={modal?.mode === 'edit' ? t('contacts.modal.editTitle') : t('contacts.modal.addTitle')}
+        description={t('contacts.modal.description')}
       >
         <Form onSubmit={(e: FormEvent) => void onSubmit(e)}>
           {formError && (
-            <Alert variant="danger" title="Could not save contact" onClose={() => setFormError(null)}>
+            <Alert variant="danger" title={t('contacts.form.saveError')} onClose={() => setFormError(null)}>
               {formError}
             </Alert>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Full name"
+              label={t('contacts.form.name')}
               name="contact-name"
-              placeholder="Aarav Sharma"
+              placeholder={t('contacts.form.namePlaceholder')}
               requiredMark
               value={form.name}
               error={fieldErrors.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
             <Input
-              label="Phone number"
+              label={t('contacts.form.phone')}
               name="contact-phone"
               type="tel"
-              placeholder="+91 98765 43210"
+              placeholder={t('contacts.form.phonePlaceholder')}
               requiredMark
               value={form.phone}
               error={fieldErrors.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             />
             <Input
-              label="Email (optional)"
+              label={t('contacts.form.email')}
               name="contact-email"
               type="email"
-              placeholder="contact@example.com"
+              placeholder={t('contacts.form.emailPlaceholder')}
               value={form.email}
               error={fieldErrors.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
             <Input
-              label="Relationship (optional)"
+              label={t('contacts.form.relationship')}
               name="contact-relationship"
-              placeholder="Brother, Friend, …"
+              placeholder={t('contacts.form.relationshipPlaceholder')}
               value={form.relationship}
               error={fieldErrors.relationship}
               onChange={(e) => setForm((f) => ({ ...f, relationship: e.target.value }))}
@@ -332,22 +334,22 @@ export function EmergencyContactsPage() {
           )}
           <div className="flex flex-col gap-2">
             <Checkbox
-              label="Notify via SMS"
+              label={t('contacts.form.notifySms')}
               checked={form.notifyViaSms}
               onChange={(e) => setForm((f) => ({ ...f, notifyViaSms: e.target.checked }))}
             />
             <Checkbox
-              label="Notify via Email"
+              label={t('contacts.form.notifyEmail')}
               checked={form.notifyViaEmail}
               onChange={(e) => setForm((f) => ({ ...f, notifyViaEmail: e.target.checked }))}
             />
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" loading={saving} disabled={saving}>
-              {modal?.mode === 'edit' ? 'Save changes' : 'Add contact'}
+              {modal?.mode === 'edit' ? t('contacts.form.saveChanges') : t('contacts.form.addContact')}
             </Button>
             <Button variant="ghost" onClick={closeModal}>
-              Cancel
+              {t('contacts.form.cancel')}
             </Button>
           </div>
         </Form>
@@ -359,12 +361,12 @@ export function EmergencyContactsPage() {
           if (!deleting) setDeleteTarget(null)
         }}
         variant="danger"
-        title={`Delete ${deleteTarget?.name ?? 'contact'}?`}
-        confirmLabel="Delete"
+        title={t('contacts.delete.title', { name: deleteTarget?.name ?? t('contacts.delete') })}
+        confirmLabel={t('contacts.delete.confirm')}
         confirmLoading={deleting}
         onConfirm={() => void onConfirmDelete()}
       >
-        This contact will be permanently removed and will no longer receive emergency notifications.
+        {t('contacts.delete.body')}
       </Dialog>
     </div>
   )

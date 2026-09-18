@@ -367,24 +367,25 @@ export function AdminFacilitiesPage() {
             </Alert>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Name" requiredMark value={form.name} error={fieldErrors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            <Select
-              label="Type"
-              requiredMark
+          <Input label="Name" name="facility-name" requiredMark value={form.name} error={fieldErrors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+          <Select
+            label="Type"
+            name="facility-type"
+            requiredMark
               value={form.facilityType}
               error={fieldErrors.facilityType}
               onChange={(e) => setForm((f) => ({ ...f, facilityType: e.target.value }))}
               placeholder="Select type"
               options={FACILITY_TYPES.map((t) => ({ label: t, value: t }))}
             />
-            <Input label="Phone" type="tel" requiredMark value={form.phone} error={fieldErrors.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-            <Input label="Capacity (optional)" type="number" min="0" step="1" value={form.capacity} error={fieldErrors.capacity} onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))} />
-            <Input label="Operating hours (optional)" placeholder="24x7" value={form.operatingHours} error={fieldErrors.operatingHours} onChange={(e) => setForm((f) => ({ ...f, operatingHours: e.target.value }))} />
-            <Input label="City (optional)" value={form.city} error={fieldErrors['location.city']} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
-            <Input label="Latitude" requiredMark placeholder="19.0760" value={form.latitude} error={fieldErrors['location.latitude']} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
-            <Input label="Longitude" requiredMark placeholder="72.8777" value={form.longitude} error={fieldErrors['location.longitude']} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
-            <Input label="Accuracy m (optional)" type="number" min="0" value={form.accuracy} error={fieldErrors['location.accuracy']} onChange={(e) => setForm((f) => ({ ...f, accuracy: e.target.value }))} />
-            <Input label="Address (optional)" value={form.address} error={fieldErrors['location.address']} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+          <Input label="Phone" name="facility-phone" type="tel" requiredMark value={form.phone} error={fieldErrors.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+          <Input label="Capacity (optional)" name="facility-capacity" type="number" min="0" step="1" value={form.capacity} error={fieldErrors.capacity} onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))} />
+          <Input label="Operating hours (optional)" name="facility-hours" placeholder="24x7" value={form.operatingHours} error={fieldErrors.operatingHours} onChange={(e) => setForm((f) => ({ ...f, operatingHours: e.target.value }))} />
+          <Input label="City (optional)" name="facility-city" value={form.city} error={fieldErrors['location.city']} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+          <Input label="Latitude" name="facility-latitude" requiredMark placeholder="19.0760" value={form.latitude} error={fieldErrors['location.latitude']} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
+          <Input label="Longitude" name="facility-longitude" requiredMark placeholder="72.8777" value={form.longitude} error={fieldErrors['location.longitude']} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
+          <Input label="Accuracy m (optional)" name="facility-accuracy" type="number" min="0" value={form.accuracy} error={fieldErrors['location.accuracy']} onChange={(e) => setForm((f) => ({ ...f, accuracy: e.target.value }))} />
+          <Input label="Address (optional)" name="facility-address" value={form.address} error={fieldErrors['location.address']} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
           </div>
           {fieldErrors.location && <Alert variant="danger">{fieldErrors.location}</Alert>}
           <Checkbox label="Operational (visible to users)" checked={form.isOperational} onChange={(e) => setForm((f) => ({ ...f, isOperational: e.target.checked }))} />

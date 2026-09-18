@@ -243,6 +243,7 @@ export function ReportsPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <Select
                 label="Report type"
+                name="report-type"
                 value={reportType}
                 error={fieldErrors.reportType}
                 onChange={(e) => setReportType(e.target.value)}
@@ -250,6 +251,7 @@ export function ReportsPage() {
               />
               <Select
                 label="Format"
+                name="report-format"
                 value={format}
                 error={fieldErrors.format}
                 onChange={(e) => setFormat(e.target.value)}
@@ -257,6 +259,7 @@ export function ReportsPage() {
               />
               <Input
                 label="Title (optional)"
+                name="report-title"
                 placeholder="Auto-generated if blank"
                 value={title}
                 error={fieldErrors.title}
@@ -267,6 +270,7 @@ export function ReportsPage() {
               <div className="grid gap-4 sm:grid-cols-4">
                 <Select
                   label="Status filter"
+                  name="filter-status"
                   value={fStatus}
                   error={fieldErrors['filters.status']}
                   onChange={(e) => setFStatus(e.target.value)}
@@ -274,6 +278,7 @@ export function ReportsPage() {
                 />
                 <Select
                   label="Type filter"
+                  name="filter-type"
                   value={fType}
                   error={fieldErrors['filters.type']}
                   onChange={(e) => setFType(e.target.value)}
@@ -281,6 +286,7 @@ export function ReportsPage() {
                 />
                 <Select
                   label="Priority filter"
+                  name="filter-priority"
                   value={fPriority}
                   error={fieldErrors['filters.priority']}
                   onChange={(e) => setFPriority(e.target.value)}
@@ -288,6 +294,7 @@ export function ReportsPage() {
                 />
                 <Input
                   label="Month (YYYY-MM, UTC)"
+                  name="filter-month"
                   placeholder="2026-09"
                   value={fMonth}
                   error={fieldErrors['filters.month']}

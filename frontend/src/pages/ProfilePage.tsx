@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../lib/auth-context'
+import { useI18n } from '../lib/i18n'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -14,6 +15,7 @@ function formatDate(value: string): string {
 
 export function ProfilePage() {
   const { user: authUser, updateProfile, busy, error, clearError } = useAuth()
+  const { t } = useI18n()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -54,8 +56,8 @@ export function ProfilePage() {
     <div className="mx-auto grid w-full max-w-3xl gap-6">
       <Card>
         <CardHeader
-          title="Your profile"
-          description="Account information stored in the Users collection."
+          title={t('profile.title')}
+          description={t('profile.description')}
           action={
             <Badge variant={user.role === 'ADMIN' ? 'secondary' : 'primary'} dot>
               {user.role}
@@ -65,30 +67,30 @@ export function ProfilePage() {
         <CardBody>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="font-semibold text-ink-500">Name</dt>
+              <dt className="font-semibold text-ink-500">{t('profile.name')}</dt>
               <dd className="mt-0.5 text-ink-900">{user.name}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-ink-500">Email</dt>
+              <dt className="font-semibold text-ink-500">{t('profile.email')}</dt>
               <dd className="mt-0.5 break-all text-ink-900">{user.email}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-ink-500">Phone</dt>
+              <dt className="font-semibold text-ink-500">{t('profile.phone')}</dt>
               <dd className="mt-0.5 text-ink-900">{user.phone}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-ink-500">Language</dt>
+              <dt className="font-semibold text-ink-500">{t('profile.language')}</dt>
               <dd className="mt-0.5 text-ink-900">{user.language ?? '—'}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-ink-500">Member since</dt>
+              <dt className="font-semibold text-ink-500">{t('profile.memberSince')}</dt>
               <dd className="mt-0.5 text-ink-900">{formatDate(user.createdAt)}</dd>
             </div>
           </dl>
           {!editing && (
             <div className="pt-2">
               <Button variant="outline" onClick={startEditing}>
-                Edit profile
+                {t('profile.edit')}
               </Button>
             </div>
           )}
@@ -98,24 +100,24 @@ export function ProfilePage() {
       {editing && (
         <Card>
           <CardBody>
-            <Form title="Update profile" onSubmit={(e: FormEvent) => void onSubmit(e)}>
+            <Form title={t('profile.update.title')} onSubmit={(e: FormEvent) => void onSubmit(e)}>
               {error && (
-                <Alert variant="danger" title="Update failed" onClose={clearError}>
+                <Alert variant="danger" title={t('profile.update.failed')} onClose={clearError}>
                   {error}
                 </Alert>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} />
-                <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <Input label="Phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                <Input label="Language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+                <Input label={t('profile.form.name')} name="profile-name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input label={t('profile.form.email')} name="profile-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input label={t('profile.form.phone')} name="profile-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input label={t('profile.form.language')} name="profile-language" value={language} onChange={(e) => setLanguage(e.target.value)} />
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button type="submit" loading={busy} disabled={busy}>
-                  Save changes
+                  {t('profile.saveChanges')}
                 </Button>
                 <Button variant="ghost" onClick={() => setEditing(false)}>
-                  Cancel
+                  {t('profile.cancel')}
                 </Button>
               </div>
             </Form>
@@ -124,8 +126,8 @@ export function ProfilePage() {
       )}
 
       {saved && !editing && (
-        <Alert variant="success" title="Profile updated" onClose={() => setSaved(false)}>
-          Your profile information has been saved.
+        <Alert variant="success" title={t('profile.saved')} onClose={() => setSaved(false)}>
+          {t('profile.savedDescription')}
         </Alert>
       )}
     </div>

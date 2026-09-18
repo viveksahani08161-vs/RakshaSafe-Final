@@ -39,3 +39,16 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
   }
   next()
 }
+
+/** Require the authenticated user to have the RESPONDER role. Use after requireAuth. */
+export function requireResponder(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.auth) {
+    next(unauthorized('Authentication required.'))
+    return
+  }
+  if (req.auth.role !== UserRole.RESPONDER) {
+    next(forbidden('Responder access required.'))
+    return
+  }
+  next()
+}

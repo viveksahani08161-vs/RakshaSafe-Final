@@ -11,6 +11,7 @@ export type AppRoute =
   | '/notifications'
   | '/report-unsafe'
   | '/incident-detail'
+  | '/responder'
   | '/admin/users'
   | '/admin/dashboard'
   | '/admin/incidents'
@@ -27,7 +28,8 @@ function rawHash(): string {
   return window.location.hash.replace(/^#/, '') || '/login'
 }
 
-function parseHash(): AppRoute {
+/** Current route parsed from the live location hash (fresher than React state). */
+export function parseHash(): AppRoute {
   const raw = rawHash()
   if (raw === '/admin/incidents' || raw.startsWith('/admin/incidents/')) {
     return raw === '/admin/incidents' ? '/admin/incidents' : '/admin/incident-detail'
@@ -45,6 +47,7 @@ function parseHash(): AppRoute {
     '/resources',
     '/notifications',
     '/report-unsafe',
+    '/responder',
     '/admin/users',
     '/admin/dashboard',
     '/admin/incidents',
@@ -106,14 +109,28 @@ export function useHashRoute(): AppRoute {
   return route
 }
 
+/** Raw hash string; changes on every same-document navigation, even when the
+ * parsed route stays the same (e.g. one incident detail to another). */
+export function useRawHash(): string {
+  const [hash, setHash] = useState<string>(() => rawHash())
+
+  useEffect(() => {
+    const onChange = (): void => setHash(rawHash())
+    window.addEventListener('hashchange', onChange)
+    return () => window.removeEventListener('hashchange', onChange)
+  }, [])
+
+  return hash
+}
+
 /** Re-renders on hash change and returns the current admin incident id segment, if any. */
 export function useHashIncidentId(): string | null {
-  useHashRoute()
+  useRawHash()
   return hashIncidentId()
 }
 
 /** Re-renders on hash change and returns the current user incident id segment, if any. */
 export function useHashUserIncidentId(): string | null {
-  useHashRoute()
+  useRawHash()
   return hashUserIncidentId()
 }

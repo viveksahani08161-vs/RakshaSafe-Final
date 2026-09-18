@@ -8,7 +8,9 @@ import facilityRoutes from './facilities.js'
 import incidentRoutes from './incidents.js'
 import notificationRoutes from './notifications.js'
 import rescueTeamRoutes from './rescueTeams.js'
+import responderRoutes from './responder.js'
 import unsafeReportRoutes from './unsafeReports.js'
+import geocodeRoutes from './geocode.js'
 
 const router = Router()
 
@@ -19,7 +21,9 @@ router.use('/incidents', incidentRoutes)
 router.use('/facilities', facilityRoutes)
 router.use('/notifications', notificationRoutes)
 router.use('/rescue-teams', rescueTeamRoutes)
+router.use('/responder', responderRoutes)
 router.use('/unsafe-reports', unsafeReportRoutes)
+router.use('/geocode', geocodeRoutes)
 
 router.get('/health', (_req, res) => {
   const dbState = mongoose.connection.readyState

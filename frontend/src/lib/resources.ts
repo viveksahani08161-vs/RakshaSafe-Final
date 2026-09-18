@@ -22,6 +22,7 @@ export interface RescueTeam {
   email?: string
   isActive: boolean
   specializations: string[]
+  members: string[]
   createdAt: string
   updatedAt: string
 }

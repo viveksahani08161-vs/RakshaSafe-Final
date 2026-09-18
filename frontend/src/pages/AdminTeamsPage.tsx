@@ -25,6 +25,14 @@ interface ListResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
+interface TeamMember {
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: string
+}
+
 type FieldErrors = Record<string, string>
 
 interface ModalState {
@@ -80,6 +88,14 @@ export function AdminTeamsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [membersTeam, setMembersTeam] = useState<RescueTeam | null>(null)
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [membersLoading, setMembersLoading] = useState(false)
+  const [membersError, setMembersError] = useState<string | null>(null)
+  const [memberUserId, setMemberUserId] = useState('')
+  const [memberFieldError, setMemberFieldError] = useState<string | null>(null)
+  const [memberBusy, setMemberBusy] = useState(false)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
@@ -213,6 +229,81 @@ export function AdminTeamsPage() {
     }
   }
 
+  async function openMembers(team: RescueTeam): Promise<void> {
+    setMembersTeam(team)
+    setMembers([])
+    setMembersError(null)
+    setMemberUserId('')
+    setMemberFieldError(null)
+    setMembersLoading(true)
+    try {
+      const res = await api<{ members: TeamMember[] }>(`/admin/rescue-teams/${team.id}/members`)
+      setMembers(res.members)
+    } catch (err) {
+      setMembersError(err instanceof ApiError ? err.message : 'Could not load members.')
+    } finally {
+      setMembersLoading(false)
+    }
+  }
+
+  async function onAddMember(e: FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!membersTeam) return
+    setMemberBusy(true)
+    setMemberFieldError(null)
+    setMembersError(null)
+    try {
+      const res = await api<{ team: RescueTeam }>(`/admin/rescue-teams/${membersTeam.id}/members`, {
+        method: 'POST',
+        body: { userId: memberUserId.trim() },
+      })
+      notify({ title: 'Responder linked', description: membersTeam.name, variant: 'success' })
+      setMemberUserId('')
+      setMembersTeam(res.team)
+      const refreshed = await api<{ members: TeamMember[] }>(
+        `/admin/rescue-teams/${membersTeam.id}/members`,
+      )
+      setMembers(refreshed.members)
+      await load(page)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fields = toFieldErrors(err.details)
+        if (fields.userId) {
+          setMemberFieldError(fields.userId)
+        } else {
+          setMembersError(err.message)
+        }
+      } else {
+        setMembersError('Something went wrong. Please try again.')
+      }
+    } finally {
+      setMemberBusy(false)
+    }
+  }
+
+  async function onRemoveMember(memberId: string): Promise<void> {
+    if (!membersTeam) return
+    setRemovingId(memberId)
+    try {
+      const res = await api<{ team: RescueTeam }>(
+        `/admin/rescue-teams/${membersTeam.id}/members/${memberId}`,
+        { method: 'DELETE' },
+      )
+      notify({ title: 'Responder unlinked', variant: 'info' })
+      setMembers((prev) => prev.filter((m) => m.id !== memberId))
+      setMembersTeam(res.team)
+      await load(page)
+    } catch (err) {
+      notify({
+        title: 'Remove failed',
+        description: err instanceof ApiError ? err.message : 'Please try again.',
+        variant: 'danger',
+      })
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
   const filtersActive = typeFilter !== '' || statusFilter !== '' || search.trim() !== ''
 
   return (
@@ -302,11 +393,17 @@ export function AdminTeamsPage() {
                           <Badge variant={statusVariant(t.isActive)} dot>
                             {t.isActive ? 'Active' : 'Inactive'}
                           </Badge>
+                          <span className="block text-xs text-ink-400">
+                            {t.members.length} responder{t.members.length === 1 ? '' : 's'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1.5">
                             <Button size="sm" variant="outline" onClick={() => openEdit(t)}>
                               Edit
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => void openMembers(t)}>
+                              Members
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => setToggleTarget(t)}>
                               {t.isActive ? 'Deactivate' : 'Activate'}
@@ -338,9 +435,10 @@ export function AdminTeamsPage() {
               {formError}
             </Alert>
           )}
-          <Input label="Team name" requiredMark value={form.name} error={fieldErrors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+          <Input label="Team name" name="team-name" requiredMark value={form.name} error={fieldErrors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           <Select
             label="Team type"
+            name="team-type"
             requiredMark
             value={form.teamType}
             error={fieldErrors.teamType}
@@ -348,10 +446,11 @@ export function AdminTeamsPage() {
             placeholder="Select type"
             options={TEAM_TYPES.map((t) => ({ label: t, value: t }))}
           />
-          <Input label="Phone" type="tel" requiredMark value={form.phone} error={fieldErrors.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-          <Input label="Email (optional)" type="email" value={form.email} error={fieldErrors.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+          <Input label="Phone" name="team-phone" type="tel" requiredMark value={form.phone} error={fieldErrors.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+          <Input label="Email (optional)" name="team-email" type="email" value={form.email} error={fieldErrors.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
           <Input
             label="Specializations (optional, comma separated)"
+            name="team-specializations"
             placeholder="First aid, Flood rescue"
             value={form.specializations}
             error={fieldErrors.specializations}
@@ -384,6 +483,70 @@ export function AdminTeamsPage() {
           ? 'Users will no longer see this team in resources.'
           : 'Users will see this team in resources again.'}
       </Dialog>
+
+      <Modal
+        open={membersTeam !== null}
+        onClose={() => setMembersTeam(null)}
+        title={membersTeam ? `Responders — ${membersTeam.name}` : 'Responders'}
+        description="Only linked RESPONDER accounts see this team's assignments. Membership never exposes passwords."
+      >
+        {membersLoading && <Skeleton lines={3} />}
+        {!membersLoading && membersError && (
+          <Alert variant="danger" title="Could not load members" onClose={() => setMembersError(null)}>
+            {membersError}
+          </Alert>
+        )}
+        {!membersLoading && !membersError && members.length === 0 && (
+          <EmptyState
+            title="No responders linked"
+            description="Link a RESPONDER account below so its owner can accept this team's assignments."
+          />
+        )}
+        {!membersLoading && !membersError && members.length > 0 && (
+          <ul className="space-y-2">
+            {members.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-ink-200/70 p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-ink-900">{m.name}</p>
+                  <p className="truncate text-xs text-ink-400">
+                    {m.email} · {m.phone} · {m.role}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={removingId === m.id}
+                  onClick={() => void onRemoveMember(m.id)}
+                >
+                  Remove
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Form onSubmit={(e: FormEvent) => void onAddMember(e)}>
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+            <Input
+              label="Responder user id"
+              name="member-user-id"
+              placeholder="Paste the RESPONDER account id…"
+              value={memberUserId}
+              error={memberFieldError}
+              onChange={(e) => setMemberUserId(e.target.value)}
+            />
+            <Button type="submit" loading={memberBusy} disabled={memberBusy}>
+              Link responder
+            </Button>
+          </div>
+          <p className="text-xs text-ink-500">
+            Only accounts with the RESPONDER role can be linked. Create them with the
+            responder seed script or promote them administratively.
+          </p>
+        </Form>
+      </Modal>
     </div>
   )
 }

@@ -71,6 +71,8 @@ export function validateReportRequest(
     const t = typeof b.title === 'string' ? b.title.trim() : ''
     if (t === '' || t.length > 150) {
       issues.push({ field: 'title', message: 'Title must be 1–150 characters.' })
+    } else if (/[\r\n]/.test(t)) {
+      issues.push({ field: 'title', message: 'Title must not contain line breaks.' })
     } else {
       title = t
     }

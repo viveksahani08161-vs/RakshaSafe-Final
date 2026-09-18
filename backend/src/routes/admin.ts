@@ -13,9 +13,12 @@ import {
   updateIncidentStatus,
 } from '../controllers/adminIncidentController.js'
 import {
+  addTeamMember,
   createTeam,
   getTeamAdmin,
+  getTeamMembers,
   listTeamsAdmin,
+  removeTeamMember,
   updateTeam,
 } from '../controllers/adminRescueTeamController.js'
 import {
@@ -62,6 +65,9 @@ router.post('/rescue-teams', createTeam)
 router.get('/rescue-teams', listTeamsAdmin)
 router.get('/rescue-teams/:id', getTeamAdmin)
 router.patch('/rescue-teams/:id', updateTeam)
+router.get('/rescue-teams/:id/members', getTeamMembers)
+router.post('/rescue-teams/:id/members', addTeamMember)
+router.delete('/rescue-teams/:id/members/:userId', removeTeamMember)
 router.post('/incidents/:id/assignments', createAssignment)
 router.get('/incidents/:id/assignments', listIncidentAssignments)
 router.patch('/assignments/:id', updateAssignment)

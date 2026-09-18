@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express'
 import { AdminLog } from '../models/AdminLog.js'
 import { RescueTeam } from '../models/RescueTeam.js'
-import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
+import { User, UserRole } from '../models/User.js'
+import { badRequest, conflict, notFoundError, unauthorized } from '../utils/errors.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
 import { validateRescueTeamCreate, validateRescueTeamUpdate } from '../validators/rescueTeam.js'
 import { buildTeamFilter, toSafeTeam } from './rescueTeamController.js'
@@ -133,6 +134,127 @@ export async function updateTeam(req: Request, res: Response, next: NextFunction
     await logAdmin(req, adminId, 'rescueteam.update', String(doc._id), doc.name)
 
     res.json({ success: true, data: { team: toSafeTeam(doc) } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * GET /api/admin/rescue-teams/:id/members — responder accounts linked to a
+ * team. Membership is what authorizes the responder workflow: only members
+ * see the team's assignments.
+ */
+export async function getTeamMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid team id.'))
+      return
+    }
+    const doc = await RescueTeam.findById(id).select('_id members')
+    if (!doc) {
+      next(notFoundError('Rescue team not found.'))
+      return
+    }
+    const users = await User.find({ _id: { $in: doc.members } }).select('name email phone role')
+    res.json({
+      success: true,
+      data: {
+        members: users.map((u) => ({
+          id: String(u._id),
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          role: u.role,
+        })),
+      },
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * POST /api/admin/rescue-teams/:id/members — link a RESPONDER account to a
+ * team. Only RESPONDER accounts can be members; USER accounts stay
+ * end-users and ADMIN accounts already have full access.
+ */
+export async function addTeamMember(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const adminId = requireAdminId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid team id.'))
+      return
+    }
+    const body = (req.body ?? {}) as Record<string, unknown>
+    if (typeof body.userId !== 'string' || !isValidObjectId(body.userId)) {
+      next(badRequest('Invalid member data.', [{ field: 'userId', message: 'A valid user id is required.' }]))
+      return
+    }
+
+    const [team, user] = await Promise.all([
+      RescueTeam.findById(id),
+      User.findById(body.userId).select('_id role name email'),
+    ])
+    if (!team) {
+      next(notFoundError('Rescue team not found.'))
+      return
+    }
+    if (!user) {
+      next(badRequest('Invalid member data.', [{ field: 'userId', message: 'User not found.' }]))
+      return
+    }
+    if (user.role !== UserRole.RESPONDER) {
+      next(
+        badRequest('Invalid member data.', [
+          { field: 'userId', message: 'Only RESPONDER accounts can be team members.' },
+        ]),
+      )
+      return
+    }
+    if (team.members.some((m) => String(m) === String(user._id))) {
+      next(conflict('This user is already a member of the team.'))
+      return
+    }
+
+    team.members.push(user._id)
+    await team.save()
+    await logAdmin(req, adminId, 'rescueteam.member.add', String(team._id), `${team.name} <- ${user.email}`)
+
+    res.status(201).json({ success: true, data: { team: toSafeTeam(team) } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * DELETE /api/admin/rescue-teams/:id/members/:userId — unlink a member.
+ * Existing assignments stay untouched (history is never rewritten).
+ */
+export async function removeTeamMember(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const adminId = requireAdminId(req)
+    const { id, userId } = req.params
+    if (!isValidObjectId(id) || !isValidObjectId(userId)) {
+      next(badRequest('Invalid team or user id.'))
+      return
+    }
+    const team = await RescueTeam.findById(id)
+    if (!team) {
+      next(notFoundError('Rescue team not found.'))
+      return
+    }
+    const before = team.members.length
+    team.members = team.members.filter((m) => String(m) !== userId)
+    if (team.members.length === before) {
+      next(notFoundError('Team member not found.'))
+      return
+    }
+    await team.save()
+    await logAdmin(req, adminId, 'rescueteam.member.remove', String(team._id), `removed ${userId}`)
+
+    res.json({ success: true, data: { team: toSafeTeam(team) } })
   } catch (err) {
     next(err)
   }

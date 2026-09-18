@@ -21,10 +21,11 @@ export function verifyAuthToken(token: string): AuthTokenPayload | null {
     const decoded = jwt.verify(token, env.jwtSecret)
     if (typeof decoded === 'string') return null
     const { sub, role } = decoded as Partial<AuthTokenPayload>
-    if (typeof sub !== 'string' || (role !== UserRole.USER && role !== UserRole.ADMIN)) {
+    const allowedRoles = Object.values(UserRole) as string[]
+    if (typeof sub !== 'string' || typeof role !== 'string' || !allowedRoles.includes(role)) {
       return null
     }
-    return { sub, role }
+    return { sub, role: role as UserRole }
   } catch {
     return null
   }

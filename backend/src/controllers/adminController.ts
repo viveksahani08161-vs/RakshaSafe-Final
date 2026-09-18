@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from 'express'
 import { Notification } from '../models/Notification.js'
 import { User } from '../models/User.js'
+import { badRequest } from '../utils/errors.js'
+import { isValidObjectId } from '../validators/emergencyContact.js'
 import { toSafeUser } from './authController.js'
 import { toSafeNotification } from './notificationController.js'
 
@@ -30,16 +32,25 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
   }
 }
 
-/** GET /api/admin/notifications — system-wide notification records, newest first (dashboard support). */
+/** GET /api/admin/notifications — system-wide notification records, newest first (dashboard support). Accepts an optional `?incidentId=` filter for per-incident monitoring. */
 export async function listNotificationsAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const page = Math.max(1, Number(req.query.page) || 1)
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(req.query.limit) || 20))
     const skip = (page - 1) * limit
+    const filter: Record<string, unknown> = {}
+
+    if (req.query.incidentId !== undefined) {
+      if (typeof req.query.incidentId !== 'string' || !isValidObjectId(req.query.incidentId)) {
+        next(badRequest('Invalid incident filter.', [{ field: 'incidentId', message: 'Must be a valid id.' }]))
+        return
+      }
+      filter.incidentId = req.query.incidentId
+    }
 
     const [docs, total] = await Promise.all([
-      Notification.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Notification.countDocuments(),
+      Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Notification.countDocuments(filter),
     ])
 
     res.json({

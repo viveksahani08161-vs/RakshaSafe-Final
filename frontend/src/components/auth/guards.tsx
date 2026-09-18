@@ -14,3 +14,10 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   if (initializing || !user || user.role !== 'ADMIN') return null
   return <>{children}</>
 }
+
+/** Render children only for responders (Shell handles redirects). */
+export function RequireResponder({ children }: { children: ReactNode }) {
+  const { user, initializing } = useAuth()
+  if (initializing || !user || user.role !== 'RESPONDER') return null
+  return <>{children}</>
+}

@@ -48,24 +48,33 @@ export function notificationStatusVariant(status: string): BadgeVariant {
 }
 
 /**
- * Friendly label derived from the stored in-app event marker
- * (`in-app:<event>` in providerResponse). Falls back to channel wording —
- * never invents an event that was not recorded.
+ * Returns a translation key for the notification event.
+ * The UI must call t() on the returned key.
+ * Falls back to a channel-based key — never invents an event that was not recorded.
  */
 export function eventLabel(n: NotificationItem): string {
   const raw = n.providerResponse ?? ''
-  if (raw.startsWith('in-app:incident.created')) return 'Incident created'
+  if (raw.startsWith('in-app:incident.created')) return 'notifications.event.incidentCreated'
   if (raw.startsWith('in-app:incident.status.changed:')) {
     const rest = raw.slice('in-app:incident.status.changed:'.length)
     const [from, to] = rest.split('->')
-    return from && to ? `Status changed: ${from} → ${to}` : 'Status changed'
+    return from && to ? 'notifications.event.statusChanged' : 'notifications.event.statusChanged'
   }
   if (raw.startsWith('in-app:incident.assigned:')) {
     const team = raw.slice('in-app:incident.assigned:'.length)
-    return team ? `Team assigned: ${team}` : 'Team assigned'
+    return team ? 'notifications.event.teamAssigned' : 'notifications.event.teamAssigned'
   }
-  if (n.channel === 'In-App') return 'Update'
-  return `${n.channel} notification`
+  if (raw.startsWith('in-app:incident.assignment.updated:')) {
+    const rest = raw.slice('in-app:incident.assignment.updated:'.length)
+    const [team, transition] = rest.split(':')
+    if (team && transition) {
+      const [from, to] = transition.split('->')
+      return from && to ? 'notifications.event.assignmentUpdated' : 'notifications.event.assignmentUpdate'
+    }
+    return 'notifications.event.assignmentUpdate'
+  }
+  if (n.channel === 'In-App') return 'notifications.event.inAppUpdate'
+  return 'notifications.event.channelNotification'
 }
 
 function cursorKey(userId: string): string {

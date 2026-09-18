@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ToastProvider } from './components/ui/Toast'
-import { RequireAdmin, RequireAuth } from './components/auth/guards'
+import { RequireAdmin, RequireAuth, RequireResponder } from './components/auth/guards'
 import { Header } from './components/layout/Header'
 import { Navbar, type NavItem } from './components/layout/Navbar'
 import { Badge } from './components/ui/Badge'
@@ -10,7 +10,8 @@ import { ActivityIcon, AlertTriangleIcon, BellIcon, BuildingIcon, FileTextIcon, 
 import { api } from './lib/api'
 import { useAuth } from './lib/auth-context'
 import { AuthProvider } from './lib/AuthProvider'
-import { navigateTo, useHashRoute, type AppRoute } from './lib/hash-route'
+import { navigateTo, parseHash, useHashRoute, type AppRoute } from './lib/hash-route'
+import { I18nProvider, useI18n } from './lib/i18n'
 import { getLastSeen, isUnread, type NotificationItem } from './lib/notifications'
 import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage'
 import { AdminIncidentDetailPage } from './pages/AdminIncidentDetailPage'
@@ -28,6 +29,7 @@ import { UnsafeReportsPage } from './pages/UnsafeReportsPage'
 import { DesignSystemShowcase } from './pages/DesignSystemShowcase'
 import { EmergencyContactsPage } from './pages/EmergencyContactsPage'
 import { LoginPage } from './pages/LoginPage'
+import { ResponderDashboardPage } from './pages/ResponderDashboardPage'
 import { SosPage } from './pages/SosPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -35,6 +37,7 @@ import { RegisterPage } from './pages/RegisterPage'
 function Shell() {
   const route = useHashRoute()
   const { user, initializing, busy, logout } = useAuth()
+  const { t } = useI18n()
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
@@ -62,11 +65,21 @@ function Shell() {
 
   useEffect(() => {
     if (initializing) return
-    if (!user && route !== '/login' && route !== '/register' && route !== '/design-system') {
+    // Decide from the live hash, not the possibly-stale route state: right
+    // after an auth transition a queued navigation may not have rendered yet,
+    // and redirecting on stale state would clobber it.
+    const live = parseHash()
+    if (!user && live !== '/login' && live !== '/register' && live !== '/design-system') {
       navigateTo('/login')
-    } else if (user && (route === '/login' || route === '/register')) {
+    } else if (user && (live === '/login' || live === '/register')) {
+      navigateTo(user.role === 'RESPONDER' ? '/responder' : '/dashboard')
+    } else if (user && user.role === 'RESPONDER' && (live === '/dashboard' || live === '/sos' || live.startsWith('/admin/'))) {
+      navigateTo('/responder')
+    } else if (user && live === '/responder' && user.role === 'USER') {
       navigateTo('/dashboard')
-    } else if (user && user.role !== 'ADMIN' && route.startsWith('/admin/')) {
+    } else if (user && live === '/responder' && user.role === 'ADMIN') {
+      navigateTo('/admin/dashboard')
+    } else if (user && user.role !== 'ADMIN' && live.startsWith('/admin/')) {
       navigateTo('/dashboard')
     }
   }, [initializing, user, route])
@@ -77,31 +90,34 @@ function Shell() {
   }
 
   const items: NavItem[] = []
-  if (user) {
-    items.push({ label: 'Dashboard', href: '#/dashboard', icon: <HomeIcon />, active: route === '/dashboard' })
-    items.push({ label: 'SOS', href: '#/sos', icon: <ShieldIcon />, active: route === '/sos' })
-    items.push({ label: 'Emergency Contacts', href: '#/contacts', icon: <PhoneIcon />, active: route === '/contacts' })
-    items.push({ label: 'Resources', href: '#/resources', icon: <MapPinIcon />, active: route === '/resources' })
-    items.push({ label: 'Report Unsafe', href: '#/report-unsafe', icon: <AlertTriangleIcon />, active: route === '/report-unsafe' })
-    items.push({ label: 'Notifications', href: '#/notifications', icon: <BellIcon />, active: route === '/notifications' })
-    items.push({ label: 'My Profile', href: '#/profile', icon: <HomeIcon />, active: route === '/profile' })
+  if (user && user.role === 'RESPONDER') {
+    items.push({ label: t('nav.assignments'), href: '#/responder', icon: <ShieldIcon />, active: route === '/responder' })
+    items.push({ label: t('nav.myProfile'), href: '#/profile', icon: <HomeIcon />, active: route === '/profile' })
+  } else if (user) {
+    items.push({ label: t('nav.dashboard'), href: '#/dashboard', icon: <HomeIcon />, active: route === '/dashboard' })
+    items.push({ label: t('nav.sos'), href: '#/sos', icon: <ShieldIcon />, active: route === '/sos' })
+    items.push({ label: t('nav.contacts'), href: '#/contacts', icon: <PhoneIcon />, active: route === '/contacts' })
+    items.push({ label: t('nav.resources'), href: '#/resources', icon: <MapPinIcon />, active: route === '/resources' })
+    items.push({ label: t('nav.reportUnsafe'), href: '#/report-unsafe', icon: <AlertTriangleIcon />, active: route === '/report-unsafe' })
+    items.push({ label: t('nav.notifications'), href: '#/notifications', icon: <BellIcon />, active: route === '/notifications' })
+    items.push({ label: t('nav.myProfile'), href: '#/profile', icon: <HomeIcon />, active: route === '/profile' })
     if (user.role === 'ADMIN') {
-      items.push({ label: 'Overview', href: '#/admin/dashboard', icon: <HomeIcon />, active: route === '/admin/dashboard' })
+      items.push({ label: t('nav.overview'), href: '#/admin/dashboard', icon: <HomeIcon />, active: route === '/admin/dashboard' })
       items.push({
-        label: 'Incidents',
+        label: t('nav.incidents'),
         href: '#/admin/incidents',
         icon: <ActivityIcon />,
         active: route === '/admin/incidents' || route === '/admin/incident-detail',
       })
-      items.push({ label: 'Facilities', href: '#/admin/facilities', icon: <BuildingIcon />, active: route === '/admin/facilities' })
-      items.push({ label: 'Teams', href: '#/admin/teams', icon: <UserIcon />, active: route === '/admin/teams' })
-      items.push({ label: 'Unsafe Areas', href: '#/admin/unsafe-reports', icon: <ListIcon />, active: route === '/admin/unsafe-reports' })
-      items.push({ label: 'Reports', href: '#/admin/reports', icon: <FileTextIcon />, active: route === '/admin/reports' })
-      items.push({ label: 'Users', href: '#/admin/users', icon: <UsersIcon />, active: route === '/admin/users' })
+      items.push({ label: t('nav.facilities'), href: '#/admin/facilities', icon: <BuildingIcon />, active: route === '/admin/facilities' })
+      items.push({ label: t('nav.teams'), href: '#/admin/teams', icon: <UserIcon />, active: route === '/admin/teams' })
+      items.push({ label: t('nav.unsafeAreas'), href: '#/admin/unsafe-reports', icon: <ListIcon />, active: route === '/admin/unsafe-reports' })
+      items.push({ label: t('nav.reports'), href: '#/admin/reports', icon: <FileTextIcon />, active: route === '/admin/reports' })
+      items.push({ label: t('nav.users'), href: '#/admin/users', icon: <UsersIcon />, active: route === '/admin/users' })
     }
   }
   items.push({
-    label: 'Design System',
+    label: t('nav.designSystem'),
     href: '#/design-system',
     icon: <ShieldIcon />,
     active: route === '/design-system',
@@ -119,7 +135,7 @@ function Shell() {
             <div className="flex items-center gap-2">
               <a
                 href="#/notifications"
-                aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+                aria-label={unreadCount > 0 ? t('notification.unreadCount', { count: unreadCount }) : t('nav.notifications')}
                 className="relative inline-flex size-10 items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100"
               >
                 <BellIcon className="size-5" />
@@ -130,21 +146,23 @@ function Shell() {
                 )}
               </a>
               <span className="hidden text-sm font-semibold text-ink-700 sm:inline">{user.name}</span>
-              <Badge variant={user.role === 'ADMIN' ? 'secondary' : 'primary'}>{user.role}</Badge>
+              <span className="hidden sm:inline">
+                <Badge variant={user.role === 'ADMIN' ? 'secondary' : 'primary'}>{user.role}</Badge>
+              </span>
               <Button size="sm" variant="outline" onClick={() => void handleLogout()} disabled={busy}>
-                Logout
+                {t('nav.logout')}
               </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <a href="#/login">
                 <Button size="sm" variant="ghost">
-                  Log in
+                  {t('auth.login')}
                 </Button>
               </a>
               <a href="#/register">
                 <Button size="sm" variant="primary">
-                  Register
+                  {t('auth.register')}
                 </Button>
               </a>
             </div>
@@ -154,7 +172,7 @@ function Shell() {
 
       <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
         {initializing ? (
-          <div className="flex justify-center py-20" role="status" aria-label="Loading">
+          <div className="flex justify-center py-20" role="status" aria-label={t('common.loading')}>
             <Spinner size="lg" />
           </div>
         ) : (
@@ -208,6 +226,12 @@ function RouteView({ route }: { route: AppRoute }) {
         <RequireAuth>
           <NotificationsPage />
         </RequireAuth>
+      )
+    case '/responder':
+      return (
+        <RequireResponder>
+          <ResponderDashboardPage />
+        </RequireResponder>
       )
     case '/admin/reports':
       return (
@@ -279,11 +303,13 @@ function RouteView({ route }: { route: AppRoute }) {
 
 function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <Shell />
-      </AuthProvider>
-    </ToastProvider>
+    <I18nProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Shell />
+        </AuthProvider>
+      </ToastProvider>
+    </I18nProvider>
   )
 }
 

@@ -58,8 +58,9 @@ export async function attachTeams(docs: IRescueAssignment[]): Promise<SafeAssign
 /**
  * Documented assignment workflow: ASSIGNED → EN_ROUTE → ON_SCENE → COMPLETED,
  * with CANCELLED allowed from any non-terminal status.
+ * Exported for reuse by the responder flow (same states, no duplicate system).
  */
-const ALLOWED_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
+export const ALLOWED_ASSIGNMENT_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
   [AssignmentStatus.ASSIGNED]: [AssignmentStatus.EN_ROUTE, AssignmentStatus.CANCELLED],
   [AssignmentStatus.EN_ROUTE]: [AssignmentStatus.ON_SCENE, AssignmentStatus.CANCELLED],
   [AssignmentStatus.ON_SCENE]: [AssignmentStatus.COMPLETED, AssignmentStatus.CANCELLED],
@@ -67,7 +68,7 @@ const ALLOWED_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
   [AssignmentStatus.CANCELLED]: [],
 }
 
-const ACTIVE_STATUSES = [AssignmentStatus.ASSIGNED, AssignmentStatus.EN_ROUTE, AssignmentStatus.ON_SCENE]
+export const ACTIVE_ASSIGNMENT_STATUSES = [AssignmentStatus.ASSIGNED, AssignmentStatus.EN_ROUTE, AssignmentStatus.ON_SCENE]
 
 function requireAdminId(req: Request): string {
   const adminId = req.auth?.userId
@@ -123,7 +124,7 @@ export async function createAssignment(req: Request, res: Response, next: NextFu
     const existing = await RescueAssignment.findOne({
       incidentId: incident._id,
       teamId: team._id,
-      status: { $in: ACTIVE_STATUSES },
+      status: { $in: ACTIVE_ASSIGNMENT_STATUSES },
     }).select('_id')
     if (existing) {
       next(conflict('This team already has an active assignment for the incident.'))
@@ -195,7 +196,7 @@ export async function updateAssignment(req: Request, res: Response, next: NextFu
       return
     }
     if (input.status !== undefined) {
-      const allowed = ALLOWED_TRANSITIONS[doc.status]
+      const allowed = ALLOWED_ASSIGNMENT_TRANSITIONS[doc.status]
       if (!allowed.includes(input.status)) {
         next(
           badRequest('Invalid assignment data.', [

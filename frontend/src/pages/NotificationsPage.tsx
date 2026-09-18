@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { useI18n } from '../lib/i18n'
 import {
   channelBadgeVariant,
   eventLabel,
@@ -26,6 +27,7 @@ function formatDateTime(value: string): string {
 
 export function NotificationsPage() {
   const { user } = useAuth()
+  const { t } = useI18n()
   const [items, setItems] = useState<NotificationItem[]>([])
   const [cursorUser, setCursorUser] = useState<string | null>(() => user?.id ?? null)
   const [cursor, setCursor] = useState<string | null>(() => (user ? getLastSeen(user.id) : null))
@@ -48,11 +50,11 @@ export function NotificationsPage() {
       setItems(res.notifications)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
-      setLoadError(err instanceof ApiError ? err.message : 'Could not load notifications.')
+      setLoadError(err instanceof ApiError ? err.message : t('notifications.errorTitle'))
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -75,29 +77,29 @@ export function NotificationsPage() {
     <div className="mx-auto grid w-full max-w-3xl gap-6">
       <Card>
         <CardHeader
-          title="Notifications"
-          description="Incident events for your account. External channels show their real delivery state."
+          title={t('notifications.title')}
+          description={t('notifications.description')}
           action={
             !loading && !loadError && unreadCount > 0 ? (
               <Button size="sm" variant="outline" onClick={markAllRead}>
-                Mark all read
+                {t('notifications.markAllRead')}
               </Button>
             ) : undefined
           }
         />
         <CardBody>
           {loading && (
-            <div className="space-y-2" aria-label="Loading notifications">
+            <div className="space-y-2" aria-label={t('notifications.loading')}>
               <Skeleton lines={4} />
             </div>
           )}
           {!loading && loadError && (
-            <ErrorState title="Could not load notifications" description={loadError} onRetry={() => void load()} />
+            <ErrorState title={t('notifications.errorTitle')} description={loadError} onRetry={() => void load()} />
           )}
           {!loading && !loadError && items.length === 0 && (
             <EmptyState
-              title="No notifications yet"
-              description="Incident creation, status changes and assignments will appear here."
+              title={t('notifications.emptyTitle')}
+              description={t('notifications.emptyDescription')}
             />
           )}
           {!loading && !loadError && items.length > 0 && (
@@ -127,8 +129,8 @@ export function NotificationsPage() {
                         </div>
                         <p className="mt-1 text-sm text-ink-500">
                           {n.channel === 'In-App'
-                            ? 'In-app notification'
-                            : `${n.channel} ${n.contactName ? `to ${n.contactName}` : ''}`.trim()}
+                            ? t('notifications.inApp')
+                            : t('notifications.channelTo', { channel: n.channel, contactName: n.contactName ?? '' }).trim()}
                           {n.incident && (
                             <>
                               {' '}·{' '}
@@ -150,7 +152,7 @@ export function NotificationsPage() {
                         </div>
                         {n.status === 'NOT_CONFIGURED' && (
                           <p className="mt-1 text-xs text-ink-400">
-                            No {n.channel} provider is configured — nothing was sent.
+                            {t('notifications.notConfigured', { channel: n.channel })}
                           </p>
                         )}
                       </div>
@@ -161,9 +163,8 @@ export function NotificationsPage() {
             </ul>
           )}
           {!loading && !loadError && items.length > 0 && (
-            <Alert variant="info" title="About delivery">
-              In-app notifications are delivered by this app itself. Email, SMS and WhatsApp
-              require a configured provider — until then they stay NOT_CONFIGURED, never "sent".
+            <Alert variant="info" title={t('notifications.aboutDelivery.title')}>
+              {t('notifications.aboutDelivery.body')}
             </Alert>
           )}
         </CardBody>

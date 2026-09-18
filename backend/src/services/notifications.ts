@@ -25,6 +25,7 @@ export type IncidentEvent =
   | { kind: 'incident.created' }
   | { kind: 'incident.status.changed'; from: string; to: string }
   | { kind: 'incident.assigned'; teamName: string }
+  | { kind: 'incident.assignment.updated'; teamName: string; from: string; to: string }
 
 function eventLabel(event: IncidentEvent): string {
   switch (event.kind) {
@@ -34,6 +35,8 @@ function eventLabel(event: IncidentEvent): string {
       return `incident.status.changed:${event.from}->${event.to}`
     case 'incident.assigned':
       return `incident.assigned:${event.teamName}`
+    case 'incident.assignment.updated':
+      return `incident.assignment.updated:${event.teamName}:${event.from}->${event.to}`
   }
 }
 
