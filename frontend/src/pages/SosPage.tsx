@@ -1,7 +1,17 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
+import { useI18n } from '../lib/i18n'
 import { describeOutcome, requestDeviceLocation, type DeviceCoords, type LocationOutcome } from '../lib/geolocation'
 import { INCIDENT_CATEGORIES, formatDateTime, statusBadgeVariant, type Incident } from '../lib/incidents'
+import {
+  DEFAULT_NEARBY_RADIUS_KM,
+  getNearbyEnvelope,
+  getNearbyResources,
+  type NearbyResource,
+} from '../lib/resources'
+import { useEnrichment } from '../lib/useEnrichment'
+import { LocationEnrichment } from '../components/enrichment/LocationEnrichment'
+import { NearbyResourcesSection } from '../components/resources/NearbyResourcesSection'
 import { useToast } from '../components/ui/toast-context'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -58,6 +68,7 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
 }
 
 export function SosPage() {
+  const { t } = useI18n()
   const { notify } = useToast()
   const [step, setStep] = useState<Step>('details')
   const [incidentType, setIncidentType] = useState('')
@@ -71,9 +82,96 @@ export function SosPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [created, setCreated] = useState<Incident | null>(null)
+  const [nearby, setNearby] = useState<NearbyResource[]>([])
+  const [nearbyLoading, setNearbyLoading] = useState(false)
+  const [nearbyError, setNearbyError] = useState<string | null>(null)
+  const [doneExternalNotice, setDoneExternalNotice] = useState<string | null>(null)
+  const [locNearby, setLocNearby] = useState<NearbyResource[]>([])
+  const [locNearbyLoading, setLocNearbyLoading] = useState(false)
+  const [locNearbyError, setLocNearbyError] = useState<string | null>(null)
+  const [locExternalNotice, setLocExternalNotice] = useState<string | null>(null)
 
   const coords: DeviceCoords | null =
     outcome?.state === 'available' && !skipped ? outcome.coords : null
+
+  const doneEnrichment = useEnrichment(
+    coords?.latitude ?? null,
+    coords?.longitude ?? null,
+    step === 'done' && created !== null,
+  )
+
+  function externalNoticeFor(external: { enabled: boolean; status: string } | undefined): string | null {
+    return external && external.enabled && external.status === 'error'
+      ? t('nearby.externalUnavailable')
+      : null
+  }
+
+  useEffect(() => {
+    if (step !== 'done' || !created || !coords) return
+    const point: DeviceCoords = coords
+    const controller = new AbortController()
+    async function loadDoneNearby(): Promise<void> {
+      setNearbyLoading(true)
+      setNearbyError(null)
+      setDoneExternalNotice(null)
+      try {
+        const res = await getNearbyEnvelope(
+          point.latitude,
+          point.longitude,
+          DEFAULT_NEARBY_RADIUS_KM,
+          controller.signal,
+        )
+        if (controller.signal.aborted) return
+        setNearby(res.resources)
+        setDoneExternalNotice(externalNoticeFor(res.external))
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        if (!controller.signal.aborted) {
+          setNearbyError(err instanceof ApiError ? err.message : t('nearby.loadError'))
+        }
+      } finally {
+        if (!controller.signal.aborted) setNearbyLoading(false)
+      }
+    }
+    void loadDoneNearby()
+    return () => controller.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, created])
+
+  async function fetchLocationNearby(latitude: number, longitude: number, signal?: AbortSignal): Promise<void> {
+    setLocNearbyLoading(true)
+    setLocNearbyError(null)
+    setLocExternalNotice(null)
+    try {
+      const res = await getNearbyEnvelope(latitude, longitude, DEFAULT_NEARBY_RADIUS_KM, signal)
+      if (signal?.aborted) return
+      setLocNearby(res.resources)
+      setLocExternalNotice(externalNoticeFor(res.external))
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      if (!signal?.aborted) {
+        setLocNearbyError(err instanceof ApiError ? err.message : t('nearby.loadError'))
+      }
+    } finally {
+      if (!signal?.aborted) setLocNearbyLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (step !== 'location' || !coords) {
+      if (!coords) {
+        setLocNearby([])
+        setLocNearbyError(null)
+        setLocNearbyLoading(false)
+        setLocExternalNotice(null)
+      }
+      return
+    }
+    const controller = new AbortController()
+    void fetchLocationNearby(coords.latitude, coords.longitude, controller.signal)
+    return () => controller.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, coords])
 
   function validateDetails(): boolean {
     const errors: FieldErrors = {}
@@ -150,6 +248,14 @@ export function SosPage() {
     setSkipped(false)
     setSubmitError(null)
     setCreated(null)
+    setNearby([])
+    setNearbyError(null)
+    setNearbyLoading(false)
+    setDoneExternalNotice(null)
+    setLocNearby([])
+    setLocNearbyError(null)
+    setLocNearbyLoading(false)
+    setLocExternalNotice(null)
   }
 
   return (
@@ -259,9 +365,7 @@ export function SosPage() {
                         ` (±${Math.round(outcome.coords.accuracy)} m)`}
                     </span>
                   )}
-                  {outcome.state === 'denied' && (
-                    <span>Enable location permission in your browser settings, then retry — or continue without coordinates.</span>
-                  )}
+                  {outcome.state === 'denied' && <span>{t('nearby.permissionRequired')}</span>}
                 </Alert>
               )}
               {skipped && (
@@ -271,7 +375,10 @@ export function SosPage() {
               )}
               {(outcome || skipped) && !acquiring && (
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  {outcome?.state !== 'available' && !skipped && (
+                  {outcome && outcome.state === 'denied' && !skipped && (
+                    <Button onClick={() => void acquireLocation()}>{t('nearby.allowLocation')}</Button>
+                  )}
+                  {(!outcome || (outcome.state !== 'available' && outcome.state !== 'denied')) && !skipped && (
                     <Button variant="outline" onClick={() => void acquireLocation()}>
                       Retry location
                     </Button>
@@ -311,6 +418,30 @@ export function SosPage() {
                   Review emergency request
                 </Button>
               </div>
+              {coords && !skipped && (
+                <div className="space-y-3 border-t border-ink-200/70 pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-base font-extrabold text-ink-950">{t('nearby.yourLocation')}</h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={locNearbyLoading}
+                      onClick={() => void fetchLocationNearby(coords.latitude, coords.longitude)}
+                    >
+                      {t('nearby.refresh')}
+                    </Button>
+                  </div>
+                  <NearbyResourcesSection
+                    resources={locNearby}
+                    loading={locNearbyLoading}
+                    loadError={locNearbyError}
+                    onRetry={() => void fetchLocationNearby(coords.latitude, coords.longitude)}
+                    radiusKm={DEFAULT_NEARBY_RADIUS_KM}
+                    grouped
+                    notice={locExternalNotice}
+                  />
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>
@@ -346,7 +477,7 @@ export function SosPage() {
                 </Alert>
               )}
               <div className="flex flex-col items-center gap-3 pt-1">
-                <SosButton size="md" label="Confirm SOS" onClick={() => void submitSos()} pulse={!submitting} />
+                <SosButton size="md" label="Confirm SOS" onClick={() => void submitSos()} pulse={!submitting} disabled={submitting} />
                 {submitting && (
                   <span className="flex items-center gap-2 text-sm text-ink-500">
                     <Spinner size="sm" /> Submitting…
@@ -394,6 +525,39 @@ export function SosPage() {
             </div>
           </CardBody>
         </Card>
+      )}
+
+      {step === 'done' && created && coords && (
+        <div className="mt-6 space-y-6 text-left">
+          <LocationEnrichment
+            latitude={coords.latitude}
+            longitude={coords.longitude}
+            accuracy={coords.accuracy}
+            enrichment={doneEnrichment}
+          />
+          <NearbyResourcesSection
+            resources={nearby}
+            loading={nearbyLoading}
+            loadError={nearbyError}
+            grouped
+            notice={doneExternalNotice}
+            onRetry={() => {
+              setNearbyLoading(true)
+              setNearbyError(null)
+              getNearbyResources(coords.latitude, coords.longitude, DEFAULT_NEARBY_RADIUS_KM)
+                .then((items) => {
+                  setNearby(items)
+                  setNearbyLoading(false)
+                })
+                .catch((err: unknown) => {
+                  setNearbyError(err instanceof ApiError ? err.message : t('nearby.loadError'))
+                  setNearbyLoading(false)
+                })
+            }}
+            radiusKm={DEFAULT_NEARBY_RADIUS_KM}
+            extraNote={t('nearby.awaitingAssignment')}
+          />
+        </div>
       )}
     </div>
   )

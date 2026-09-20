@@ -28,6 +28,7 @@ export {
   MenuIcon,
   PhoneIcon,
   SearchIcon,
+  ShieldCheckIcon,
   ShieldIcon,
   UsersIcon,
   XCircleIcon,

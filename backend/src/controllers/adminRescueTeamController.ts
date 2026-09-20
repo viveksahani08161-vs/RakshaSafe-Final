@@ -1,11 +1,12 @@
 import type { NextFunction, Request, Response } from 'express'
 import { AdminLog } from '../models/AdminLog.js'
+import { Location } from '../models/Location.js'
 import { RescueTeam } from '../models/RescueTeam.js'
 import { User, UserRole } from '../models/User.js'
 import { badRequest, conflict, notFoundError, unauthorized } from '../utils/errors.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
 import { validateRescueTeamCreate, validateRescueTeamUpdate } from '../validators/rescueTeam.js'
-import { buildTeamFilter, toSafeTeam } from './rescueTeamController.js'
+import { buildTeamFilter, withTeamLocation, withTeamLocations } from './rescueTeamController.js'
 
 const MAX_LIMIT = 50
 
@@ -13,6 +14,37 @@ function requireAdminId(req: Request): string {
   const adminId = req.auth?.userId
   if (!adminId) throw unauthorized('Authentication required.')
   return adminId
+}
+
+/**
+ * Resolve an optional team location the same way facilities do: an inline
+ * `location` creates a Locations record, a `locationId` references an
+ * existing one. Absent entirely means "no location" — never fabricated.
+ */
+async function resolveLocationId(
+  locationId: string | undefined,
+  location:
+    | {
+        latitude: number
+        longitude: number
+        address?: string
+        city?: string
+        state?: string
+        country?: string
+        accuracy?: number
+      }
+    | undefined,
+): Promise<{ locationId?: string; issue?: { field: string; message: string } }> {
+  if (location) {
+    const created = await Location.create(location)
+    return { locationId: String(created._id) }
+  }
+  if (locationId) {
+    const exists = await Location.findById(locationId).select('_id').lean()
+    if (!exists) return { issue: { field: 'locationId', message: 'Location not found.' } }
+    return { locationId }
+  }
+  return {}
 }
 
 async function logAdmin(req: Request, adminId: string, action: string, targetId: string, details: string): Promise<void> {
@@ -36,10 +68,24 @@ export async function createTeam(req: Request, res: Response, next: NextFunction
       return
     }
 
-    const doc = await RescueTeam.create(input)
+    const resolved = await resolveLocationId(input.locationId, input.location)
+    if (resolved.issue) {
+      next(badRequest('Invalid team data.', [resolved.issue]))
+      return
+    }
+
+    const doc = await RescueTeam.create({
+      name: input.name,
+      teamType: input.teamType,
+      phone: input.phone,
+      ...(input.email ? { email: input.email } : {}),
+      isActive: input.isActive,
+      ...(input.specializations ? { specializations: input.specializations } : {}),
+      ...(resolved.locationId ? { locationId: resolved.locationId } : {}),
+    })
     await logAdmin(req, adminId, 'rescueteam.create', String(doc._id), `${doc.teamType}: ${doc.name}`)
 
-    res.status(201).json({ success: true, data: { team: toSafeTeam(doc) } })
+    res.status(201).json({ success: true, data: { team: await withTeamLocation(doc) } })
   } catch (err) {
     next(err)
   }
@@ -72,7 +118,7 @@ export async function listTeamsAdmin(req: Request, res: Response, next: NextFunc
     res.json({
       success: true,
       data: {
-        teams: docs.map(toSafeTeam),
+        teams: await withTeamLocations(docs),
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       },
     })
@@ -94,7 +140,7 @@ export async function getTeamAdmin(req: Request, res: Response, next: NextFuncti
       next(notFoundError('Rescue team not found.'))
       return
     }
-    res.json({ success: true, data: { team: toSafeTeam(doc) } })
+    res.json({ success: true, data: { team: await withTeamLocation(doc) } })
   } catch (err) {
     next(err)
   }
@@ -130,10 +176,18 @@ export async function updateTeam(req: Request, res: Response, next: NextFunction
     if ('email' in input) doc.email = input.email
     if (input.isActive !== undefined) doc.isActive = input.isActive
     if (input.specializations !== undefined) doc.specializations = input.specializations
+    if (input.locationId !== undefined || input.location !== undefined) {
+      const resolved = await resolveLocationId(input.locationId, input.location)
+      if (resolved.issue ?? !resolved.locationId) {
+        next(badRequest('Invalid team data.', [resolved.issue ?? { field: 'location', message: 'A valid location is required.' }]))
+        return
+      }
+      doc.set('locationId', resolved.locationId)
+    }
     await doc.save()
     await logAdmin(req, adminId, 'rescueteam.update', String(doc._id), doc.name)
 
-    res.json({ success: true, data: { team: toSafeTeam(doc) } })
+    res.json({ success: true, data: { team: await withTeamLocation(doc) } })
   } catch (err) {
     next(err)
   }
@@ -222,7 +276,7 @@ export async function addTeamMember(req: Request, res: Response, next: NextFunct
     await team.save()
     await logAdmin(req, adminId, 'rescueteam.member.add', String(team._id), `${team.name} <- ${user.email}`)
 
-    res.status(201).json({ success: true, data: { team: toSafeTeam(team) } })
+    res.status(201).json({ success: true, data: { team: await withTeamLocation(team) } })
   } catch (err) {
     next(err)
   }
@@ -254,7 +308,7 @@ export async function removeTeamMember(req: Request, res: Response, next: NextFu
     await team.save()
     await logAdmin(req, adminId, 'rescueteam.member.remove', String(team._id), `removed ${userId}`)
 
-    res.json({ success: true, data: { team: toSafeTeam(team) } })
+    res.json({ success: true, data: { team: await withTeamLocation(team) } })
   } catch (err) {
     next(err)
   }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { useI18n } from '../lib/i18n'
 import { TEAM_TYPES, type RescueTeam } from '../lib/resources'
 import { useToast } from '../components/ui/toast-context'
 import { Alert } from '../components/ui/Alert'
@@ -47,6 +48,12 @@ const EMPTY_FORM = {
   email: '',
   isActive: true,
   specializations: '',
+  address: '',
+  city: '',
+  state: '',
+  country: '',
+  latitude: '',
+  longitude: '',
 }
 
 function toFieldErrors(details: unknown): FieldErrors {
@@ -73,6 +80,7 @@ function statusVariant(active: boolean): BadgeVariant {
 }
 
 export function AdminTeamsPage() {
+  const { t } = useI18n()
   const { notify } = useToast()
   const [data, setData] = useState<ListResponse | null>(null)
   const [page, setPage] = useState(1)
@@ -150,6 +158,12 @@ export function AdminTeamsPage() {
       email: team.email ?? '',
       isActive: team.isActive,
       specializations: team.specializations.join(', '),
+      address: team.location?.address ?? '',
+      city: team.location?.city ?? '',
+      state: team.location?.state ?? '',
+      country: team.location?.country ?? '',
+      latitude: team.location ? String(team.location.latitude) : '',
+      longitude: team.location ? String(team.location.longitude) : '',
     })
     setFieldErrors({})
     setFormError(null)
@@ -161,6 +175,47 @@ export function AdminTeamsPage() {
       .split(',')
       .map((s) => s.trim())
       .filter((s) => s !== '')
+  }
+
+  /**
+   * Build the optional inline location payload. Returns undefined when the
+   * fields are empty (create: no location; edit: preserve the stored one)
+   * or when nothing changed versus the loaded team (edit: preserve).
+   * Numbers are parsed here so the backend receives real numbers, never
+   * numeric strings; invalid input is rejected server-side with field errors.
+   */
+  function buildLocationInput(): Record<string, unknown> | undefined {
+    const address = form.address.trim()
+    const city = form.city.trim()
+    const state = form.state.trim()
+    const country = form.country.trim()
+    const latRaw = form.latitude.trim()
+    const lngRaw = form.longitude.trim()
+    if (modal?.mode === 'edit' && modal.team) {
+      const existing = modal.team.location
+      const same =
+        (existing?.address ?? '') === address &&
+        (existing?.city ?? '') === city &&
+        (existing?.state ?? '') === state &&
+        (existing?.country ?? '') === country &&
+        (existing ? String(existing.latitude) : '') === latRaw &&
+        (existing ? String(existing.longitude) : '') === lngRaw
+      if (same) return undefined
+      if (!existing && latRaw === '' && lngRaw === '' && !address && !city && !state && !country) {
+        return undefined
+      }
+    } else if (latRaw === '' && lngRaw === '' && !address && !city && !state && !country) {
+      return undefined
+    }
+    const location: Record<string, unknown> = {
+      latitude: latRaw === '' ? undefined : Number(latRaw),
+      longitude: lngRaw === '' ? undefined : Number(lngRaw),
+    }
+    if (address) location.address = address
+    if (city) location.city = city
+    if (state) location.state = state
+    if (country) location.country = country
+    return location
   }
 
   async function onSubmit(e: FormEvent): Promise<void> {
@@ -178,6 +233,8 @@ export function AdminTeamsPage() {
         specializations: parseSpecializations(form.specializations),
       }
       if (form.email.trim() !== '') body.email = form.email.trim()
+      const locationInput = buildLocationInput()
+      if (locationInput) body.location = locationInput
       if (modal.mode === 'create') {
         await api('/admin/rescue-teams', { method: 'POST', body })
         notify({ title: 'Rescue team created', description: form.name.trim(), variant: 'success' })
@@ -456,6 +513,20 @@ export function AdminTeamsPage() {
             error={fieldErrors.specializations}
             onChange={(e) => setForm((f) => ({ ...f, specializations: e.target.value }))}
           />
+          <fieldset className="space-y-3 rounded-xl border border-ink-200/70 p-4">
+            <legend className="px-1 text-sm font-bold text-ink-900">{t('admin.team.location.title')}</legend>
+            <p className="text-xs leading-relaxed text-ink-500">{t('admin.team.location.hint')}</p>
+            <Input label={t('admin.team.location.address')} name="team-address" value={form.address} error={fieldErrors['location.address']} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Input label={t('admin.team.location.city')} name="team-city" value={form.city} error={fieldErrors['location.city']} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+              <Input label={t('admin.team.location.state')} name="team-state" value={form.state} error={fieldErrors['location.state']} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} />
+              <Input label={t('admin.team.location.country')} name="team-country" value={form.country} error={fieldErrors['location.country']} onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label={t('admin.team.location.latitude')} name="team-latitude" inputMode="decimal" value={form.latitude} error={fieldErrors['location.latitude']} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
+              <Input label={t('admin.team.location.longitude')} name="team-longitude" inputMode="decimal" value={form.longitude} error={fieldErrors['location.longitude']} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
+            </div>
+          </fieldset>
           <Checkbox label="Active (visible to users)" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
           <div className="flex flex-wrap gap-3">
             <Button type="submit" loading={saving} disabled={saving}>

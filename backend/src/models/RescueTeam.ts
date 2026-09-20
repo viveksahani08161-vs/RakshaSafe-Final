@@ -17,6 +17,12 @@ export interface IRescueTeam extends Document {
   isActive: boolean
   specializations?: string[]
   members: Types.ObjectId[]
+  /**
+   * Optional link to the shared Locations collection. Absent for teams
+   * created before location support or for teams without a fixed base —
+   * never fabricated, never defaulted.
+   */
+  locationId?: Types.ObjectId
   createdAt: Date
   updatedAt: Date
 }
@@ -30,6 +36,7 @@ const RescueTeamSchema = new Schema<IRescueTeam>(
     isActive: { type: Boolean, required: true, default: true },
     specializations: { type: [String], default: [] },
     members: { type: [Schema.Types.ObjectId], ref: 'Users', default: [] },
+    locationId: { type: Schema.Types.ObjectId, ref: 'Locations', index: true },
   },
   { timestamps: true },
 )

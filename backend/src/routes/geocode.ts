@@ -1,4 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import { reverseGeocode } from '../services/geocoding.js'
+import { validateNearbyQuery } from '../validators/nearby.js'
 
 const router = Router()
 
@@ -132,6 +134,28 @@ const response = await fetch(
         error: 'Location search is temporarily unavailable. Please try again or use GPS.',
       })
     }
+  }),
+)
+
+/**
+ * Reverse-geocode valid GPS coordinates into a readable address using
+ * OpenStreetMap Nominatim (server-side, rate-limited, cached).
+ * Query parameters: lat, lng (required). Returns address or null —
+ * callers keep latitude/longitude and show "unavailable" states.
+ * Same public access policy as the forward-geocode sibling route.
+ */
+router.get(
+  '/reverse',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { input, issues } = validateNearbyQuery(req.query)
+    if (!input || issues) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid latitude (-90 to 90) and longitude (-180 to 180) are required.',
+      })
+    }
+    const address = await reverseGeocode(input.latitude, input.longitude)
+    return res.json({ success: true, data: { address } })
   }),
 )
 

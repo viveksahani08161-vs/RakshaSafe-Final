@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
-import { isEmail, isPhone, type ValidationIssue } from './auth.js'
+import { isEmail, type ValidationIssue } from './auth.js'
+import { normalizeIndianPhone, isValidIndianPhone } from '../utils/phone.js'
 
 export function isValidObjectId(value: unknown): value is string {
   return typeof value === 'string' && mongoose.Types.ObjectId.isValid(value)
@@ -12,6 +13,7 @@ export interface ContactCreateInput {
   relationship?: string
   notifyViaSms: boolean
   notifyViaEmail: boolean
+  isPrimary?: boolean
 }
 
 export interface ContactUpdateInput {
@@ -21,6 +23,7 @@ export interface ContactUpdateInput {
   relationship?: string
   notifyViaSms?: boolean
   notifyViaEmail?: boolean
+  isPrimary?: boolean
 }
 
 function checkName(value: unknown, issues: ValidationIssue[]): string | undefined {
@@ -34,11 +37,12 @@ function checkName(value: unknown, issues: ValidationIssue[]): string | undefine
 
 function checkPhone(value: unknown, issues: ValidationIssue[]): string | undefined {
   const phone = typeof value === 'string' ? value.trim() : ''
-  if (!isPhone(phone)) {
-    issues.push({ field: 'phone', message: 'A valid phone number is required.' })
+  const normalized = normalizeIndianPhone(phone)
+  if (!normalized) {
+    issues.push({ field: 'phone', message: 'Enter a valid phone number.' })
     return undefined
   }
-  return phone
+  return normalized
 }
 
 function checkEmail(value: unknown, issues: ValidationIssue[]): string | undefined {
@@ -65,7 +69,7 @@ function checkRelationship(value: unknown, issues: ValidationIssue[]): string | 
 
 function checkBoolean(
   value: unknown,
-  field: 'notifyViaSms' | 'notifyViaEmail',
+  field: 'notifyViaSms' | 'notifyViaEmail' | 'isPrimary',
   issues: ValidationIssue[],
 ): boolean | undefined {
   if (typeof value !== 'boolean') {
@@ -87,6 +91,7 @@ export function validateContactCreate(
   const relationship = checkRelationship(b.relationship, issues)
   const notifyViaSms = checkBoolean(b.notifyViaSms, 'notifyViaSms', issues)
   const notifyViaEmail = checkBoolean(b.notifyViaEmail, 'notifyViaEmail', issues)
+  const isPrimary = checkBoolean(b.isPrimary, 'isPrimary', issues)
 
   if (issues.length > 0) return { issues }
   return {
@@ -97,6 +102,7 @@ export function validateContactCreate(
       ...(relationship ? { relationship } : {}),
       notifyViaSms: notifyViaSms as boolean,
       notifyViaEmail: notifyViaEmail as boolean,
+      ...(isPrimary !== undefined ? { isPrimary: isPrimary as boolean } : {}),
     },
   }
 }
@@ -140,6 +146,10 @@ export function validateContactUpdate(
     const v = checkBoolean(b.notifyViaEmail, 'notifyViaEmail', issues)
     if (v !== undefined) input.notifyViaEmail = v
   }
+  if (b.isPrimary !== undefined) {
+    const v = checkBoolean(b.isPrimary, 'isPrimary', issues)
+    if (v !== undefined) input.isPrimary = v
+  }
 
   if (issues.length > 0) return { issues }
   if (Object.keys(input).length === 0) {
@@ -148,7 +158,7 @@ export function validateContactUpdate(
         {
           field: 'body',
           message:
-            'At least one field (name, phone, email, relationship, notifyViaSms, notifyViaEmail) must be provided.',
+            'At least one field (name, phone, email, relationship, notifyViaSms, notifyViaEmail, isPrimary) must be provided.',
         },
       ],
     }

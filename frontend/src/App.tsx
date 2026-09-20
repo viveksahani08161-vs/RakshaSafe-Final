@@ -18,6 +18,7 @@ import { AdminIncidentDetailPage } from './pages/AdminIncidentDetailPage'
 import { AdminIncidentsPage } from './pages/AdminIncidentsPage'
 import { AdminTeamsPage } from './pages/AdminTeamsPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
+import { AdminUserDetailPage } from './pages/AdminUserDetailPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminUnsafeReportsPage } from './pages/AdminUnsafeReportsPage'
@@ -26,7 +27,6 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { ResourcesPage } from './pages/ResourcesPage'
 import { UnsafeReportsPage } from './pages/UnsafeReportsPage'
-import { DesignSystemShowcase } from './pages/DesignSystemShowcase'
 import { EmergencyContactsPage } from './pages/EmergencyContactsPage'
 import { LoginPage } from './pages/LoginPage'
 import { ResponderDashboardPage } from './pages/ResponderDashboardPage'
@@ -39,6 +39,18 @@ function Shell() {
   const { user, initializing, busy, logout } = useAuth()
   const { t } = useI18n()
   const [unreadCount, setUnreadCount] = useState(0)
+
+  const getRoleLabel = (role: 'USER' | 'ADMIN' | 'RESPONDER') => {
+    switch (role) {
+      case 'ADMIN':
+        return t('role.admin')
+      case 'RESPONDER':
+        return t('role.responder')
+      default:
+        return t('role.user')
+    }
+  }
+  const roleLabel = user ? getRoleLabel(user.role) : ''
 
   useEffect(() => {
     // The bell unmounts on logout, so no synchronous reset is needed here;
@@ -69,7 +81,7 @@ function Shell() {
     // after an auth transition a queued navigation may not have rendered yet,
     // and redirecting on stale state would clobber it.
     const live = parseHash()
-    if (!user && live !== '/login' && live !== '/register' && live !== '/design-system') {
+    if (!user && live !== '/login' && live !== '/register') {
       navigateTo('/login')
     } else if (user && (live === '/login' || live === '/register')) {
       navigateTo(user.role === 'RESPONDER' ? '/responder' : '/dashboard')
@@ -116,15 +128,9 @@ function Shell() {
       items.push({ label: t('nav.users'), href: '#/admin/users', icon: <UsersIcon />, active: route === '/admin/users' })
     }
   }
-  items.push({
-    label: t('nav.designSystem'),
-    href: '#/design-system',
-    icon: <ShieldIcon />,
-    active: route === '/design-system',
-  })
 
   return (
-    <div className="min-h-svh bg-cream-100">
+    <div className="min-h-svh">
       <Header
         nav={<Navbar items={items} />}
         showNotifications={false}
@@ -147,7 +153,7 @@ function Shell() {
               </a>
               <span className="hidden text-sm font-semibold text-ink-700 sm:inline">{user.name}</span>
               <span className="hidden sm:inline">
-                <Badge variant={user.role === 'ADMIN' ? 'secondary' : 'primary'}>{user.role}</Badge>
+                <Badge variant={user.role === 'ADMIN' ? 'secondary' : 'primary'}>{roleLabel}</Badge>
               </span>
               <Button size="sm" variant="outline" onClick={() => void handleLogout()} disabled={busy}>
                 {t('nav.logout')}
@@ -293,8 +299,12 @@ function RouteView({ route }: { route: AppRoute }) {
           <AdminUsersPage />
         </RequireAdmin>
       )
-    case '/design-system':
-      return <DesignSystemShowcase />
+    case '/admin/user-detail':
+      return (
+        <RequireAdmin>
+          <AdminUserDetailPage />
+        </RequireAdmin>
+      )
     case '/login':
     default:
       return <LoginPage />

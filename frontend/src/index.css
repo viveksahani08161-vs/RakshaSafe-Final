@@ -142,10 +142,26 @@ html {
 body {
   margin: 0;
   background-color: var(--color-cream-100);
+  /* Premium calm atmosphere: clean cream center, one faint golden glow
+     top-left, one faint sky glow top-right, warm breath at the bottom.
+     Static gradients only — no images, no animation, no extra DOM. */
+  background-image:
+    radial-gradient(44rem 32rem at 6% -8%, rgb(212 157 38 / 0.07), transparent 62%),
+    radial-gradient(38rem 30rem at 98% 10%, rgb(53 153 216 / 0.06), transparent 62%),
+    radial-gradient(34rem 26rem at 50% 116%, rgb(212 157 38 / 0.05), transparent 62%);
+  background-attachment: fixed;
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobile/tablet: simplify to a single faint warm glow for performance. */
+@media (max-width: 768px) {
+  body {
+    background-image:
+      radial-gradient(26rem 20rem at 50% -10%, rgb(212 157 38 / 0.06), transparent 65%);
+  }
 }
 
 /* Native form controls keep a consistent brand focus ring */

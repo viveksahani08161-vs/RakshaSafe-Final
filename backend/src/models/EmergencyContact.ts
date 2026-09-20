@@ -9,6 +9,7 @@ export interface IEmergencyContact extends Document {
   relationship?: string
   notifyViaSms: boolean
   notifyViaEmail: boolean
+  isPrimary: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -22,8 +23,15 @@ const EmergencyContactSchema = new Schema<IEmergencyContact>(
     relationship: { type: String, trim: true },
     notifyViaSms: { type: Boolean, required: true, default: false },
     notifyViaEmail: { type: Boolean, required: true, default: false },
+    isPrimary: { type: Boolean, required: true, default: false },
   },
   { timestamps: true },
+)
+
+// Ensure only one primary contact per user
+EmergencyContactSchema.index(
+  { userId: 1, isPrimary: 1 },
+  { unique: true, partialFilterExpression: { isPrimary: true } },
 )
 
 export const EmergencyContact = mongoose.model<IEmergencyContact>(

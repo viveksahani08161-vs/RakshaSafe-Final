@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { useI18n } from '../lib/i18n'
 import { useHashIncidentId } from '../lib/hash-route'
+import { getAdminIncidentNearbyResources, type NearbyResource } from '../lib/resources'
+import { NearbyResourcesSection } from '../components/resources/NearbyResourcesSection'
 import {
   ASSIGNMENT_STATUSES,
   assignmentBadgeVariant,
@@ -67,6 +70,7 @@ function priorityBadgeVariant(priority: string): BadgeVariant {
 }
 
 export function AdminIncidentDetailPage() {
+  const { t } = useI18n()
   const incidentId = useHashIncidentId()
   const { notify } = useToast()
   const [detail, setDetail] = useState<DetailResponse | null>(null)
@@ -87,6 +91,37 @@ export function AdminIncidentDetailPage() {
   const [rowSaving, setRowSaving] = useState<Record<string, boolean>>({})
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
   const [assessments, setAssessments] = useState<RiskAssessment[]>([])
+  const [nearby, setNearby] = useState<NearbyResource[]>([])
+  const [nearbyLoading, setNearbyLoading] = useState(false)
+  const [nearbyError, setNearbyError] = useState<string | null>(null)
+  const [nearbyNotice, setNearbyNotice] = useState<string | null>(null)
+
+  const loadNearby = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!incidentId) return
+      setNearbyLoading(true)
+      setNearbyError(null)
+      setNearbyNotice(null)
+      try {
+        const res = await getAdminIncidentNearbyResources(incidentId, signal)
+        if (signal?.aborted) return
+        setNearby(res.resources)
+        setNearbyNotice(
+          res.external && res.external.enabled && res.external.status === 'error'
+            ? t('nearby.externalUnavailable')
+            : null,
+        )
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        if (!signal?.aborted) {
+          setNearbyError(err instanceof ApiError ? err.message : t('nearby.loadError'))
+        }
+      } finally {
+        if (!signal?.aborted) setNearbyLoading(false)
+      }
+    },
+    [incidentId, t],
+  )
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -134,6 +169,13 @@ export function AdminIncidentDetailPage() {
     void initialLoad()
     return () => controller.abort()
   }, [load])
+
+  useEffect(() => {
+    if (loading || failed || notFound || !detail?.location) return
+    const controller = new AbortController()
+    void loadNearby(controller.signal)
+    return () => controller.abort()
+  }, [loading, failed, notFound, detail, loadNearby])
 
   async function onStatusSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
@@ -351,6 +393,25 @@ export function AdminIncidentDetailPage() {
               </CardBody>
             </Card>
           </div>
+
+          {!loading && !failed && !notFound && incident && detail && detail.location && (
+            <NearbyResourcesSection
+              resources={nearby}
+              loading={nearbyLoading}
+              loadError={nearbyError}
+              onRetry={() => void loadNearby()}
+              showCoordinates
+              notice={nearbyNotice}
+            />
+          )}
+          {!loading && !failed && !notFound && incident && detail && !detail.location && (
+            <Card>
+              <CardHeader title={t('nearby.title')} />
+              <CardBody>
+                <p className="text-sm text-ink-500">{t('nearby.noIncidentLocation')}</p>
+              </CardBody>
+            </Card>
+          )}
 
           <Card>
             <CardHeader title="Update status" description="Follows REPORTED → ACKNOWLEDGED → ASSIGNED → IN_PROGRESS → RESOLVED → CLOSED (CANCELLED where applicable). Every change is recorded in history." />

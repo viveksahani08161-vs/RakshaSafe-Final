@@ -7,6 +7,8 @@ import { Button } from '../components/ui/Button'
 import { Card, CardBody } from '../components/ui/Card'
 import { Form } from '../components/ui/Form'
 import { Input } from '../components/ui/Input'
+import { Logo } from '../components/ui/Logo'
+import { EyeIcon, EyeOffIcon, ShieldIcon } from '../components/ui/icons'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^(\+91[\s-]?)?[6-9]\d{9}$/
@@ -40,6 +42,7 @@ export function LoginPage() {
   const { t } = useI18n()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   function validateForm(): boolean {
@@ -68,19 +71,26 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <Card>
+    <div className="mx-auto w-full max-w-lg">
+      <div className="mb-6 flex flex-col items-center gap-3 text-center">
+        <Logo size="lg" />
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink-950">{t('login.title')}</h1>
+          <p className="mt-1 text-sm text-ink-500">{t('login.subtitle')}</p>
+        </div>
+      </div>
+      <Card className="shadow-md shadow-ink-900/5">
         <CardBody>
-          <Form
-            title={t('login.title')}
-            description={t('login.description')}
-            onSubmit={(e: FormEvent) => void onSubmit(e)}
-          >
+          <Form onSubmit={(e: FormEvent) => void onSubmit(e)}>
             {error && (
               <Alert variant="danger" title={t('login.errorTitle')} onClose={clearError}>
                 {error}
               </Alert>
             )}
+            <div className="flex items-center gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5">
+              <ShieldIcon className="size-5 shrink-0 text-sky-600" />
+              <p className="text-xs font-medium text-sky-900">{t('auth.securityNote')}</p>
+            </div>
             <Input
               label={t('login.emailPhone')}
               name="identifier"
@@ -95,20 +105,33 @@ export function LoginPage() {
             <Input
               label={t('login.password')}
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               placeholder={t('login.passwordPlaceholder')}
               requiredMark
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               error={fieldErrors.password ? t(fieldErrors.password as DictKey) : undefined}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={t(showPassword ? 'auth.hidePassword' : 'auth.showPassword')}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                </button>
+              }
             />
             <Button type="submit" fullWidth loading={busy} disabled={busy}>
               {busy ? t('login.submitting') : t('login.submit')}
             </Button>
-            <p className="text-center text-sm text-ink-500">
-              {t('login.registerLink', { appName: 'RakshaSafe' })}
-            </p>
+            <div className="border-t border-ink-100 pt-4 text-center">
+              <p className="mb-2 text-sm text-ink-500">{t('login.registerPrefix')}</p>
+              <Button type="button" variant="outline" fullWidth onClick={() => navigateTo('/register')}>
+                {t('login.registerLink')}
+              </Button>
+            </div>
           </Form>
         </CardBody>
       </Card>

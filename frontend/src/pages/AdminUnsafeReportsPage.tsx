@@ -14,6 +14,7 @@ import { SearchInput } from '../components/ui/SearchInput'
 import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../components/ui/Table'
+import { useI18n } from '../lib/i18n'
 
 interface ListResponse {
   reports: UnsafeReport[]
@@ -33,7 +34,27 @@ interface DetailResponse {
   reporter: Reporter | null
 }
 
+function SeverityBadge({ severity }: { severity: string }) {
+  const variants: Record<string, 'neutral' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline'> = {
+    low: 'secondary',
+    medium: 'warning',
+    high: 'danger',
+    critical: 'danger',
+  }
+  const variant = variants[severity] ?? 'outline'
+  return <Badge variant={variant}>{severity}</Badge>
+}
+
+function StatusBadge({ isVerified }: { isVerified: boolean }) {
+  return (
+    <Badge variant={isVerified ? 'success' : 'warning'} dot>
+      {isVerified ? 'Verified' : 'Pending Review'}
+    </Badge>
+  )
+}
+
 export function AdminUnsafeReportsPage() {
+  const { t } = useI18n()
   const { notify } = useToast()
   const [data, setData] = useState<ListResponse | null>(null)
   const [page, setPage] = useState(1)
@@ -85,8 +106,8 @@ export function AdminUnsafeReportsPage() {
       setDetail(res)
     } catch (err) {
       notify({
-        title: 'Could not load details',
-        description: err instanceof ApiError ? err.message : 'Please try again.',
+        title: t('admin.unsafeReports.couldNotLoadDetails'),
+        description: err instanceof ApiError ? err.message : t('common.tryAgain'),
         variant: 'danger',
       })
       setViewTarget(null)
@@ -100,7 +121,7 @@ export function AdminUnsafeReportsPage() {
     try {
       await api(`/admin/unsafe-reports/${report.id}`, { method: 'PATCH', body: { isVerified } })
       notify({
-        title: isVerified ? 'Report verified' : 'Report unverified',
+        title: isVerified ? t('admin.unsafeReports.reportVerified') : t('admin.unsafeReports.reportUnverified'),
         description: report.category,
         variant: isVerified ? 'success' : 'info',
       })
@@ -108,8 +129,8 @@ export function AdminUnsafeReportsPage() {
       await load(page)
     } catch (err) {
       notify({
-        title: 'Review action failed',
-        description: err instanceof ApiError ? err.message : 'Please try again.',
+        title: t('admin.unsafeReports.reviewActionFailed'),
+        description: err instanceof ApiError ? err.message : t('common.tryAgain'),
         variant: 'danger',
       })
     } finally {
@@ -130,15 +151,15 @@ export function AdminUnsafeReportsPage() {
     <div className="mx-auto grid w-full max-w-6xl gap-6">
       <Card>
         <CardHeader
-          title="Unsafe-area reports"
-          description="User submissions are pending until reviewed — never auto-confirmed."
+          title={t('admin.unsafeReports.title')}
+          description={t('admin.unsafeReports.description')}
         />
         <CardBody>
           <div className="space-y-4">
             <FilterBar
               search={
                 <SearchInput
-                  placeholder="Search category or description…"
+                  placeholder={t('admin.unsafeReports.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onClear={() => setSearch('')}
@@ -146,38 +167,41 @@ export function AdminUnsafeReportsPage() {
               }
               filters={
                 <Select
-                  aria-label="Filter by review state"
+                  aria-label={t('admin.unsafeReports.filterByState')}
                   className="w-40"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   options={[
-                    { label: 'All states', value: '' },
-                    { label: 'Pending review', value: 'false' },
-                    { label: 'Verified', value: 'true' },
+                    { label: t('admin.unsafeReports.allStates'), value: '' },
+                    { label: t('admin.unsafeReports.pendingReview'), value: 'false' },
+                    { label: t('admin.unsafeReports.verified'), value: 'true' },
                   ]}
                 />
               }
-              resultCount={data && !loading && !failed ? <span>{data.pagination.total} reports</span> : undefined}
+              resultCount={data && !loading && !failed ? <span>{data.pagination.total} {t('admin.unsafeReports.reportsCount')}</span> : undefined}
               onReset={filtersActive ? resetFilters : undefined}
             />
             {loading && <Skeleton lines={5} />}
             {!loading && failed && (
-              <ErrorState title="Could not load reports" description="The server could not be reached." onRetry={() => void load(page)} />
+              <ErrorState title={t('admin.unsafeReports.couldNotLoad')} description={t('admin.unsafeReports.serverUnreachable')} onRetry={() => void load(page)} />
             )}
             {!loading && !failed && data && data.reports.length === 0 && (
-              <EmptyState title="No reports found" description={filtersActive ? 'No reports match the current filters.' : 'No unsafe-area reports have been submitted yet.'} />
+              <EmptyState
+                title={t('admin.unsafeReports.noReportsFound')}
+                description={filtersActive ? t('admin.unsafeReports.noMatchFilters') : t('admin.unsafeReports.noReportsSubmitted')}
+              />
             )}
             {!loading && !failed && data && data.reports.length > 0 && (
               <div className="space-y-4">
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableHeaderCell>Category</TableHeaderCell>
-                      <TableHeaderCell>Severity</TableHeaderCell>
-                      <TableHeaderCell>Location</TableHeaderCell>
-                      <TableHeaderCell>State</TableHeaderCell>
-                      <TableHeaderCell>Reported</TableHeaderCell>
-                      <TableHeaderCell>Actions</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.unsafeReports.category')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.unsafeReports.severity')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.unsafeReports.location')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.unsafeReports.state')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.unsafeReports.reported')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.unsafeReports.actions')}</TableHeaderCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -187,21 +211,19 @@ export function AdminUnsafeReportsPage() {
                           <span className="font-medium text-ink-900">{r.category}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{r.severity}</Badge>
+                          <SeverityBadge severity={r.severity} />
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-ink-500">
                           {r.location ? `${r.location.latitude.toFixed(4)}, ${r.location.longitude.toFixed(4)}` : '—'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={r.isVerified ? 'success' : 'warning'} dot>
-                            {r.isVerified ? 'Verified' : 'Pending'}
-                          </Badge>
+                          <StatusBadge isVerified={r.isVerified} />
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-ink-500">{formatDateTime(r.createdAt)}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1.5">
                             <Button size="sm" variant="outline" onClick={() => void openDetail(r)}>
-                              View
+                              {t('admin.unsafeReports.view')}
                             </Button>
                             <Button
                               size="sm"
@@ -209,7 +231,7 @@ export function AdminUnsafeReportsPage() {
                               loading={verifying}
                               onClick={() => void setVerified(r, !r.isVerified)}
                             >
-                              {r.isVerified ? 'Unverify' : 'Verify'}
+                              {r.isVerified ? t('admin.unsafeReports.unverify') : t('admin.unsafeReports.verify')}
                             </Button>
                           </div>
                         </TableCell>
@@ -232,8 +254,8 @@ export function AdminUnsafeReportsPage() {
             setDetail(null)
           }
         }}
-        title={shown?.category ?? 'Report details'}
-        description={shown ? `Reference ${shown.id}` : undefined}
+        title={shown?.category ?? t('admin.unsafeReports.reportDetails')}
+        description={shown ? `${t('common.reference')} ${shown.id}` : undefined}
         size="lg"
       >
         {detailLoading && <Skeleton lines={5} />}
@@ -241,23 +263,21 @@ export function AdminUnsafeReportsPage() {
           <div className="space-y-4">
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="font-semibold text-ink-500">Severity</dt>
+                <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.severity')}</dt>
                 <dd className="mt-0.5 text-ink-900">{shown.severity}</dd>
               </div>
               <div>
-                <dt className="font-semibold text-ink-500">State</dt>
+                <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.state')}</dt>
                 <dd className="mt-0.5">
-                  <Badge variant={shown.isVerified ? 'success' : 'warning'} dot>
-                    {shown.isVerified ? 'Verified' : 'Pending review'}
-                  </Badge>
+                  <StatusBadge isVerified={shown.isVerified} />
                 </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="font-semibold text-ink-500">Description</dt>
+                <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.descriptionLabel')}</dt>
                 <dd className="mt-0.5 leading-relaxed text-ink-900">{shown.description}</dd>
               </div>
               <div>
-                <dt className="font-semibold text-ink-500">Location</dt>
+                <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.location')}</dt>
                 <dd className="mt-0.5 text-ink-900">
                   {shown.location
                     ? `${shown.location.latitude.toFixed(6)}, ${shown.location.longitude.toFixed(6)}${shown.location.accuracy !== undefined ? ` (±${Math.round(shown.location.accuracy)} m)` : ''}`
@@ -265,12 +285,12 @@ export function AdminUnsafeReportsPage() {
                 </dd>
               </div>
               <div>
-                <dt className="font-semibold text-ink-500">Reported</dt>
+                <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.reported')}</dt>
                 <dd className="mt-0.5 text-ink-900">{formatDateTime(shown.createdAt)}</dd>
               </div>
               {detail?.reporter && (
                 <div className="sm:col-span-2">
-                  <dt className="font-semibold text-ink-500">Reporter</dt>
+                  <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.reporter')}</dt>
                   <dd className="mt-0.5 text-ink-900">
                     {detail.reporter.name} · {detail.reporter.email} · {detail.reporter.phone}
                   </dd>
@@ -284,7 +304,7 @@ export function AdminUnsafeReportsPage() {
                 disabled={verifying}
                 onClick={() => void setVerified(shown, !shown.isVerified)}
               >
-                {shown.isVerified ? 'Mark unverified' : 'Verify report'}
+                {shown.isVerified ? t('admin.unsafeReports.markUnverified') : t('admin.unsafeReports.verifyReport')}
               </Button>
             </div>
           </div>

@@ -1,5 +1,7 @@
 import { TeamType } from '../models/RescueTeam.js'
 import { isEmail, isPhone, type ValidationIssue } from './auth.js'
+import { isValidObjectId } from './emergencyContact.js'
+import { validateInlineLocation, type InlineLocationInput } from './location.js'
 
 export interface RescueTeamCreateInput {
   name: string
@@ -8,6 +10,8 @@ export interface RescueTeamCreateInput {
   email?: string
   isActive: boolean
   specializations?: string[]
+  locationId?: string
+  location?: InlineLocationInput
 }
 
 export interface RescueTeamUpdateInput {
@@ -17,6 +21,8 @@ export interface RescueTeamUpdateInput {
   email?: string
   isActive?: boolean
   specializations?: string[]
+  locationId?: string
+  location?: InlineLocationInput
 }
 
 function checkName(value: unknown, issues: ValidationIssue[]): string | undefined {
@@ -90,6 +96,31 @@ function checkIsActive(value: unknown, issues: ValidationIssue[]): boolean | und
   return value
 }
 
+/**
+ * Optional location reference: either an existing locationId or inline
+ * coordinates — never both. Absent entirely means "no location", which is
+ * valid for teams. Mirrors the facility convention.
+ */
+function checkLocationRef(
+  b: Record<string, unknown>,
+  issues: ValidationIssue[],
+): { locationId?: string; location?: InlineLocationInput; provided: boolean } {
+  let locationId: string | undefined
+  if (b.locationId !== undefined) {
+    if (!isValidObjectId(b.locationId)) {
+      issues.push({ field: 'locationId', message: 'locationId must be a valid id.' })
+    } else {
+      locationId = b.locationId
+    }
+  }
+  const location = validateInlineLocation(b.location, issues)
+  const provided = b.location !== undefined
+  if (locationId && provided) {
+    issues.push({ field: 'location', message: 'Provide either locationId or location, not both.' })
+  }
+  return { ...(locationId ? { locationId } : {}), ...(provided && location ? { location } : {}), provided }
+}
+
 export function validateRescueTeamCreate(
   body: unknown,
 ): { input?: RescueTeamCreateInput; issues?: ValidationIssue[] } {
@@ -101,6 +132,7 @@ export function validateRescueTeamCreate(
   const phone = checkPhone(b.phone, issues)
   const email = checkEmail(b.email, issues)
   const specializations = checkSpecializations(b.specializations, issues)
+  const ref = checkLocationRef(b, issues)
 
   let isActive = true
   if (b.isActive !== undefined) {
@@ -117,6 +149,8 @@ export function validateRescueTeamCreate(
       ...(email ? { email } : {}),
       isActive,
       ...(specializations ? { specializations } : {}),
+      ...(ref.locationId ? { locationId: ref.locationId } : {}),
+      ...(ref.location ? { location: ref.location } : {}),
     },
   }
 }
@@ -156,6 +190,11 @@ export function validateRescueTeamUpdate(
     const specializations = checkSpecializations(b.specializations, issues)
     if (specializations !== undefined) input.specializations = specializations
   }
+  if (b.locationId !== undefined || b.location !== undefined) {
+    const ref = checkLocationRef(b, issues)
+    if (ref.locationId) input.locationId = ref.locationId
+    if (ref.location) input.location = ref.location
+  }
 
   if (issues.length > 0) return { issues }
   if (Object.keys(input).length === 0) {
@@ -163,7 +202,8 @@ export function validateRescueTeamUpdate(
       issues: [
         {
           field: 'body',
-          message: 'At least one field (name, teamType, phone, email, isActive, specializations) must be provided.',
+          message:
+            'At least one field (name, teamType, phone, email, isActive, specializations, location) must be provided.',
         },
       ],
     }

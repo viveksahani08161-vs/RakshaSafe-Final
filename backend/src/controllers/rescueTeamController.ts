@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from 'express'
+import { Location } from '../models/Location.js'
 import { RescueTeam, type IRescueTeam } from '../models/RescueTeam.js'
 import { badRequest, notFoundError, type HttpError } from '../utils/errors.js'
 import { escapeRegExp } from '../utils/search.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
+import { toSafeLocation, type SafeLocation } from './incidentController.js'
 
 export interface SafeRescueTeam {
   id: string
@@ -13,11 +15,13 @@ export interface SafeRescueTeam {
   isActive: boolean
   specializations: string[]
   members: string[]
+  locationId?: string
+  location: SafeLocation | null
   createdAt: Date
   updatedAt: Date
 }
 
-export function toSafeTeam(doc: IRescueTeam): SafeRescueTeam {
+export function toSafeTeamBase(doc: IRescueTeam): Omit<SafeRescueTeam, 'location'> {
   return {
     id: String(doc._id),
     name: doc.name,
@@ -27,9 +31,34 @@ export function toSafeTeam(doc: IRescueTeam): SafeRescueTeam {
     isActive: doc.isActive,
     specializations: doc.specializations ?? [],
     members: (doc.members ?? []).map((m) => String(m)),
+    ...(doc.locationId ? { locationId: String(doc.locationId) } : {}),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   }
+}
+
+/** Backwards-compatible serializer: same fields as before, location null. */
+export function toSafeTeam(doc: IRescueTeam): SafeRescueTeam {
+  return { ...toSafeTeamBase(doc), location: null }
+}
+
+/** Batch-attach stored locations to avoid per-row queries. */
+export async function withTeamLocations(docs: IRescueTeam[]): Promise<SafeRescueTeam[]> {
+  const ids = [...new Set(docs.map((d) => (d.locationId ? String(d.locationId) : '')).filter((s) => s !== ''))]
+  const locs = ids.length > 0 ? await Location.find({ _id: { $in: ids } }) : []
+  const map = new Map(locs.map((l) => [String(l._id), toSafeLocation(l)]))
+  return docs.map((d) => {
+    const base = toSafeTeamBase(d)
+    return {
+      ...base,
+      location: d.locationId ? (map.get(String(d.locationId)) ?? null) : null,
+    }
+  })
+}
+
+export async function withTeamLocation(doc: IRescueTeam): Promise<SafeRescueTeam> {
+  const [one] = await withTeamLocations([doc])
+  return one
 }
 
 export function buildTeamFilter(
@@ -65,7 +94,7 @@ export async function listTeamsUser(req: Request, res: Response, next: NextFunct
       return
     }
     const docs = await RescueTeam.find(filter).sort({ name: 1 })
-    res.json({ success: true, data: { teams: docs.map(toSafeTeam) } })
+    res.json({ success: true, data: { teams: await withTeamLocations(docs) } })
   } catch (err) {
     next(err)
   }
@@ -84,7 +113,7 @@ export async function getTeamUser(req: Request, res: Response, next: NextFunctio
       next(notFoundError('Rescue team not found.'))
       return
     }
-    res.json({ success: true, data: { team: toSafeTeam(doc) } })
+    res.json({ success: true, data: { team: await withTeamLocation(doc) } })
   } catch (err) {
     next(err)
   }

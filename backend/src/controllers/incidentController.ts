@@ -4,10 +4,10 @@ import { Location, type ILocation } from '../models/Location.js'
 import { IncidentUpdate } from '../models/IncidentUpdate.js'
 import { RescueAssignment } from '../models/RescueAssignment.js'
 import { attachTeams } from './adminAssignmentController.js'
-import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
+import { badRequest, conflict, notFoundError, unauthorized } from '../utils/errors.js'
 import { recordEventSafe } from '../services/notifications.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
-import { validateIncidentCreate } from '../validators/incident.js'
+import { validateIncidentCreate, validateIncidentUpdate } from '../validators/incident.js'
 
 interface SafeIncident {
   id: string
@@ -203,6 +203,98 @@ export async function listIncidentUpdates(req: Request, res: Response, next: Nex
         })),
       },
     })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * True while the caller may still manage the case themselves: the incident is
+ * still new (REPORTED/ACKNOWLEDGED, nothing responding yet) and no rescue team
+ * has ever been tied to it. Status is independent of assignment creation, so
+ * both conditions must hold. Past this window edits/deletes are declined.
+ */
+async function isCaseManageable(doc: IIncident): Promise<boolean> {
+  const inWindow =
+    doc.status === IncidentStatus.REPORTED || doc.status === IncidentStatus.ACKNOWLEDGED
+  if (!inWindow) return false
+  const hasAssignments = await RescueAssignment.exists({ incidentId: doc._id })
+  return !hasAssignments
+}
+
+const CASE_MANAGE_EXPLANATION =
+  'Editing/deletion is only available for your new, unassigned cases (REPORTED or ACKNOWLEDGED).'
+
+/**
+ * PATCH /api/incidents/:id — owner-scoped edit. Only the four user-supplied
+ * case fields (type/category/description/priority) may change; status, ownership
+ * and the stored location are never taken from the request body. Declined with
+ * 409 once the case is no longer new or a rescue team is involved.
+ */
+export async function updateIncident(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const ownerId = requireOwnerId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid incident id.'))
+      return
+    }
+
+    const { input, issues } = validateIncidentUpdate(req.body)
+    if (!input || issues) {
+      next(badRequest('Invalid incident data.', issues))
+      return
+    }
+
+    const doc = await Incident.findOne({ _id: id, userId: ownerId })
+    if (!doc) {
+      next(notFoundError('Incident not found.'))
+      return
+    }
+    if (!(await isCaseManageable(doc))) {
+      next(conflict(CASE_MANAGE_EXPLANATION))
+      return
+    }
+
+    doc.type = input.type ?? doc.type
+    doc.category = input.category ?? doc.category
+    doc.description = input.description ?? doc.description
+    doc.priority = input.priority ?? doc.priority
+    await doc.save()
+
+    res.json({ success: true, data: { incident: toSafeIncident(doc) } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * DELETE /api/incidents/:id — owner-scoped delete of the case record only.
+ * Declined with 409 while the case is still being worked or a rescue team was
+ * ever involved. Related records (location, notifications, updates) are left
+ * untouched — the backend performs no cascading deletes.
+ */
+export async function deleteIncident(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const ownerId = requireOwnerId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid incident id.'))
+      return
+    }
+
+    const doc = await Incident.findOne({ _id: id, userId: ownerId })
+    if (!doc) {
+      next(notFoundError('Incident not found.'))
+      return
+    }
+    if (!(await isCaseManageable(doc))) {
+      next(conflict(CASE_MANAGE_EXPLANATION))
+      return
+    }
+
+    await Incident.deleteOne({ _id: doc._id })
+    res.json({ success: true, data: { deleted: true, id: String(doc._id) } })
   } catch (err) {
     next(err)
   }

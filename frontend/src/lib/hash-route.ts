@@ -13,6 +13,7 @@ export type AppRoute =
   | '/incident-detail'
   | '/responder'
   | '/admin/users'
+  | '/admin/user-detail'
   | '/admin/dashboard'
   | '/admin/incidents'
   | '/admin/incident-detail'
@@ -20,7 +21,6 @@ export type AppRoute =
   | '/admin/teams'
   | '/admin/unsafe-reports'
   | '/admin/reports'
-  | '/design-system'
 
 const PREFIX = '#'
 
@@ -33,6 +33,9 @@ export function parseHash(): AppRoute {
   const raw = rawHash()
   if (raw === '/admin/incidents' || raw.startsWith('/admin/incidents/')) {
     return raw === '/admin/incidents' ? '/admin/incidents' : '/admin/incident-detail'
+  }
+  if (raw === '/admin/users' || raw.startsWith('/admin/users/')) {
+    return raw === '/admin/users' ? '/admin/users' : '/admin/user-detail'
   }
   if (raw.startsWith('/incident/')) {
     return '/incident-detail'
@@ -49,13 +52,13 @@ export function parseHash(): AppRoute {
     '/report-unsafe',
     '/responder',
     '/admin/users',
+    '/admin/user-detail',
     '/admin/dashboard',
     '/admin/incidents',
     '/admin/facilities',
     '/admin/teams',
     '/admin/unsafe-reports',
     '/admin/reports',
-    '/design-system',
   ]
   return (known.includes(raw as AppRoute) ? raw : '/login') as AppRoute
 }
@@ -69,7 +72,16 @@ export function hashIncidentId(): string | null {
   return id === '' ? null : id
 }
 
-const DETAIL_ROUTES: AppRoute[] = ['/admin/incident-detail', '/incident-detail']
+/** User id segment of `#/admin/users/:id`, or null. */
+export function hashUserId(): string | null {
+  const raw = rawHash()
+  const prefix = '/admin/users/'
+  if (!raw.startsWith(prefix)) return null
+  const id = raw.slice(prefix.length).split('/')[0] ?? ''
+  return id === '' ? null : id
+}
+
+const DETAIL_ROUTES: AppRoute[] = ['/admin/incident-detail', '/incident-detail', '/admin/user-detail']
 
 export function navigateTo(route: AppRoute): void {
   if (parseHash() === route && !DETAIL_ROUTES.includes(route)) {

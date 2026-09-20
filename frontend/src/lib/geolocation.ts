@@ -89,3 +89,31 @@ export function describeOutcome(outcome: LocationOutcome): string {
       return 'This browser or device does not support geolocation.'
   }
 }
+
+/**
+ * Reverse geocode coordinates to a human-readable address using OpenStreetMap Nominatim.
+ * Returns the address string or null if unavailable.
+ */
+export async function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16&addressdetails=1`,
+      {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const addr = data.address
+    if (!addr) return null
+    const parts = [
+      addr.suburb || addr.neighbourhood || addr.quarter || addr.village,
+      addr.city || addr.town || addr.district || addr.county,
+      addr.state,
+    ].filter(Boolean)
+    return parts.join(', ') || data.display_name || null
+  } catch {
+    return null
+  }
+}

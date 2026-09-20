@@ -6,6 +6,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: ReactNode
   error?: ReactNode
   leftIcon?: ReactNode
+  rightElement?: ReactNode
   requiredMark?: boolean
 }
 
@@ -14,6 +15,7 @@ export function Input({
   hint,
   error,
   leftIcon,
+  rightElement,
   requiredMark = false,
   id,
   className,
@@ -45,6 +47,7 @@ export function Input({
             'border-ink-200 shadow-sm transition-colors',
             'focus:border-gold-400 focus:ring-2 focus:ring-gold-300/50 focus:outline-none',
             leftIcon ? 'pl-9' : undefined,
+            rightElement ? 'pr-11' : undefined,
             error
               ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-200/60'
               : 'border-ink-200',
@@ -53,6 +56,11 @@ export function Input({
           )}
           {...rest}
         />
+        {rightElement && (
+          <span className="absolute inset-y-0 right-2 flex items-center [&>button]:rounded-lg [&>button]:p-1.5 [&>button]:text-ink-400 [&>button]:transition-colors [&>button]:hover:text-ink-700 [&>svg]:size-4">
+            {rightElement}
+          </span>
+        )}
       </div>
       {error ? (
         <p className="text-xs font-medium text-rose-600" role="alert">

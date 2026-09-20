@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { listNotificationsAdmin, listUsers } from '../controllers/adminController.js'
+import { listNotificationsAdmin, listUsers, getUserAdmin } from '../controllers/adminController.js'
 import {
   createFacility,
   getFacilityAdmin,
@@ -31,6 +31,7 @@ import {
   listUnsafeReportsAdmin,
   verifyUnsafeReport,
 } from '../controllers/adminUnsafeReportController.js'
+import { getAdminIncidentNearbyResources } from '../controllers/nearbyController.js'
 import { listRiskAdmin } from '../controllers/adminRiskController.js'
 import { getDashboard } from '../controllers/adminDashboardController.js'
 import {
@@ -52,6 +53,7 @@ router.get('/reports', listReports)
 router.get('/reports/:id', getReport)
 router.get('/reports/:id/export', exportReport)
 router.get('/users', listUsers)
+router.get('/users/:id', getUserAdmin)
 router.get('/notifications', listNotificationsAdmin)
 router.get('/incidents/summary', getIncidentsSummary)
 router.get('/incidents', listIncidentsAdmin)
@@ -75,5 +77,6 @@ router.get('/unsafe-reports', listUnsafeReportsAdmin)
 router.get('/unsafe-reports/:id', getUnsafeReportAdmin)
 router.patch('/unsafe-reports/:id', verifyUnsafeReport)
 router.get('/incidents/:id/risk', listRiskAdmin)
+router.get('/incidents/:id/nearby-resources', getAdminIncidentNearbyResources)
 
 export default router
