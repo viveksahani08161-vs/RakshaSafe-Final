@@ -7,8 +7,9 @@ import { RescueAssignment } from '../models/RescueAssignment.js'
 import { RescueTeam } from '../models/RescueTeam.js'
 import { RiskAssessment } from '../models/RiskAssessment.js'
 import { UnsafeAreaReport } from '../models/UnsafeAreaReport.js'
-import { User } from '../models/User.js'
-import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
+import { User, UserRole } from '../models/User.js'
+import { AdminLog } from '../models/AdminLog.js'
+import { badRequest, conflict, notFoundError, unauthorized } from '../utils/errors.js'
 import { escapeRegExp } from '../utils/search.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
 import { toSafeIncident, toSafeLocation } from './incidentController.js'
@@ -16,6 +17,7 @@ import { toSafeUser } from './authController.js'
 import { toSafeNotification } from './notificationController.js'
 import { toSafeUnsafeReport } from './unsafeReportController.js'
 import { attachTeams } from './adminAssignmentController.js'
+import { validateAdminUserUpdate } from '../validators/auth.js'
 
 const MAX_LIMIT = 50
 
@@ -189,6 +191,188 @@ export async function getUserAdmin(req: Request, res: Response, next: NextFuncti
         unsafeReports: unsafeReportsWithLocation,
       },
     })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/** GET /api/admin/users/:id — internal helper to count admins. */
+async function countAdmins(): Promise<number> {
+  return User.countDocuments({ role: UserRole.ADMIN, isActive: true })
+}
+
+/** Log an admin action. */
+async function logAdminAction(
+  req: Request,
+  adminId: string,
+  action: string,
+  targetId: string,
+  targetType: string,
+  details: string,
+): Promise<void> {
+  await AdminLog.create({
+    adminId,
+    action,
+    targetType,
+    targetId,
+    details,
+    ...(req.ip ? { ipAddress: req.ip } : {}),
+  })
+}
+
+/**
+ * PATCH /api/admin/users/:id — update a user account (admin only).
+ * Allows updating name, email, phone, language, role, isActive.
+ * Validates uniqueness, prevents self-demotion, protects last admin.
+ */
+export async function updateUserAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const adminId = req.auth?.userId
+    if (!adminId) {
+      next(unauthorized('Authentication required.'))
+      return
+    }
+
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid user id.', [{ field: 'id', message: 'Must be a valid ObjectId.' }]))
+      return
+    }
+
+    const { input, issues } = validateAdminUserUpdate(req.body)
+    if (!input || issues) {
+      next(badRequest('Invalid user data.', issues))
+      return
+    }
+
+    const targetUser = await User.findById(id)
+    if (!targetUser) {
+      next(notFoundError('User not found.'))
+      return
+    }
+
+    // Prevent self-demotion / self-deactivation
+    if (adminId === id) {
+      if (input.role !== undefined && input.role !== UserRole.ADMIN) {
+        next(badRequest('You cannot change your own admin role.'))
+        return
+      }
+      if (input.isActive === false) {
+        next(badRequest('You cannot deactivate your own administrator account.'))
+        return
+      }
+    }
+
+    // Protect last active admin
+    if (input.role !== undefined && targetUser.role === UserRole.ADMIN && input.role !== UserRole.ADMIN) {
+      const activeAdminCount = await countAdmins()
+      if (activeAdminCount <= 1) {
+        next(badRequest('Cannot demote the last active administrator.'))
+        return
+      }
+    }
+    if (input.isActive === false && targetUser.role === UserRole.ADMIN) {
+      const activeAdminCount = await countAdmins()
+      if (activeAdminCount <= 1) {
+        next(badRequest('Cannot deactivate the last active administrator.'))
+        return
+      }
+    }
+
+    // Check unique constraints for email/phone
+    if (input.email !== undefined && input.email !== targetUser.email) {
+      const taken = await User.findOne({ email: input.email, _id: { $ne: targetUser._id } }).lean()
+      if (taken) {
+        next(conflict('An account with this email already exists.'))
+        return
+      }
+      targetUser.email = input.email
+    }
+    if (input.phone !== undefined && input.phone !== targetUser.phone) {
+      const taken = await User.findOne({ phone: input.phone, _id: { $ne: targetUser._id } }).lean()
+      if (taken) {
+        next(conflict('An account with this phone number already exists.'))
+        return
+      }
+      targetUser.phone = input.phone
+    }
+
+    if (input.name !== undefined) targetUser.name = input.name
+    if (input.language !== undefined) targetUser.language = input.language
+    if (input.role !== undefined) targetUser.role = input.role as UserRole
+    if (input.isActive !== undefined) targetUser.isActive = input.isActive
+
+    await targetUser.save()
+
+    await logAdminAction(
+      req,
+      adminId,
+      'user.update',
+      id,
+      'Users',
+      `Updated fields: ${Object.keys(input).join(', ')}`,
+    )
+
+    res.json({ success: true, data: { user: toSafeUser(targetUser) } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * DELETE /api/admin/users/:id — deactivate a user account (admin only).
+ * Does NOT hard-delete: sets isActive = false to preserve historical data.
+ * Prevents self-deletion and last-admin deactivation.
+ */
+export async function deleteUserAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const adminId = req.auth?.userId
+    if (!adminId) {
+      next(unauthorized('Authentication required.'))
+      return
+    }
+
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid user id.', [{ field: 'id', message: 'Must be a valid ObjectId.' }]))
+      return
+    }
+
+    const targetUser = await User.findById(id)
+    if (!targetUser) {
+      next(notFoundError('User not found.'))
+      return
+    }
+
+    // Prevent self-deletion
+    if (adminId === id) {
+      next(badRequest('You cannot delete your own administrator account.'))
+      return
+    }
+
+    // Protect last active admin
+    if (targetUser.role === UserRole.ADMIN && targetUser.isActive) {
+      const activeAdminCount = await countAdmins()
+      if (activeAdminCount <= 1) {
+        next(badRequest('Cannot deactivate the last active administrator.'))
+        return
+      }
+    }
+
+    // Soft delete: set isActive = false
+    targetUser.isActive = false
+    await targetUser.save()
+
+    await logAdminAction(
+      req,
+      adminId,
+      'user.deactivate',
+      id,
+      'Users',
+      `Deactivated user: ${targetUser.name} (${targetUser.email})`,
+    )
+
+    res.json({ success: true, data: { message: 'User deactivated.', id } })
   } catch (err) {
     next(err)
   }

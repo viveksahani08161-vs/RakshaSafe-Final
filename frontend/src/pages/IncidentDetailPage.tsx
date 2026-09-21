@@ -400,11 +400,12 @@ export function IncidentDetailPage() {
               loadError={nearbyError}
               onRetry={() => void loadNearby()}
               notice={nearbyNotice}
+              titleKey="nearby.recordedLocation"
             />
           )}
           {!loading && !location && (
             <Card>
-              <CardHeader title={t('nearby.title')} />
+              <CardHeader title={t('nearby.recordedLocation')} />
               <CardBody>
                 <p className="text-sm text-ink-500">{t('nearby.noIncidentLocation')}</p>
               </CardBody>

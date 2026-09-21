@@ -54,6 +54,8 @@ export interface NearbyResource {
   source: NearbyResourceSource
   kind: 'facility' | 'team'
   name: string
+  /** Machine-readable category ('hospital' | 'police' | ...) when the provider knows it. */
+  category?: string
   resourceType: string
   phone: string | null
   address: string | null

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { FACILITY_TYPES, formatCoords, type Facility } from '../lib/resources'
 import { useToast } from '../components/ui/toast-context'
+import { useI18n } from '../lib/i18n'
 import { Alert } from '../components/ui/Alert'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -44,6 +45,8 @@ const EMPTY_FORM = {
   accuracy: '',
   city: '',
   address: '',
+  state: '',
+  country: '',
 }
 
 function toFieldErrors(details: unknown): FieldErrors {
@@ -69,7 +72,29 @@ function statusVariant(operational: boolean): BadgeVariant {
   return operational ? 'success' : 'neutral'
 }
 
+function formatLocation(facility: Facility): React.ReactNode {
+  const loc = facility.location
+  if (!loc) return <span className="text-ink-400">—</span>
+
+  const parts: string[] = []
+  if (loc.address) parts.push(loc.address)
+  if (loc.city) parts.push(loc.city)
+  if (loc.state) parts.push(loc.state)
+  if (loc.country) parts.push(loc.country)
+
+  if (parts.length > 0) {
+    return (
+      <div className="space-y-0.5">
+        <span className="text-ink-700">{parts.join(', ')}</span>
+        <span className="text-xs text-ink-400">{formatCoords(loc.latitude, loc.longitude, loc.accuracy)}</span>
+      </div>
+    )
+  }
+  return <span className="text-ink-500">{formatCoords(loc.latitude, loc.longitude, loc.accuracy)}</span>
+}
+
 export function AdminFacilitiesPage() {
+  const { t } = useI18n()
   const { notify } = useToast()
   const [data, setData] = useState<ListResponse | null>(null)
   const [page, setPage] = useState(1)
@@ -132,6 +157,7 @@ export function AdminFacilitiesPage() {
   }
 
   function openEdit(facility: Facility): void {
+    const loc = facility.location
     setForm({
       name: facility.name,
       facilityType: facility.facilityType,
@@ -139,11 +165,13 @@ export function AdminFacilitiesPage() {
       capacity: facility.capacity !== undefined ? String(facility.capacity) : '',
       isOperational: facility.isOperational,
       operatingHours: facility.operatingHours ?? '',
-      latitude: facility.location ? String(facility.location.latitude) : '',
-      longitude: facility.location ? String(facility.location.longitude) : '',
-      accuracy: facility.location?.accuracy !== undefined ? String(facility.location.accuracy) : '',
-      city: facility.location?.city ?? '',
-      address: facility.location?.address ?? '',
+      latitude: loc ? String(loc.latitude) : '',
+      longitude: loc ? String(loc.longitude) : '',
+      accuracy: loc?.accuracy !== undefined ? String(loc.accuracy) : '',
+      city: loc?.city ?? '',
+      address: loc?.address ?? '',
+      state: loc?.state ?? '',
+      country: loc?.country ?? '',
     })
     setFieldErrors({})
     setFormError(null)
@@ -158,7 +186,9 @@ export function AdminFacilitiesPage() {
       form.longitude !== String(loc.longitude) ||
       form.accuracy !== (loc.accuracy !== undefined ? String(loc.accuracy) : '') ||
       form.city !== (loc.city ?? '') ||
-      form.address !== (loc.address ?? '')
+      form.address !== (loc.address ?? '') ||
+      form.state !== (loc.state ?? '') ||
+      form.country !== (loc.country ?? '')
     )
   }
 
@@ -188,14 +218,16 @@ export function AdminFacilitiesPage() {
           ...(form.accuracy.trim() !== '' ? { accuracy: Number(form.accuracy) } : {}),
           ...(form.city.trim() !== '' ? { city: form.city.trim() } : {}),
           ...(form.address.trim() !== '' ? { address: form.address.trim() } : {}),
+          ...(form.state.trim() !== '' ? { state: form.state.trim() } : {}),
+          ...(form.country.trim() !== '' ? { country: form.country.trim() } : {}),
         }
       }
       if (modal.mode === 'create') {
         await api('/admin/facilities', { method: 'POST', body })
-        notify({ title: 'Facility created', description: form.name.trim(), variant: 'success' })
+        notify({ title: t('admin.facilities.createSuccess'), description: form.name.trim(), variant: 'success' })
       } else if (modal.facility) {
         await api(`/admin/facilities/${modal.facility.id}`, { method: 'PATCH', body })
-        notify({ title: 'Facility updated', variant: 'success' })
+        notify({ title: t('admin.facilities.updateSuccess'), variant: 'success' })
       }
       setModal(null)
       await load(page)
@@ -208,7 +240,7 @@ export function AdminFacilitiesPage() {
           setFormError(err.message)
         }
       } else {
-        setFormError('Something went wrong. Please try again.')
+        setFormError(t('admin.facilities.serverUnreachable'))
       }
     } finally {
       setSaving(false)
@@ -224,16 +256,16 @@ export function AdminFacilitiesPage() {
         body: { isOperational: !toggleTarget.isOperational },
       })
       notify({
-        title: toggleTarget.isOperational ? 'Facility deactivated' : 'Facility activated',
+        title: toggleTarget.isOperational ? t('admin.facilities.deactivateSuccess') : t('admin.facilities.activateSuccess'),
         description: toggleTarget.name,
-        variant: 'info',
+        variant: 'success',
       })
       setToggleTarget(null)
       await load(page)
     } catch (err) {
       notify({
-        title: 'Update failed',
-        description: err instanceof ApiError ? err.message : 'Please try again.',
+        title: toggleTarget.isOperational ? t('admin.facilities.errorDeactivate') : t('admin.facilities.errorActivate'),
+        description: err instanceof ApiError ? err.message : t('admin.facilities.serverUnreachable'),
         variant: 'danger',
       })
     } finally {
@@ -242,73 +274,115 @@ export function AdminFacilitiesPage() {
   }
 
   const filtersActive = typeFilter !== '' || statusFilter !== '' || search.trim() !== ''
+  const total = data?.pagination.total ?? 0
+  const operational = data?.facilities.filter((f) => f.isOperational).length ?? 0
+  const inactive = total - operational
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6">
+    <div className="mx-auto grid w-full max-w-7xl gap-6">
+      {/* Page Header */}
       <Card>
         <CardHeader
-          title="Facilities"
-          description="Hospitals, shelters, stations and relief centres. Deactivation hides them from users; nothing is hard-deleted."
+          title={t('admin.facilities.title')}
+          description={t('admin.facilities.description')}
           action={
-            <Button size="sm" variant="primary" onClick={openCreate}>
-              + Add Facility
+            <Button size="md" variant="primary" onClick={openCreate}>
+              {t('admin.facilities.add')}
             </Button>
           }
         />
-        <CardBody>
-          <div className="space-y-4">
-            <FilterBar
-              search={
-                <SearchInput
-                  placeholder="Search facilities…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onClear={() => setSearch('')}
+      </Card>
+
+      {/* Summary Cards */}
+      <Card>
+        <CardBody className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-ink-100 bg-white p-4">
+            <dt className="text-sm font-medium text-ink-500">{t('admin.facilities.total')}</dt>
+            <dd className="mt-1 text-3xl font-bold text-ink-900">{total}</dd>
+          </div>
+          <div className="rounded-xl border border-ink-100 bg-white p-4">
+            <dt className="text-sm font-medium text-ink-500">{t('admin.facilities.operational')}</dt>
+            <dd className="mt-1 text-3xl font-bold text-emerald-600">{operational}</dd>
+          </div>
+          <div className="rounded-xl border border-ink-100 bg-white p-4">
+            <dt className="text-sm font-medium text-ink-500">{t('admin.facilities.inactive')}</dt>
+            <dd className="mt-1 text-3xl font-bold text-amber-600">{inactive}</dd>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Filters & Table */}
+      <Card>
+        <CardBody className="space-y-4">
+          <FilterBar
+            search={
+              <SearchInput
+                placeholder={t('admin.facilities.searchPlaceholder')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onClear={() => setSearch('')}
+              />
+            }
+            filters={
+              <>
+                <Select
+                  aria-label={t('admin.facilities.type')}
+                  className="w-40"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  options={[{ label: t('admin.facilities.typeAll'), value: '' }, ...FACILITY_TYPES.map((t) => ({ label: t, value: t }))]}
                 />
-              }
-              filters={
-                <>
-                  <Select
-                    aria-label="Filter by type"
-                    className="w-40"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    options={[{ label: 'All types', value: '' }, ...FACILITY_TYPES.map((t) => ({ label: t, value: t }))]}
-                  />
-                  <Select
-                    aria-label="Filter by status"
-                    className="w-36"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    options={[
-                      { label: 'All statuses', value: '' },
-                      { label: 'Operational', value: 'true' },
-                      { label: 'Inactive', value: 'false' },
-                    ]}
-                  />
-                </>
-              }
-              resultCount={data && !loading && !failed ? <span>{data.pagination.total} facilities</span> : undefined}
-              onReset={filtersActive ? resetFilters : undefined}
+                <Select
+                  aria-label={t('admin.facilities.status')}
+                  className="w-36"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  options={[
+                    { label: t('admin.facilities.statusAll'), value: '' },
+                    { label: t('admin.facilities.statusOperational'), value: 'true' },
+                    { label: t('admin.facilities.statusInactive'), value: 'false' },
+                  ]}
+                />
+              </>
+            }
+            resultCount={data && !loading && !failed ? <span>{t('admin.facilities.total')}: {data.pagination.total}</span> : undefined}
+            onReset={filtersActive ? resetFilters : undefined}
+          />
+
+          {loading && <Skeleton lines={5} />}
+
+          {!loading && failed && (
+            <ErrorState
+              title={t('admin.facilities.errorLoad')}
+              description={t('admin.facilities.serverUnreachable')}
+              onRetry={() => void load(page)}
             />
-            {loading && <Skeleton lines={5} />}
-            {!loading && failed && (
-              <ErrorState title="Could not load facilities" description="The server could not be reached." onRetry={() => void load(page)} />
-            )}
-            {!loading && !failed && data && data.facilities.length === 0 && (
-              <EmptyState title="No facilities found" description={filtersActive ? 'No facilities match the current filters.' : 'Add the first facility record.'} />
-            )}
-            {!loading && !failed && data && data.facilities.length > 0 && (
-              <div className="space-y-4">
+          )}
+
+          {!loading && !failed && data && data.facilities.length === 0 && (
+            <EmptyState
+              title={t('admin.facilities.noFacilities')}
+              description={filtersActive ? t('admin.facilities.noMatchFilters') : t('admin.facilities.noFacilitiesYet')}
+              action={!filtersActive ? (
+                <Button variant="primary" onClick={openCreate}>
+                  {t('admin.facilities.addFirst')}
+                </Button>
+              ) : undefined}
+            />
+          )}
+
+          {!loading && !failed && data && data.facilities.length > 0 && (
+            <div className="space-y-4">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableHeaderCell>Name</TableHeaderCell>
-                      <TableHeaderCell>Type</TableHeaderCell>
-                      <TableHeaderCell>Phone</TableHeaderCell>
-                      <TableHeaderCell>Location</TableHeaderCell>
-                      <TableHeaderCell>Status</TableHeaderCell>
-                      <TableHeaderCell>Actions</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.facilities.name')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.facilities.type')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.facilities.phone')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.facilities.location')}</TableHeaderCell>
+                      <TableHeaderCell>{t('admin.facilities.status')}</TableHeaderCell>
+                      <TableHeaderCell className="text-right">{t('admin.facilities.actions')}</TableHeaderCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -317,26 +391,32 @@ export function AdminFacilitiesPage() {
                         <TableCell>
                           <span className="font-medium text-ink-900">{f.name}</span>
                           {f.capacity !== undefined && (
-                            <span className="block text-xs text-ink-400">Capacity {f.capacity}</span>
+                            <span className="block text-xs text-ink-400">{t('admin.facilities.capacity')} {f.capacity}</span>
                           )}
                         </TableCell>
                         <TableCell>{f.facilityType}</TableCell>
-                        <TableCell>{f.phone}</TableCell>
-                        <TableCell className="whitespace-nowrap text-ink-500">
-                          {f.location ? formatCoords(f.location.latitude, f.location.longitude) : '—'}
+                        <TableCell>
+                          <a href={`tel:${f.phone}`} className="text-ink-700 hover:text-gold-600 underline-offset-2 hover:underline">
+                            {f.phone}
+                          </a>
                         </TableCell>
+                        <TableCell className="whitespace-nowrap">{formatLocation(f)}</TableCell>
                         <TableCell>
                           <Badge variant={statusVariant(f.isOperational)} dot>
-                            {f.isOperational ? 'Operational' : 'Inactive'}
+                            {f.isOperational ? t('admin.facilities.statusOperational') : t('admin.facilities.statusInactive')}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1.5">
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-1.5 justify-end">
                             <Button size="sm" variant="outline" onClick={() => openEdit(f)}>
-                              Edit
+                              {t('admin.facilities.edit')}
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => setToggleTarget(f)}>
-                              {f.isOperational ? 'Deactivate' : 'Activate'}
+                            <Button
+                              size="sm"
+                              variant={f.isOperational ? 'ghost' : 'secondary'}
+                              onClick={() => setToggleTarget(f)}
+                            >
+                              {f.isOperational ? t('admin.facilities.deactivate') : t('admin.facilities.activate')}
                             </Button>
                           </div>
                         </TableCell>
@@ -344,80 +424,166 @@ export function AdminFacilitiesPage() {
                     ))}
                   </TableBody>
                 </Table>
-                <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
               </div>
-            )}
-          </div>
+              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+            </div>
+          )}
         </CardBody>
       </Card>
 
+      {/* Add/Edit Modal */}
       <Modal
         open={modal !== null}
         onClose={() => {
           if (!saving) setModal(null)
         }}
-        title={modal?.mode === 'edit' ? 'Edit facility' : 'Add facility'}
+        title={modal?.mode === 'edit' ? t('admin.facilities.edit') : t('admin.facilities.add')}
         description="Coordinates are stored as a location record — never invented."
         size="lg"
       >
         <Form onSubmit={(e: FormEvent) => void onSubmit(e)}>
           {formError && (
-            <Alert variant="danger" title="Could not save facility" onClose={() => setFormError(null)}>
+            <Alert variant="danger" title={t('admin.facilities.errorCreate')} onClose={() => setFormError(null)}>
               {formError}
             </Alert>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Name" name="facility-name" requiredMark value={form.name} error={fieldErrors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-          <Select
-            label="Type"
-            name="facility-type"
-            requiredMark
+            <Input
+              label={t('admin.facilities.name')}
+              name="facility-name"
+              requiredMark
+              value={form.name}
+              error={fieldErrors.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
+            <Select
+              label={t('admin.facilities.type')}
+              name="facility-type"
+              requiredMark
               value={form.facilityType}
               error={fieldErrors.facilityType}
               onChange={(e) => setForm((f) => ({ ...f, facilityType: e.target.value }))}
-              placeholder="Select type"
+              placeholder={t('admin.facilities.typeAll')}
               options={FACILITY_TYPES.map((t) => ({ label: t, value: t }))}
             />
-          <Input label="Phone" name="facility-phone" type="tel" requiredMark value={form.phone} error={fieldErrors.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-          <Input label="Capacity (optional)" name="facility-capacity" type="number" min="0" step="1" value={form.capacity} error={fieldErrors.capacity} onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))} />
-          <Input label="Operating hours (optional)" name="facility-hours" placeholder="24x7" value={form.operatingHours} error={fieldErrors.operatingHours} onChange={(e) => setForm((f) => ({ ...f, operatingHours: e.target.value }))} />
-          <Input label="City (optional)" name="facility-city" value={form.city} error={fieldErrors['location.city']} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
-          <Input label="Latitude" name="facility-latitude" requiredMark placeholder="19.0760" value={form.latitude} error={fieldErrors['location.latitude']} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} />
-          <Input label="Longitude" name="facility-longitude" requiredMark placeholder="72.8777" value={form.longitude} error={fieldErrors['location.longitude']} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} />
-          <Input label="Accuracy m (optional)" name="facility-accuracy" type="number" min="0" value={form.accuracy} error={fieldErrors['location.accuracy']} onChange={(e) => setForm((f) => ({ ...f, accuracy: e.target.value }))} />
-          <Input label="Address (optional)" name="facility-address" value={form.address} error={fieldErrors['location.address']} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+            <Input
+              label={t('admin.facilities.phone')}
+              name="facility-phone"
+              type="tel"
+              requiredMark
+              value={form.phone}
+              error={fieldErrors.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.capacity')}
+              name="facility-capacity"
+              type="number"
+              min="0"
+              step="1"
+              value={form.capacity}
+              error={fieldErrors.capacity}
+              onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.operatingHours')}
+              name="facility-hours"
+              placeholder="24x7"
+              value={form.operatingHours}
+              error={fieldErrors.operatingHours}
+              onChange={(e) => setForm((f) => ({ ...f, operatingHours: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.city')}
+              name="facility-city"
+              value={form.city}
+              error={fieldErrors['location.city']}
+              onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.state')}
+              name="facility-state"
+              value={form.state}
+              error={fieldErrors['location.state']}
+              onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.country')}
+              name="facility-country"
+              value={form.country}
+              error={fieldErrors['location.country']}
+              onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.latitude')}
+              name="facility-latitude"
+              requiredMark
+              placeholder="19.0760"
+              value={form.latitude}
+              error={fieldErrors['location.latitude']}
+              onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.longitude')}
+              name="facility-longitude"
+              requiredMark
+              placeholder="72.8777"
+              value={form.longitude}
+              error={fieldErrors['location.longitude']}
+              onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.accuracy')}
+              name="facility-accuracy"
+              type="number"
+              min="0"
+              value={form.accuracy}
+              error={fieldErrors['location.accuracy']}
+              onChange={(e) => setForm((f) => ({ ...f, accuracy: e.target.value }))}
+            />
+            <Input
+              label={t('admin.facilities.address')}
+              name="facility-address"
+              value={form.address}
+              error={fieldErrors['location.address']}
+              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+            />
           </div>
           {fieldErrors.location && <Alert variant="danger">{fieldErrors.location}</Alert>}
-          <Checkbox label="Operational (visible to users)" checked={form.isOperational} onChange={(e) => setForm((f) => ({ ...f, isOperational: e.target.checked }))} />
-          <div className="flex flex-wrap gap-3">
+          <Checkbox
+            label={t('admin.facilities.statusOperational')}
+            checked={form.isOperational}
+            onChange={(e) => setForm((f) => ({ ...f, isOperational: e.target.checked }))}
+          />
+          <div className="flex flex-wrap gap-3 mt-4">
             <Button type="submit" loading={saving} disabled={saving}>
-              {modal?.mode === 'edit' ? 'Save changes' : 'Add facility'}
+              {modal?.mode === 'edit' ? t('admin.facilities.save') : t('admin.facilities.add')}
             </Button>
             <Button variant="ghost" onClick={() => setModal(null)}>
-              Cancel
+              {t('admin.facilities.cancel')}
             </Button>
           </div>
         </Form>
       </Modal>
 
+      {/* Activate/Deactivate Dialog */}
       <Dialog
         open={toggleTarget !== null}
         onClose={() => {
           if (!toggling) setToggleTarget(null)
         }}
         variant={toggleTarget?.isOperational ? 'danger' : 'default'}
-        title={toggleTarget?.isOperational ? `Deactivate ${toggleTarget?.name}?` : `Activate ${toggleTarget?.name}?`}
-        confirmLabel={toggleTarget?.isOperational ? 'Deactivate' : 'Activate'}
+        title={toggleTarget?.isOperational ? t('admin.facilities.deactivateTitle') : t('admin.facilities.activateTitle')}
+        confirmLabel={toggleTarget?.isOperational ? t('admin.facilities.deactivate') : t('admin.facilities.activate')}
+        cancelLabel={t('admin.facilities.cancel')}
         confirmLoading={toggling}
         onConfirm={() => void onConfirmToggle()}
       >
-        {toggleTarget?.isOperational
-          ? 'Users will no longer see this facility in resources.'
-          : 'Users will see this facility in resources again.'}
+        {toggleTarget?.isOperational ? t('admin.facilities.deactivateConfirm') : t('admin.facilities.activateConfirm')}
       </Dialog>
 
-      <Alert variant="info" title="Stored information only">
-        Operating hours and capacity are maintained records. This app has no live availability feed.
+      <Alert variant="info" title={t('resources.facility.about.title')}>
+        {t('resources.facility.about.body')}
       </Alert>
     </div>
   )

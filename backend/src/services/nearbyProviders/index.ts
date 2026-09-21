@@ -118,6 +118,7 @@ export function normalizeExternalPlace(
     kind: 'facility',
     source: 'GOOGLE_PLACES',
     name: place.name,
+    category: ['hospital', 'police', 'fire_station'].includes(place.category) ? place.category : undefined,
     resourceType: externalCategoryLabel(place.category),
     phone: place.phone,
     address: place.address,

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { listNotificationsAdmin, listUsers, getUserAdmin } from '../controllers/adminController.js'
+import { listNotificationsAdmin, listUsers, getUserAdmin, updateUserAdmin, deleteUserAdmin } from '../controllers/adminController.js'
 import {
   createFacility,
   getFacilityAdmin,
@@ -30,6 +30,7 @@ import {
   getUnsafeReportAdmin,
   listUnsafeReportsAdmin,
   verifyUnsafeReport,
+  deleteUnsafeReportAdmin,
 } from '../controllers/adminUnsafeReportController.js'
 import { getAdminIncidentNearbyResources } from '../controllers/nearbyController.js'
 import { listRiskAdmin } from '../controllers/adminRiskController.js'
@@ -54,6 +55,8 @@ router.get('/reports/:id', getReport)
 router.get('/reports/:id/export', exportReport)
 router.get('/users', listUsers)
 router.get('/users/:id', getUserAdmin)
+router.patch('/users/:id', updateUserAdmin)
+router.delete('/users/:id', deleteUserAdmin)
 router.get('/notifications', listNotificationsAdmin)
 router.get('/incidents/summary', getIncidentsSummary)
 router.get('/incidents', listIncidentsAdmin)
@@ -76,6 +79,7 @@ router.patch('/assignments/:id', updateAssignment)
 router.get('/unsafe-reports', listUnsafeReportsAdmin)
 router.get('/unsafe-reports/:id', getUnsafeReportAdmin)
 router.patch('/unsafe-reports/:id', verifyUnsafeReport)
+router.delete('/unsafe-reports/:id', deleteUnsafeReportAdmin)
 router.get('/incidents/:id/risk', listRiskAdmin)
 router.get('/incidents/:id/nearby-resources', getAdminIncidentNearbyResources)
 

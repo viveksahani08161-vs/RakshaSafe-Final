@@ -1,6 +1,12 @@
 import { TtlCache, coordsCacheKey, haversineKm } from '../utils/geo.js'
 
-export type OsmCategory = 'hospital' | 'police' | 'fire_station' | 'ambulance_station' | 'shelter'
+export type OsmCategory =
+  | 'hospital'
+  | 'clinic'
+  | 'police'
+  | 'fire_station'
+  | 'ambulance_station'
+  | 'shelter'
 
 export interface OsmFacility {
   osmId: string
@@ -26,7 +32,6 @@ const USER_AGENT = 'RakshaSafe/1.0 (contact@rakshasafe.local)'
 const TIMEOUT_MS = 20000
 const CACHE_TTL_MS = 10 * 60 * 1000
 const MAX_RESULTS = 15
-const CATEGORIES: OsmCategory[] = ['hospital', 'police', 'fire_station', 'ambulance_station', 'shelter']
 
 const cache = new TtlCache<OsmFacility[]>(CACHE_TTL_MS, 200)
 const inflight = new Map<string, Promise<OsmFacility[]>>()
@@ -74,10 +79,18 @@ function mapElement(el: OsmElement): OsmFacility | null {
   // Unnamed objects cannot be labelled honestly — skip them.
   if (!name) return null
   const amenity = textOrNull(tags.amenity)
+  const emergency = textOrNull(tags.emergency)
   const category: OsmCategory | null =
-    amenity === 'hospital' || amenity === 'police' || amenity === 'fire_station' || amenity === 'ambulance_station' || amenity === 'shelter'
-      ? amenity
-      : null
+    amenity === 'hospital' ||
+    amenity === 'clinic' ||
+    amenity === 'police' ||
+    amenity === 'fire_station' ||
+    amenity === 'shelter'
+      ? (amenity as OsmCategory)
+      // Ambulance stations are commonly tagged emergency=ambulance_station.
+      : amenity === 'ambulance_station' || emergency === 'ambulance_station'
+        ? 'ambulance_station'
+        : null
   if (!category) return null
   const { latitude, longitude } = elementCoords(el)
   return {
@@ -122,9 +135,13 @@ export function dedupeOsmFacilities(items: OsmFacility[]): OsmFacility[] {
 
 function buildQuery(latitude: number, longitude: number, radiusM: number): string {
   const around = `around:${Math.round(radiusM)},${latitude},${longitude}`
-  const selector = CATEGORIES.map((c) => `["amenity"="${c}"]`).join('');
+  // One OR-matcher, not chained ANDs: chained ["amenity"="x"]["amenity"="y"]
+  // filters would require a single element to be BOTH at once (never true).
+  const amenitySelector = '["amenity"~"^(hospital|clinic|police|fire_station|ambulance_station|shelter)$"]'
+  const emergencySelector = '["emergency"="ambulance_station"]'
   const clauses = ['node', 'way', 'relation']
-    .map((kind) => `${kind}${selector}(${around});`)
+    .map((kind) => `${kind}${amenitySelector}(${around});`)
+    .concat(['node', 'way', 'relation'].map((kind) => `${kind}${emergencySelector}(${around});`))
     .join('')
   return `[out:json][timeout:20];(${clauses});out center ${MAX_RESULTS};`
 }

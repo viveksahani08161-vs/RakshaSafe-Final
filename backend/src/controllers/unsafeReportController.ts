@@ -3,7 +3,7 @@ import { Location } from '../models/Location.js'
 import { UnsafeAreaReport, type IUnsafeAreaReport } from '../models/UnsafeAreaReport.js'
 import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
-import { validateUnsafeReportCreate } from '../validators/unsafeReport.js'
+import { validateUnsafeReportCreate, validateUnsafeReportUpdate } from '../validators/unsafeReport.js'
 import { toSafeLocation, type SafeLocation } from './incidentController.js'
 
 export interface SafeUnsafeReport {
@@ -97,6 +97,80 @@ export async function listUnsafeReports(req: Request, res: Response, next: NextF
     const ownerId = requireOwnerId(req)
     const docs = await UnsafeAreaReport.find({ reportedBy: ownerId }).sort({ createdAt: -1 })
     res.json({ success: true, data: { reports: await withReportLocations(docs) } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * PATCH /api/unsafe-reports/:id — owner-scoped edit.
+ * Location is preserved unless a replacement stored-location reference or
+ * replacement coordinates are supplied. Another user's id yields 404.
+ */
+export async function updateUnsafeReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const ownerId = requireOwnerId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid report id.'))
+      return
+    }
+    const { input, issues } = validateUnsafeReportUpdate(req.body)
+    if (!input || issues) {
+      next(badRequest('Invalid report data.', issues))
+      return
+    }
+
+    const doc = await UnsafeAreaReport.findOne({ _id: id, reportedBy: ownerId })
+    if (!doc) {
+      next(notFoundError('Report not found.'))
+      return
+    }
+
+    if (input.category !== undefined) doc.category = input.category
+    if (input.description !== undefined) doc.description = input.description
+    if (input.severity !== undefined) doc.severity = input.severity
+    if (input.locationId !== undefined || input.location !== undefined) {
+      if (input.locationId) {
+        const exists = await Location.findById(input.locationId).select('_id').lean()
+        if (!exists) {
+          next(badRequest('Invalid report data.', [{ field: 'locationId', message: 'Location not found.' }]))
+          return
+        }
+        doc.locationId = input.locationId as unknown as typeof doc.locationId
+      } else if (input.location) {
+        const created = await Location.create(input.location)
+        doc.locationId = created._id
+      }
+    }
+
+    await doc.save()
+    const location = await Location.findById(doc.locationId)
+    res.json({
+      success: true,
+      data: { report: toSafeUnsafeReport(doc, location ? toSafeLocation(location) : null) },
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteUnsafeReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const ownerId = requireOwnerId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid report id.'))
+      return
+    }
+    const doc = await UnsafeAreaReport.findOne({ _id: id, reportedBy: ownerId })
+    if (!doc) {
+      next(notFoundError('Report not found.'))
+      return
+    }
+    // Preserve the linked Location record and history elsewhere; only the user's report is removed.
+    await doc.deleteOne()
+    res.json({ success: true, data: { deleted: true, id: String(doc._id) } })
   } catch (err) {
     next(err)
   }

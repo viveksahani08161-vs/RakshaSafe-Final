@@ -9,6 +9,7 @@ export interface AuthUser {
   phone: string
   role: UserRole
   language?: string
+  isActive?: boolean
   createdAt: string
   updatedAt: string
 }

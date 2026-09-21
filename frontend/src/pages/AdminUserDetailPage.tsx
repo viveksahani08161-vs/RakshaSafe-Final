@@ -1,16 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatDateTime as formatIncidentDateTime, type Incident } from '../lib/incidents'
+import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Dialog } from '../components/ui/Dialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
+import { Form } from '../components/ui/Form'
+import { Input } from '../components/ui/Input'
+import { Modal } from '../components/ui/Modal'
+import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../components/ui/Table'
 import { useI18n } from '../lib/i18n'
 import { hashUserId, navigateTo } from '../lib/hash-route'
-import { ChevronLeftIcon } from '../components/ui/icons'
+import { useToast } from '../components/ui/toast-context'
+import { ChevronLeftIcon, MapPinIcon, ShieldCheckIcon, AlertTriangleIcon, UsersIcon, BellIcon, ActivityIcon, FileTextIcon, ChevronRightIcon } from '../components/ui/icons'
 
 interface AdminUserDetail {
   id: string
@@ -19,6 +26,7 @@ interface AdminUserDetail {
   phone: string
   role: string
   language?: string
+  isActive?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -207,8 +215,28 @@ function formatFactors(factors: Record<string, unknown>[]): string {
     .join(' · ')
 }
 
+function toFieldErrors(details: unknown): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (Array.isArray(details)) {
+    for (const item of details) {
+      if (
+        typeof item === 'object' &&
+        item !== null &&
+        'field' in item &&
+        'message' in item &&
+        typeof (item as { field: unknown }).field === 'string' &&
+        typeof (item as { message: unknown }).message === 'string'
+      ) {
+        out[(item as { field: string }).field] = (item as { message: string }).message
+      }
+    }
+  }
+  return out
+}
+
 export function AdminUserDetailPage() {
   const { t } = useI18n()
+  const { notify } = useToast()
   const userId = hashUserId()
   const [user, setUser] = useState<AdminUserDetail | null>(null)
   const [incidents, setIncidents] = useState<AdminUserIncident[]>([])
@@ -220,6 +248,31 @@ export function AdminUserDetailPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'incidents' | 'assignments' | 'history' | 'risk' | 'notifications' | 'unsafeReports'>('incidents')
+
+  const [editModal, setEditModal] = useState<{ user: AdminUserDetail | null }>({ user: null })
+  const [deleteModal, setDeleteModal] = useState<{ user: AdminUserDetail | null }>({ user: null })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', language: '', role: '', isActive: true })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  // Activity statuses considered as "active" per existing workflow
+  const ACTIVE_STATUSES = ['REPORTED', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS']
+  const RESOLVED_STATUSES = ['RESOLVED', 'CLOSED']
+
+  // Compute activity summary from loaded data
+  const totalIncidents = incidents.length
+  const activeIncidents = incidents.filter((i) => ACTIVE_STATUSES.includes(i.status)).length
+  const resolvedIncidents = incidents.filter((i) => RESOLVED_STATUSES.includes(i.status)).length
+  const cancelledIncidents = incidents.filter((i) => i.status === 'CANCELLED').length
+  const totalUnsafeReports = unsafeReports.length
+  const totalNotifications = notifications.length
+  const totalAssignments = assignments.length
+  const totalRiskAssessments = riskAssessments.length
+
+  // Find latest incident with a stored location (incidents are sorted by createdAt desc)
+  const latestIncidentWithLocation = incidents.find((i) => i.location !== null && i.location !== undefined)
 
   const load = useCallback(async (signal?: AbortSignal) => {
     if (!userId) return
@@ -255,11 +308,104 @@ export function AdminUserDetailPage() {
     navigateTo('/admin/users')
   }
 
+  function openEditModal(): void {
+    if (user) {
+      setForm({
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        language: user.language ?? '',
+        role: user.role,
+        isActive: user.isActive !== undefined ? user.isActive : true,
+      })
+      setFieldErrors({})
+      setFormError(null)
+      setEditModal({ user })
+    }
+  }
+
+  function openDeleteModal(): void {
+    if (user) setDeleteModal({ user })
+  }
+
+  function parseRole(role: string): 'USER' | 'ADMIN' | 'RESPONDER' {
+    return role as 'USER' | 'ADMIN' | 'RESPONDER'
+  }
+
+  async function onEditSubmit(e: FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!editModal?.user) return
+    setSaving(true)
+    setFieldErrors({})
+    setFormError(null)
+    try {
+      const body: Record<string, unknown> = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        role: parseRole(form.role),
+        isActive: form.isActive,
+      }
+      if (form.language.trim() !== '') body.language = form.language.trim()
+      await api(`/admin/users/${editModal.user.id}`, { method: 'PATCH', body })
+      notify({ title: t('admin.users.updateSuccess'), description: form.name.trim(), variant: 'success' })
+      setEditModal({ user: null })
+      await load()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fields = toFieldErrors(err.details)
+        if (Object.keys(fields).length > 0) {
+          setFieldErrors(fields)
+        } else if (err.status === 400 && err.message.includes('last active administrator')) {
+          setFormError(t('admin.users.lastAdminRole'))
+        } else if (err.status === 400 && err.message.includes('your own admin role')) {
+          setFormError(t('admin.users.cannotDemoteSelf'))
+        } else if (err.status === 409 && err.message.includes('email')) {
+          setFieldErrors({ email: t('admin.users.duplicateEmail') })
+        } else if (err.status === 409 && err.message.includes('phone')) {
+          setFieldErrors({ phone: t('admin.users.duplicatePhone') })
+        } else {
+          setFormError(err.message)
+        }
+      } else {
+        setFormError(t('admin.users.updateError'))
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function onConfirmDelete(): Promise<void> {
+    if (!deleteModal?.user) return
+    setDeleting(true)
+    try {
+      await api(`/admin/users/${deleteModal.user.id}`, { method: 'DELETE' })
+      notify({ title: t('admin.users.deleteSuccess'), description: deleteModal.user.name, variant: 'success' })
+      setDeleteModal({ user: null })
+      navigateTo('/admin/users')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 400 && err.message.includes('your own administrator account')) {
+          notify({ title: t('admin.users.deleteError'), description: t('admin.users.cannotDeleteSelf'), variant: 'danger' })
+        } else if (err.status === 400 && err.message.includes('last active administrator')) {
+          notify({ title: t('admin.users.deleteError'), description: t('admin.users.lastAdmin'), variant: 'danger' })
+        } else {
+          notify({ title: t('admin.users.deleteError'), description: err.message, variant: 'danger' })
+        }
+      } else {
+        notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteError'), variant: 'danger' })
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (!userId) {
     return <div>Invalid user ID</div>
   }
 
   return (
+    <>
     <div className="mx-auto grid w-full max-w-6xl gap-6">
       <Card>
         <CardHeader
@@ -281,7 +427,17 @@ export function AdminUserDetailPage() {
             <div className="space-y-6">
               {/* Profile Section */}
               <section aria-labelledby="profile-heading">
-                <h2 id="profile-heading" className="text-lg font-bold text-ink-900 mb-4">{t('admin.users.profile')}</h2>
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+                  <h2 id="profile-heading" className="text-lg font-bold text-ink-900">{t('admin.users.profile')}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={openEditModal}>
+                      {t('admin.users.edit')}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={openDeleteModal}>
+                      {t('admin.users.delete')}
+                    </Button>
+                  </div>
+                </div>
                 <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <dt className="font-semibold text-ink-500">{t('admin.users.name')}</dt>
@@ -312,6 +468,218 @@ export function AdminUserDetailPage() {
                     <dd className="mt-0.5 text-ink-900">{formatIncidentDateTime(user.createdAt)}</dd>
                   </div>
                 </dl>
+              </section>
+
+              {/* Activity Summary Cards */}
+              <section aria-labelledby="activity-summary-heading">
+                <h2 id="activity-summary-heading" className="text-lg font-bold text-ink-900 mb-4">{t('admin.users.activitySummary')}</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-100 text-gold-700">
+                        <ActivityIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalIncidents}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.totalIncidents')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+                        <AlertTriangleIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{activeIncidents}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.activeIncidents')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                        <ShieldCheckIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{resolvedIncidents}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.resolvedIncidents')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
+                        <ChevronRightIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{cancelledIncidents}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.cancelledIncidents')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                        <AlertTriangleIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalUnsafeReports}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.totalUnsafeReports')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                        <BellIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalNotifications}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.totalNotifications')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+                        <UsersIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalAssignments}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.totalAssignments')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                        <FileTextIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalRiskAssessments}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.totalRiskAssessments')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Latest Recorded Incident Location */}
+              <section aria-labelledby="latest-location-heading">
+                <h2 id="latest-location-heading" className="text-lg font-bold text-ink-900 mb-4">{t('admin.users.latestRecordedLocation')}</h2>
+                <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                  {latestIncidentWithLocation?.location ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div>
+                        <dt className="font-semibold text-ink-500">{t('admin.users.latestLocationIncident')}</dt>
+                        <dd className="mt-0.5 text-ink-900 font-mono text-sm">{latestIncidentWithLocation.id}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-semibold text-ink-500">{t('admin.users.latestLocationRecordedAt')}</dt>
+                        <dd className="mt-0.5 text-ink-900">{formatIncidentDateTime(latestIncidentWithLocation.createdAt)}</dd>
+                      </div>
+                      <div className="sm:col-span-2 lg:col-span-3">
+                        <dt className="font-semibold text-ink-500">{t('admin.users.location')}</dt>
+                        <dd className="mt-0.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <MapPinIcon className="size-4 text-ink-400 shrink-0" />
+                            <span className="font-mono text-sm text-ink-900">
+                              {latestIncidentWithLocation.location!.latitude.toFixed(6)}, {latestIncidentWithLocation.location!.longitude.toFixed(6)}
+                            </span>
+                            {latestIncidentWithLocation.location!.accuracy !== undefined && (
+                              <span className="text-xs text-ink-500">±{Math.round(latestIncidentWithLocation.location!.accuracy)}m</span>
+                            )}
+                          </div>
+                          {latestIncidentWithLocation.location!.address && (
+                            <div className="mt-1 text-sm text-ink-600">{latestIncidentWithLocation.location!.address}</div>
+                          )}
+                          {latestIncidentWithLocation.location!.city && (
+                            <div className="text-sm text-ink-600">{latestIncidentWithLocation.location!.city}{latestIncidentWithLocation.location!.state ? `, ${latestIncidentWithLocation.location!.state}` : ''}{latestIncidentWithLocation.location!.country ? `, ${latestIncidentWithLocation.location!.country}` : ''}</div>
+                          )}
+                        </dd>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-ink-500">
+                      <MapPinIcon className="size-8 mx-auto text-ink-300 mb-2" />
+                      <p>{t('admin.users.noRecordedLocation')}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Service Usage */}
+              <section aria-labelledby="service-usage-heading">
+                <h2 id="service-usage-heading" className="text-lg font-bold text-ink-900 mb-4">{t('admin.users.serviceUsage')}</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-100 text-gold-700">
+                        <ActivityIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalIncidents}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.incidentsCreated')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                        <AlertTriangleIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalUnsafeReports}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.unsafeReportsCreated')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+                        <UsersIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">—</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.emergencyContactsCount')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+                        <UsersIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalAssignments}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.rescueAssignmentsReceived')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                        <BellIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalNotifications}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.notificationsGenerated')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                        <FileTextIcon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalRiskAssessments}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.riskAssessmentsAssociated')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </section>
 
               {/* Tab navigation */}
@@ -661,5 +1029,59 @@ export function AdminUserDetailPage() {
         </CardBody>
       </Card>
     </div>
+
+    <Modal
+      open={editModal !== null}
+      onClose={() => setEditModal({ user: null })}
+      title={t('admin.users.editTitle')}
+      description={t('admin.users.description')}
+    >
+      <Form onSubmit={(e: FormEvent) => void onEditSubmit(e)}>
+        {formError && (
+          <Alert variant="danger" title={t('admin.users.updateError')} onClose={() => setFormError(null)}>
+            {formError}
+          </Alert>
+        )}
+        <Input label={t('admin.users.name')} name="user-name" requiredMark value={form.name} error={fieldErrors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        <Input label={t('admin.users.email')} name="user-email" type="email" requiredMark value={form.email} error={fieldErrors.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+        <Input label={t('admin.users.phone')} name="user-phone" type="tel" requiredMark value={form.phone} error={fieldErrors.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+        <Input label={t('admin.users.language')} name="user-language" value={form.language} onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))} />
+        <Select
+          label={t('admin.users.role')}
+          name="user-role"
+          requiredMark
+          value={form.role}
+          error={fieldErrors.role}
+          onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+          placeholder={t('admin.users.role')}
+          options={[
+            { label: t('role.user'), value: 'USER' },
+            { label: t('role.admin'), value: 'ADMIN' },
+            { label: t('role.responder'), value: 'RESPONDER' },
+          ]}
+        />
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" loading={saving} disabled={saving}>
+            {t('admin.users.save')}
+          </Button>
+          <Button variant="ghost" onClick={() => setEditModal({ user: null })}>
+            {t('admin.users.cancel')}
+          </Button>
+        </div>
+      </Form>
+    </Modal>
+
+    <Dialog
+      open={deleteModal !== null}
+      onClose={() => setDeleteModal({ user: null })}
+      variant="danger"
+      title={t('admin.users.deleteTitle', { name: deleteModal?.user?.name ?? '' })}
+      confirmLabel={t('admin.users.deleteConfirm')}
+      confirmLoading={deleting}
+      onConfirm={() => void onConfirmDelete()}
+    >
+      {t('admin.users.deleteConfirmBody')}
+    </Dialog>
+    </>
   )
 }

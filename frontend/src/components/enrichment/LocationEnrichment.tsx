@@ -1,5 +1,6 @@
 import { useI18n } from '../../lib/i18n'
 import type { Enrichment } from '../../lib/useEnrichment'
+import type { NearbyResource } from '../../lib/resources'
 import { Button } from '../ui/Button'
 import { Card, CardBody, CardHeader } from '../ui/Card'
 import { Skeleton } from '../ui/Skeleton'
@@ -14,10 +15,24 @@ interface LocationEnrichmentProps {
   enrichment: Enrichment
 }
 
-function markerKind(resourceType: string): SafetyMapMarker['kind'] {
-  if (resourceType === 'Hospital') return 'hospital'
-  if (resourceType === 'Police Station' || resourceType === 'Police') return 'police'
-  if (resourceType === 'Fire Station') return 'fire'
+function markerKind(resource: NearbyResource): SafetyMapMarker['kind'] {
+  switch (resource.category) {
+    case 'hospital':
+    case 'clinic':
+      return 'hospital'
+    case 'police':
+      return 'police'
+    case 'fire_station':
+      return 'fire'
+    case 'ambulance_station':
+      return 'ambulance'
+    default:
+      break
+  }
+  if (resource.resourceType === 'Hospital' || resource.resourceType === 'Clinic') return 'hospital'
+  if (resource.resourceType === 'Police Station' || resource.resourceType === 'Police') return 'police'
+  if (resource.resourceType === 'Fire Station') return 'fire'
+  if (resource.resourceType === 'Ambulance Station') return 'ambulance'
   return 'other'
 }
 
@@ -34,7 +49,7 @@ export function LocationEnrichment({ latitude, longitude, accuracy, enrichment }
       latitude: r.latitude as number,
       longitude: r.longitude as number,
       label: r.name,
-      kind: markerKind(r.resourceType),
+      kind: markerKind(r),
     }))
 
   return (

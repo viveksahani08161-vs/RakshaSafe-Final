@@ -128,3 +128,74 @@ export function validateProfileUpdate(
   }
   return { input }
 }
+
+export interface AdminUserUpdateInput {
+  name?: string
+  email?: string
+  phone?: string
+  language?: string
+  role?: 'USER' | 'ADMIN' | 'RESPONDER'
+  isActive?: boolean
+}
+
+export function validateAdminUserUpdate(
+  body: unknown,
+): { input?: AdminUserUpdateInput; issues?: ValidationIssue[] } {
+  const issues: ValidationIssue[] = []
+  const b = (body ?? {}) as Record<string, unknown>
+  const input: AdminUserUpdateInput = {}
+
+  if (b.name !== undefined) {
+    const name = typeof b.name === 'string' ? b.name.trim() : ''
+    if (name.length < 2 || name.length > 100) {
+      issues.push({ field: 'name', message: 'Name must be between 2 and 100 characters.' })
+    } else {
+      input.name = name
+    }
+  }
+  if (b.email !== undefined) {
+    const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : ''
+    if (!isEmail(email)) {
+      issues.push({ field: 'email', message: 'A valid email address is required.' })
+    } else {
+      input.email = email
+    }
+  }
+  if (b.phone !== undefined) {
+    const phone = typeof b.phone === 'string' ? b.phone.trim() : ''
+    if (!isPhone(phone)) {
+      issues.push({ field: 'phone', message: 'A valid phone number is required.' })
+    } else {
+      input.phone = phone
+    }
+  }
+  if (b.language !== undefined) {
+    const language = typeof b.language === 'string' ? b.language.trim() : ''
+    if (language.length > 20) {
+      issues.push({ field: 'language', message: 'Language must be at most 20 characters.' })
+    } else {
+      input.language = language === '' ? undefined : language
+    }
+  }
+  if (b.role !== undefined) {
+    const allowedRoles = ['USER', 'ADMIN', 'RESPONDER']
+    if (typeof b.role !== 'string' || !allowedRoles.includes(b.role)) {
+      issues.push({ field: 'role', message: 'Role must be one of: USER, ADMIN, RESPONDER.' })
+    } else {
+      input.role = b.role as 'USER' | 'ADMIN' | 'RESPONDER'
+    }
+  }
+  if (b.isActive !== undefined) {
+    if (typeof b.isActive !== 'boolean') {
+      issues.push({ field: 'isActive', message: 'isActive must be true or false.' })
+    } else {
+      input.isActive = b.isActive
+    }
+  }
+
+  if (issues.length > 0) return { issues }
+  if (Object.keys(input).length === 0) {
+    return { issues: [{ field: 'body', message: 'At least one field must be provided.' }] }
+  }
+  return { input }
+}

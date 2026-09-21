@@ -402,11 +402,12 @@ export function AdminIncidentDetailPage() {
               onRetry={() => void loadNearby()}
               showCoordinates
               notice={nearbyNotice}
+              titleKey="nearby.recordedLocation"
             />
           )}
           {!loading && !failed && !notFound && incident && detail && !detail.location && (
             <Card>
-              <CardHeader title={t('nearby.title')} />
+              <CardHeader title={t('nearby.recordedLocation')} />
               <CardBody>
                 <p className="text-sm text-ink-500">{t('nearby.noIncidentLocation')}</p>
               </CardBody>

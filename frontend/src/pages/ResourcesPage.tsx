@@ -3,11 +3,12 @@ import { ApiError, api } from '../lib/api'
 import { useI18n } from '../lib/i18n'
 import { requestDeviceLocation, type LocationOutcome } from '../lib/geolocation'
 import {
-  DEFAULT_NEARBY_RADIUS_KM,
   FACILITY_TYPES,
   TEAM_TYPES,
   formatCoords,
   getOsmNearby,
+  buildTelHref,
+  buildDirectionsUrl,
   type Facility,
   type NearbyResource,
   type RescueTeam,
@@ -23,7 +24,13 @@ import { SearchInput } from '../components/ui/SearchInput'
 import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { Spinner } from '../components/ui/Spinner'
-import { BuildingIcon, MapPinIcon, PhoneIcon, UsersIcon } from '../components/ui/icons'
+import {
+  BuildingIcon,
+  MapPinIcon,
+  PhoneIcon,
+  UsersIcon,
+  ExternalLinkIcon,
+} from '../components/ui/icons'
 
 function gpsErrorKey(outcome: LocationOutcome): string {
   switch (outcome.state) {
@@ -72,14 +79,16 @@ export function ResourcesPage() {
   const [osmFacilities, setOsmFacilities] = useState<NearbyResource[]>([])
   const [osmLoading, setOsmLoading] = useState(false)
   const [osmError, setOsmError] = useState<string | null>(null)
-  const radiusKm = DEFAULT_NEARBY_RADIUS_KM
+  // /api/nearby searches progressively (1 → 2.5 → 5 km); this value only
+  // feeds the honest empty-state copy when even 5 km finds nothing.
+  const osmSearchRadiusKm = 5
 
   const loadOsmNearby = useCallback(
     async (latitude: number, longitude: number, signal?: AbortSignal) => {
       setOsmLoading(true)
       setOsmError(null)
       try {
-        const res = await getOsmNearby(latitude, longitude, radiusKm, signal)
+        const res = await getOsmNearby(latitude, longitude, undefined, signal)
         if (!signal?.aborted) setOsmFacilities(res.facilities)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
@@ -91,7 +100,7 @@ export function ResourcesPage() {
         if (!signal?.aborted) setOsmLoading(false)
       }
     },
-    [radiusKm, t],
+    [t],
   )
 
   async function acquireGps(): Promise<void> {
@@ -227,7 +236,7 @@ export function ResourcesPage() {
                   onRetry={() =>
                     void loadOsmNearby(gpsOutcome.coords.latitude, gpsOutcome.coords.longitude)
                   }
-                  radiusKm={radiusKm}
+                  radiusKm={osmSearchRadiusKm}
                   grouped
                   emptyText={t('resources.nearbyFacilities.empty')}
                 />
@@ -301,29 +310,88 @@ export function ResourcesPage() {
           )}
           {!teamsLoading && !teamsError && teamItems.length > 0 && (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {teamItems.map((team) => (
-                <li key={team.id} className="flex flex-col gap-2 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-bold text-ink-900">{team.name}</p>
-                      <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-ink-400">{team.teamType}</p>
+              {teamItems.map((team) => {
+                const mapsUrl = team.location
+                  ? buildDirectionsUrl(team.location.latitude, team.location.longitude)
+                  : null
+                const cityLine = team.location
+                  ? [team.location.city, team.location.state, team.location.country].filter(Boolean).join(', ')
+                  : ''
+                return (
+                  <li key={team.id} className="flex flex-col gap-3 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-bold text-ink-900">{team.name}</p>
+                        <Badge variant="secondary" className="mt-1.5">{team.teamType}</Badge>
+                      </div>
+                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700" aria-hidden="true">
+                        <UsersIcon className="size-5" />
+                      </span>
                     </div>
-                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
-                      <UsersIcon className="size-5" />
-                    </span>
-                  </div>
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-800">
-                    <PhoneIcon className="size-4 text-ink-400" /> {team.phone}
-                  </p>
-                  {team.specializations.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {team.specializations.map((s) => (
-                        <Badge key={s} variant="secondary">{s}</Badge>
-                      ))}
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-800">
+                      <PhoneIcon className="size-4 shrink-0 text-ink-400" aria-hidden="true" />
+                      {team.phone ? (
+                        <span className="break-words">{team.phone}</span>
+                      ) : (
+                        <span className="font-normal text-ink-400">{t('resources.registeredTeams.phoneNotAvailable')}</span>
+                      )}
+                    </p>
+                    <div className="space-y-1.5 border-t border-ink-100 pt-3">
+                      <p className="flex items-start gap-1.5 text-sm text-ink-600">
+                        <MapPinIcon className="mt-0.5 size-4 shrink-0 text-ink-400" aria-hidden="true" />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="font-semibold">{t('resources.registeredTeams.registeredLocation')}</span>
+                          {!team.location ? (
+                            <span className="text-ink-400">{t('resources.registeredTeams.locationNotAvailable')}</span>
+                          ) : team.location.address ? (
+                            <span className="break-words">{team.location.address}</span>
+                          ) : cityLine !== '' ? (
+                            <span className="break-words">{cityLine}</span>
+                          ) : (
+                            <span className="text-ink-500">{t('resources.registeredTeams.locationOnMap')}</span>
+                          )}
+                          {team.location && (
+                            <span className="text-xs text-ink-400">
+                              {formatCoords(team.location.latitude, team.location.longitude, team.location.accuracy)}
+                            </span>
+                          )}
+                        </span>
+                      </p>
                     </div>
-                  )}
-                </li>
-              ))}
+                    <div className="mt-auto flex flex-col gap-2 pt-1">
+                      {team.phone ? (
+                        <a
+                          href={buildTelHref(team.phone)}
+                          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-gold-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gold-600"
+                          aria-label={t('resources.registeredTeams.callTeamAria', { name: team.name })}
+                        >
+                          <PhoneIcon className="size-4" aria-hidden="true" />
+                          {t('resources.registeredTeams.callTeam')}
+                        </a>
+                      ) : null}
+                      {mapsUrl ? (
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+                          aria-label={t('resources.registeredTeams.viewLocationAria', { name: team.name })}
+                        >
+                          <ExternalLinkIcon className="size-4" aria-hidden="true" />
+                          {t('resources.registeredTeams.viewLocation')}
+                        </a>
+                      ) : null}
+                    </div>
+                    {team.specializations.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {team.specializations.map((s) => (
+                          <Badge key={s} variant="secondary">{s}</Badge>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           )}
           <Alert variant="info" title={t('resources.registeredTeams.aboutTitle')}>

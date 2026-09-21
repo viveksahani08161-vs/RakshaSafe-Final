@@ -10,6 +10,14 @@ export interface UnsafeReportCreateInput {
   location?: InlineLocationInput
 }
 
+export interface UnsafeReportUpdateInput {
+  category?: string
+  description?: string
+  severity?: string
+  locationId?: string
+  location?: InlineLocationInput
+}
+
 function checkText(value: unknown, field: string, min: number, max: number, issues: ValidationIssue[]): string | undefined {
   const text = typeof value === 'string' ? value.trim() : ''
   if (text.length < min || text.length > max) {
@@ -58,6 +66,69 @@ export function validateUnsafeReportCreate(
       ...(locationProvided && location ? { location } : {}),
     },
   }
+}
+
+export function validateUnsafeReportUpdate(
+  body: unknown,
+): { input?: UnsafeReportUpdateInput; issues?: ValidationIssue[] } {
+  const issues: ValidationIssue[] = []
+  const b = (body ?? {}) as Record<string, unknown>
+  const input: UnsafeReportUpdateInput = {}
+
+  if (b.category !== undefined) {
+    const category = checkText(b.category, 'category', 2, 100, issues)
+    if (category !== undefined) input.category = category
+  }
+  if (b.description !== undefined) {
+    const description = checkText(b.description, 'description', 1, 2000, issues)
+    if (description !== undefined) input.description = description
+  }
+  if (b.severity !== undefined) {
+    const severity = checkText(b.severity, 'severity', 2, 50, issues)
+    if (severity !== undefined) input.severity = severity
+  }
+
+  let locationId: string | undefined
+  if (b.locationId !== undefined) {
+    if (!isValidObjectId(b.locationId)) {
+      issues.push({ field: 'locationId', message: 'locationId must be a valid id.' })
+    } else {
+      locationId = b.locationId as string
+    }
+  }
+  const location = validateInlineLocation(b.location, issues)
+  const locationProvided = b.location !== undefined
+  if (locationId && locationProvided) {
+    issues.push({ field: 'location', message: 'Provide either locationId or location, not both.' })
+  }
+  if (locationId) input.locationId = locationId
+  if (locationProvided && location) input.location = location
+
+  if (issues.length > 0) return { issues }
+  if (Object.keys(input).length === 0) {
+    return {
+      issues: [
+        {
+          field: 'body',
+          message: 'At least one field (category, description, severity, locationId, location) must be provided.',
+        },
+      ],
+    }
+  }
+  return { input }
+}
+
+export function validateUnsafeReportAdminUpdate(
+  body: unknown,
+): { input?: UnsafeReportUpdateInput & { isVerified?: boolean }; issues?: ValidationIssue[] } {
+  const { input, issues } = validateUnsafeReportUpdate(body)
+  const b = (body ?? {}) as Record<string, unknown>
+  const baseIssues = [...(issues ?? [])].filter((issue) => issue.field !== 'body' || b.isVerified === undefined)
+  if (b.isVerified !== undefined && typeof b.isVerified !== 'boolean') {
+    baseIssues.push({ field: 'isVerified', message: 'isVerified must be true or false.' })
+  }
+  if (baseIssues.length > 0) return { issues: baseIssues }
+  return { input: { ...(input ?? {}), ...(typeof b.isVerified === 'boolean' ? { isVerified: b.isVerified } : {}) } }
 }
 
 export function validateVerifyUpdate(

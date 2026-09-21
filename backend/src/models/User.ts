@@ -14,6 +14,7 @@ export interface IUser extends Document {
   passwordHash: string
   role: UserRole
   language?: string
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -39,6 +40,7 @@ const UserSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true },
     role: { type: String, enum: UserRole, required: true, default: UserRole.USER },
     language: { type: String, trim: true },
+    isActive: { type: Boolean, required: true, default: true },
   },
   { timestamps: true },
 )

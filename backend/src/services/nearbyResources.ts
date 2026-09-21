@@ -14,6 +14,8 @@ export interface NearbyResource {
   source: NearbyResourceSource
   kind: 'facility' | 'team'
   name: string
+  /** Machine-readable category ('hospital' | 'police' | ...) when the provider knows it. */
+  category?: string
   resourceType: string
   /** Null when the provider/record supplies no phone — never fabricated. */
   phone: string | null
@@ -51,6 +53,23 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
     Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lon2 - lon1) / 2) ** 2
   return 2 * earthKm * Math.asin(Math.sqrt(a))
+}
+
+/** Display label -> machine category for facilityType values stored in the database. */
+function facilityCategory(resourceType: string): string | undefined {
+  switch (resourceType) {
+    case 'Hospital':
+      return 'hospital'
+    case 'Shelter':
+    case 'Relief Centre':
+      return 'shelter'
+    case 'Police Station':
+      return 'police'
+    case 'Fire Station':
+      return 'fire_station'
+    default:
+      return undefined
+  }
 }
 
 /**
@@ -134,6 +153,7 @@ export async function findNearbyResources(
       source: 'RAKSHASAFE',
       kind: 'facility',
       name: f.name,
+      category: facilityCategory(f.facilityType),
       resourceType: f.facilityType,
       phone: f.phone,
       address: formatStoredAddress(loc),

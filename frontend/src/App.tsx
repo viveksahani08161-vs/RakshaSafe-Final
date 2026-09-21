@@ -5,6 +5,7 @@ import { Header } from './components/layout/Header'
 import { Navbar, type NavItem } from './components/layout/Navbar'
 import { Badge } from './components/ui/Badge'
 import { Button } from './components/ui/Button'
+import { Logo } from './components/ui/Logo'
 import { Spinner } from './components/ui/Spinner'
 import { ActivityIcon, AlertTriangleIcon, BellIcon, BuildingIcon, FileTextIcon, HomeIcon, ListIcon, MapPinIcon, PhoneIcon, ShieldIcon, UserIcon, UsersIcon } from './components/ui/icons'
 import { api } from './lib/api'
@@ -187,7 +188,10 @@ function Shell() {
       </main>
 
       <footer className="border-t border-ink-200 bg-cream-50 py-6 text-center text-sm text-ink-400">
-        RakshaSafe · Women Safety &amp; Disaster Emergency Response
+        <span className="inline-flex items-center justify-center gap-2">
+          <Logo size="sm" withWordmark={false} />
+          <span>RakshaSafe · Women Safety &amp; Disaster Emergency Response</span>
+        </span>
       </footer>
     </div>
   )

@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import { requireAuth } from '../middleware/auth.js'
-import { searchOsmNearby, type OsmFacility } from '../services/osmPlaces.js'
+import { searchOsmNearby, type OsmFacility, type OsmSearchOutcome } from '../services/osmPlaces.js'
 import { haversineKm } from '../utils/geo.js'
 import { badRequest } from '../utils/errors.js'
 import { validateNearbyQuery } from '../validators/nearby.js'
@@ -23,6 +23,7 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
 
 const OSM_LABELS: Record<OsmFacility['category'], string> = {
   hospital: 'Hospital',
+  clinic: 'Clinic',
   police: 'Police Station',
   fire_station: 'Fire Station',
   ambulance_station: 'Ambulance Station',
@@ -41,6 +42,7 @@ function toNearbyResource(
     source: 'OSM',
     kind: 'facility',
     name: item.name,
+    category: item.category,
     resourceType: OSM_LABELS[item.category],
     phone: item.phone,
     address: item.address,
@@ -52,11 +54,16 @@ function toNearbyResource(
   }
 }
 
+/** Progressive search: start tight, widen only when the smaller radius finds nothing. */
+const DEFAULT_RADIUS_STEPS_M = [1000, 2500, 5000] as const
+
 /**
  * GET /api/nearby?lat=&lng=&radiusKm=
  * Real mapped emergency facilities around valid coordinates via Overpass.
- * radiusKm is optional (default 2, clamped to 1..5). When the first radius
- * yields nothing useful, one controlled retry at 5 km follows — never more.
+ * radiusKm is optional (1..5). When omitted, a progressive radius search
+ * runs — 1 km, then 2.5 km, then 5 km — stopping at the first radius that
+ * yields usable results. A caller-supplied radius is searched once, with a
+ * single controlled retry at 5 km only when it finds nothing useful.
  * OSM records are discovery results only and are never stored.
  */
 router.get(
@@ -69,23 +76,30 @@ router.get(
         error: 'Valid latitude (-90 to 90) and longitude (-180 to 180) are required.',
       })
     }
-    let radiusM = 2000
-    if (req.query.radiusKm !== undefined) {
-      const parsed = Number(req.query.radiusKm)
-      if (!Number.isFinite(parsed) || parsed < 1 || parsed > 5) {
+    const requestedKm = req.query.radiusKm === undefined ? null : Number(req.query.radiusKm)
+    let outcome: OsmSearchOutcome = { facilities: [], status: 'ok' }
+    const searchedRadii: number[] = []
+    if (requestedKm === null) {
+      for (const stepM of DEFAULT_RADIUS_STEPS_M) {
+        const stepOutcome = await searchOsmNearby(input.latitude, input.longitude, stepM)
+        searchedRadii.push(stepM)
+        outcome = stepOutcome
+        if (stepOutcome.status === 'error' || stepOutcome.facilities.length > 0) break
+      }
+    } else {
+      if (!Number.isFinite(requestedKm) || requestedKm < 1 || requestedKm > 5) {
         return res.status(400).json({
           success: false,
           error: 'Radius must be between 1 and 5 km.',
         })
       }
-      radiusM = Math.round(parsed * 1000)
-    }
-
-    const searchedRadii: number[] = [radiusM]
-    let outcome = await searchOsmNearby(input.latitude, input.longitude, radiusM)
-    if (outcome.status !== 'error' && outcome.facilities.length === 0 && radiusM < 5000) {
-      searchedRadii.push(5000)
-      outcome = await searchOsmNearby(input.latitude, input.longitude, 5000)
+      const radiusM = Math.round(requestedKm * 1000)
+      searchedRadii.push(radiusM)
+      outcome = await searchOsmNearby(input.latitude, input.longitude, radiusM)
+      if (outcome.status === 'ok' && outcome.facilities.length === 0 && radiusM < 5000) {
+        searchedRadii.push(5000)
+        outcome = await searchOsmNearby(input.latitude, input.longitude, 5000)
+      }
     }
     if (outcome.status === 'error') {
       return res.status(502).json({
@@ -93,15 +107,16 @@ router.get(
         error: 'Nearby lookup is temporarily unavailable. Please try again later.',
       })
     }
+    const maxRadiusM = Math.max(...searchedRadii)
     const resources: NearbyResource[] = []
     for (const item of outcome.facilities) {
       const mapped = toNearbyResource(item, input.latitude, input.longitude)
-      if (mapped && mapped.distanceKm !== null && mapped.distanceKm <= radiusM / 1000) {
+      if (mapped && mapped.distanceKm !== null && mapped.distanceKm <= maxRadiusM / 1000) {
         resources.push(mapped)
       }
     }
     resources.sort((a, b) => (a.distanceKm ?? Number.MAX_SAFE_INTEGER) - (b.distanceKm ?? Number.MAX_SAFE_INTEGER))
-    return res.json({ success: true, data: { facilities: resources, radiusM, searchedRadii } })
+    return res.json({ success: true, data: { facilities: resources, radiusM: maxRadiusM, searchedRadii } })
   }),
 )
 

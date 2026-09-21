@@ -16,6 +16,7 @@ interface SafeContact {
   relationship?: string
   notifyViaSms: boolean
   notifyViaEmail: boolean
+  isPrimary: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -31,6 +32,7 @@ export function toSafeContact(doc: IEmergencyContact): SafeContact {
     ...(doc.relationship ? { relationship: doc.relationship } : {}),
     notifyViaSms: doc.notifyViaSms,
     notifyViaEmail: doc.notifyViaEmail,
+    isPrimary: doc.isPrimary,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   }

@@ -25,6 +25,8 @@ interface NearbyResourcesSectionProps {
   notice?: string | null
   /** Extra honest line under the list (e.g. awaiting-assignment note). */
   extraNote?: string
+  /** Section title override — incident contexts say "around the recorded location". */
+  titleKey?: 'nearby.title' | 'nearby.recordedLocation'
 }
 
 /**
@@ -43,12 +45,13 @@ export function NearbyResourcesSection({
   notice,
   extraNote,
   emptyText,
+  titleKey = 'nearby.title',
 }: NearbyResourcesSectionProps) {
   const { t } = useI18n()
 
   return (
     <Card>
-      <CardHeader title={t('nearby.title')} description={t('nearby.subtitle')} />
+      <CardHeader title={t(titleKey)} description={t('nearby.subtitle')} />
       <CardBody>
         <div className="space-y-4">
           {loading && <Skeleton lines={4} />}

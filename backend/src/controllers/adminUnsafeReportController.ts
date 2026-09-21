@@ -1,11 +1,12 @@
 import type { NextFunction, Request, Response } from 'express'
 import { AdminLog } from '../models/AdminLog.js'
+import { Location } from '../models/Location.js'
 import { UnsafeAreaReport } from '../models/UnsafeAreaReport.js'
 import { User } from '../models/User.js'
 import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
 import { escapeRegExp } from '../utils/search.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
-import { validateVerifyUpdate } from '../validators/unsafeReport.js'
+import { validateUnsafeReportAdminUpdate } from '../validators/unsafeReport.js'
 import { toSafeUser } from './authController.js'
 import { withReportLocations } from './unsafeReportController.js'
 
@@ -80,8 +81,10 @@ export async function getUnsafeReportAdmin(req: Request, res: Response, next: Ne
 }
 
 /**
- * PATCH /api/admin/unsafe-reports/:id — verify or unverify a report.
- * The only documented review action; logged for accountability.
+ * PATCH /api/admin/unsafe-reports/:id — update report fields and/or review state.
+ * A verification-only payload preserves the established verify/unverify
+ * behavior; category, description, severity, review state, and replacement
+ * stored coordinates may also be updated. All changes are logged.
  */
 export async function verifyUnsafeReport(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -91,9 +94,9 @@ export async function verifyUnsafeReport(req: Request, res: Response, next: Next
       next(badRequest('Invalid report id.'))
       return
     }
-    const { isVerified, issues } = validateVerifyUpdate(req.body)
-    if (isVerified === undefined || issues) {
-      next(badRequest('Invalid verification data.', issues))
+    const { input, issues } = validateUnsafeReportAdminUpdate(req.body)
+    if (!input || issues) {
+      next(badRequest('Invalid report data.', issues))
       return
     }
 
@@ -102,11 +105,43 @@ export async function verifyUnsafeReport(req: Request, res: Response, next: Next
       next(notFoundError('Report not found.'))
       return
     }
-    doc.isVerified = isVerified
+
+    if (input.category !== undefined) doc.category = input.category
+    if (input.description !== undefined) doc.description = input.description
+    if (input.severity !== undefined) doc.severity = input.severity
+    if (input.locationId !== undefined || input.location !== undefined) {
+      if (input.locationId) {
+        const exists = await Location.findById(input.locationId).select('_id').lean()
+        if (!exists) {
+          next(badRequest('Invalid report data.', [{ field: 'locationId', message: 'Location not found.' }]))
+          return
+        }
+        doc.locationId = input.locationId as unknown as typeof doc.locationId
+      } else if (input.location) {
+        const created = await Location.create(input.location)
+        doc.locationId = created._id
+      }
+    }
+    if (input.isVerified !== undefined) doc.isVerified = input.isVerified
     await doc.save()
+
+    const contentChanged =
+      input.category !== undefined ||
+      input.description !== undefined ||
+      input.severity !== undefined ||
+      input.locationId !== undefined ||
+      input.location !== undefined
+    const action =
+      contentChanged && input.isVerified === undefined
+        ? 'unsafereport.update'
+        : contentChanged
+          ? `unsafereport.update${input.isVerified ? '.verify' : '.unverify'}`
+          : input.isVerified
+            ? 'unsafereport.verify'
+            : 'unsafereport.unverify'
     await AdminLog.create({
       adminId,
-      action: isVerified ? 'unsafereport.verify' : 'unsafereport.unverify',
+      action,
       targetType: 'UnsafeAreaReports',
       targetId: doc._id,
       details: `${doc.category} (${doc.severity})`,
@@ -115,6 +150,45 @@ export async function verifyUnsafeReport(req: Request, res: Response, next: Next
 
     const [report] = await withReportLocations([doc])
     res.json({ success: true, data: { report } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * DELETE /api/admin/unsafe-reports/:id — delete an unsafe-area report.
+ * Only deletes the report document; the associated Location record is preserved
+ * if it may be referenced elsewhere (conservative approach).
+ * Logged for accountability.
+ */
+export async function deleteUnsafeReportAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const adminId = requireAdminId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid report id.'))
+      return
+    }
+    const doc = await UnsafeAreaReport.findById(id)
+    if (!doc) {
+      next(notFoundError('Report not found.'))
+      return
+    }
+    const locationId = String(doc.locationId)
+    const category = doc.category
+    const severity = doc.severity
+    await doc.deleteOne()
+    await AdminLog.create({
+      adminId,
+      action: 'unsafereport.delete',
+      targetType: 'UnsafeAreaReports',
+      targetId: doc._id,
+      details: `${category} (${severity})`,
+      ...(req.ip ? { ipAddress: req.ip } : {}),
+    })
+    // Note: Location record is intentionally preserved to avoid orphaning
+    // any other references. Admin can clean up Locations separately if needed.
+    res.json({ success: true, data: { deleted: true, locationId } })
   } catch (err) {
     next(err)
   }

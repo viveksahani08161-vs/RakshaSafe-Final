@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { cn } from '../../lib/cn'
 import { useI18n } from '../../lib/i18n'
 import { BellIcon, MenuIcon } from '../ui/icons'
-import { Logo } from '../ui/Logo'
+import { Logo, type LogoVariant } from '../ui/Logo'
 import { LanguageSelector } from './LanguageSelector'
 
 export interface HeaderProps {
@@ -10,6 +10,7 @@ export interface HeaderProps {
   actions?: ReactNode
   showNotifications?: boolean
   notificationCount?: number
+  brandVariant?: LogoVariant
   className?: string
 }
 
@@ -18,6 +19,7 @@ export function Header({
   actions,
   showNotifications = true,
   notificationCount = 0,
+  brandVariant = 'auto',
   className,
 }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -41,7 +43,7 @@ export function Header({
           >
             <MenuIcon className="size-5" />
           </button>
-          <Logo size="sm" />
+          <Logo size="sm" variant={brandVariant} />
         </div>
 
         <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">{nav}</div>

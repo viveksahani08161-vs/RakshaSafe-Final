@@ -7,7 +7,7 @@ export interface SafetyMapMarker {
   latitude: number
   longitude: number
   label: string
-  kind: 'user' | 'police' | 'hospital' | 'fire' | 'other'
+  kind: 'user' | 'police' | 'hospital' | 'fire' | 'ambulance' | 'other'
 }
 
 interface SafetyMapProps {
@@ -20,6 +20,7 @@ const MARKER_COLORS: Record<SafetyMapMarker['kind'], string> = {
   police: '#247bb8',
   hospital: '#dc2626',
   fire: '#ea580c',
+  ambulance: '#0d9488',
   other: '#16a34a',
 }
 

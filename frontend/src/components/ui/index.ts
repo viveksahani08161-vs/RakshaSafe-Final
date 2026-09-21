@@ -11,6 +11,7 @@ export { Form, type FormProps } from './Form'
 export {
   ActivityIcon,
   AlertTriangleIcon,
+  BabyIcon,
   BellIcon,
   BuildingIcon,
   CheckCircleIcon,
@@ -18,24 +19,30 @@ export {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CrossIcon,
+  ExternalLinkIcon,
   FileTextIcon,
   FilterIcon,
+  FlameIcon,
   HomeIcon,
   InfoIcon,
   ListIcon,
   LogOutIcon,
   MapPinIcon,
   MenuIcon,
+  MonitorIcon,
   PhoneIcon,
   SearchIcon,
   ShieldCheckIcon,
   ShieldIcon,
+  TrashIcon,
   UsersIcon,
+  VenusIcon,
   XCircleIcon,
   XIcon,
 } from './icons'
 export { Input, type InputProps } from './Input'
-export { Logo, type LogoProps, type LogoSize } from './Logo'
+export { Logo, type LogoProps, type LogoSize, type LogoVariant } from './Logo'
 export { Modal, type ModalProps, type ModalSize } from './Modal'
 export { Pagination, type PaginationProps } from './Pagination'
 export { SearchInput, type SearchInputProps } from './SearchInput'

@@ -25,6 +25,7 @@ export interface Contact {
   relationship?: string
   notifyViaSms: boolean
   notifyViaEmail: boolean
+  isPrimary: boolean
   createdAt: string
   updatedAt: string
 }
@@ -43,6 +44,7 @@ const EMPTY_FORM = {
   relationship: '',
   notifyViaSms: true,
   notifyViaEmail: false,
+  isPrimary: false,
 }
 
 function toFieldErrors(details: unknown): FieldErrors {
@@ -119,6 +121,7 @@ export function EmergencyContactsPage() {
       relationship: contact.relationship ?? '',
       notifyViaSms: contact.notifyViaSms,
       notifyViaEmail: contact.notifyViaEmail,
+      isPrimary: contact.isPrimary,
     })
     setFieldErrors({})
     setFormError(null)
@@ -143,6 +146,7 @@ export function EmergencyContactsPage() {
         relationship: form.relationship.trim(),
         notifyViaSms: form.notifyViaSms,
         notifyViaEmail: form.notifyViaEmail,
+        isPrimary: form.isPrimary,
       }
       if (modal.mode === 'create') {
         await api<{ contact: Contact }>('/emergency-contacts', { method: 'POST', body })
@@ -154,8 +158,8 @@ export function EmergencyContactsPage() {
         })
         notify({ title: t('contacts.modal.editTitle'), variant: 'success' })
       }
-      setModal(null)
       await load()
+      setModal(null)
     } catch (err) {
       if (err instanceof ApiError) {
         const fields = toFieldErrors(err.details)
@@ -342,6 +346,11 @@ export function EmergencyContactsPage() {
               label={t('contacts.form.notifyEmail')}
               checked={form.notifyViaEmail}
               onChange={(e) => setForm((f) => ({ ...f, notifyViaEmail: e.target.checked }))}
+            />
+            <Checkbox
+              label={t('contacts.form.isPrimary')}
+              checked={form.isPrimary}
+              onChange={(e) => setForm((f) => ({ ...f, isPrimary: e.target.checked }))}
             />
           </div>
           <div className="flex flex-wrap gap-3">
