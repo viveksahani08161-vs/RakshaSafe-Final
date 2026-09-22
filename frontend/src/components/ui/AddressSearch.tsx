@@ -33,7 +33,7 @@ export function AddressSearch({
     setError(null)
     try {
       const res = await api<{ latitude: number; longitude: number; displayAddress: string }>(
-        `/geocode?q=${encodeURIComponent(trimmed)}`,
+        `/geocode/geocode?q=${encodeURIComponent(trimmed)}`,
       )
       const resultData = {
         latitude: res.latitude,
@@ -67,7 +67,7 @@ export function AddressSearch({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={disabled || searching}
-            className="h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-ink-900 placeholder:text-ink-400 border-ink-200 shadow-sm transition-colors focus:border-gold-400 focus:ring-2 focus:ring-gold-300/50 focus:outline-none disabled:bg-ink-50 disabled:cursor-not-allowed"
+            className="h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-ink-900 placeholder:text-ink-400 dark:placeholder:text-ink-500 border-ink-200 shadow-sm transition-colors focus:border-gold-400 focus:ring-2 focus:ring-gold-300/50 focus:outline-none disabled:bg-ink-50 disabled:cursor-not-allowed"
           />
           {query && !searching && (
             <button
@@ -90,19 +90,19 @@ export function AddressSearch({
           {searching ? t('geocode.searching') : t('geocode.search')}
         </Button>
         {error && (
-          <p className="text-xs font-medium text-rose-600" role="alert">
+          <p className="text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
             {error}
           </p>
         )}
       </form>
       {result && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-500/10">
           <div className="flex items-center gap-2 text-sm">
-            <MapPinIcon className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
-            <span className="font-semibold text-emerald-900">{t('geocode.manualLabel')}</span>
+            <MapPinIcon className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            <span className="font-semibold text-emerald-900 dark:text-emerald-100">{t('geocode.manualLabel')}</span>
           </div>
-          <p className="mt-1 text-sm text-emerald-800">{result.displayAddress}</p>
-          <p className="mt-0.5 text-xs text-emerald-700">
+          <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-200">{result.displayAddress}</p>
+          <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-300">
             {result.latitude.toFixed(6)}, {result.longitude.toFixed(6)}
           </p>
           <button
@@ -111,7 +111,7 @@ export function AddressSearch({
               setResult(null)
               setQuery('')
             }}
-            className="mt-2 text-xs font-semibold text-emerald-700 hover:underline"
+            className="mt-2 text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-300 dark:hover:text-emerald-200"
           >
             {t('geocode.change' as DictKey)}
           </button>

@@ -11,6 +11,7 @@ import { ActivityIcon, AlertTriangleIcon, BellIcon, BuildingIcon, FileTextIcon, 
 import { api } from './lib/api'
 import { useAuth } from './lib/auth-context'
 import { AuthProvider } from './lib/AuthProvider'
+import { ThemeProvider } from './lib/theme'
 import { navigateTo, parseHash, useHashRoute, type AppRoute } from './lib/hash-route'
 import { I18nProvider, useI18n } from './lib/i18n'
 import { getLastSeen, isUnread, type NotificationItem } from './lib/notifications'
@@ -147,7 +148,7 @@ function Shell() {
               >
                 <BellIcon className="size-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                  <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white dark:text-ink-950">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -177,7 +178,7 @@ function Shell() {
         }
       />
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+      <main className={route === '/login' ? 'min-h-[calc(100svh-4rem)]' : 'mx-auto w-full max-w-7xl px-4 py-10 sm:px-6'}>
         {initializing ? (
           <div className="flex justify-center py-20" role="status" aria-label={t('common.loading')}>
             <Spinner size="lg" />
@@ -317,13 +318,15 @@ function RouteView({ route }: { route: AppRoute }) {
 
 function App() {
   return (
-    <I18nProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <Shell />
-        </AuthProvider>
-      </ToastProvider>
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <Shell />
+          </AuthProvider>
+        </ToastProvider>
+      </I18nProvider>
+    </ThemeProvider>
   )
 }
 

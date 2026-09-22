@@ -44,7 +44,7 @@ export function ResourceCard({ resource, showCoordinates = false }: ResourceCard
             </Badge>
           </p>
         </div>
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
           {resource.kind === 'facility' ? (
             <BuildingIcon className="size-5" />
           ) : (
@@ -53,7 +53,7 @@ export function ResourceCard({ resource, showCoordinates = false }: ResourceCard
         </span>
       </div>
       {distance && (
-        <p className="text-sm font-extrabold text-gold-700">
+        <p className="text-sm font-extrabold text-gold-700 dark:text-gold-300">
           {distance.unit === 'm'
             ? t('nearby.distanceMeters', { distance: distance.value })
             : t('nearby.distance', { distance: distance.value })}
@@ -79,7 +79,7 @@ export function ResourceCard({ resource, showCoordinates = false }: ResourceCard
             href={resource.website}
             target="_blank"
             rel="noreferrer"
-            className="break-all text-sky-700 underline underline-offset-2 hover:text-sky-800"
+            className="break-all text-sky-700 underline underline-offset-2 hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200"
           >
             {resource.website}
           </a>

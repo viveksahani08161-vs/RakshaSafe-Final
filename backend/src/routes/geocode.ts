@@ -55,7 +55,6 @@ const response = await fetch(
 
       clearTimeout(timeoutId)
 
-      console.log('[geocode] Nominatim response status:', response.status, response.statusText)
       if (!response.ok) {
         const text = await response.text()
         console.error('[geocode] Nominatim error response:', text)
@@ -75,18 +74,6 @@ const response = await fetch(
           country?: string
         }
       }>
-      console.log('[geocode] Nominatim results count:', data.length)
-      if (data.length > 0) {
-        console.log('[geocode] First result:', JSON.stringify(data[0]))
-      }
-
-      if (!Array.isArray(data) || data.length === 0) {
-        console.warn('[geocode] No results found for query:', query)
-        return res.status(404).json({
-          success: false,
-          error: 'We couldn\'t find that location. Please check the address and try again.',
-        })
-      }
 
       if (!Array.isArray(data) || data.length === 0) {
         return res.status(404).json({

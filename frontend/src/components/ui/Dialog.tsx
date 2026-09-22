@@ -52,7 +52,7 @@ export function Dialog({
               className={cn(
                 'h-11 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                 isDanger
-                  ? 'bg-rose-600 shadow-rose-600/25 hover:bg-rose-700'
+                  ? 'bg-rose-600 shadow-rose-600/25 hover:bg-rose-700 dark:text-[#fff]'
                   : 'bg-gold-500 shadow-gold-500/25 hover:bg-gold-600',
               )}
             >
@@ -65,12 +65,12 @@ export function Dialog({
       <div
         className={cn(
           'flex gap-4 rounded-xl border p-4',
-          isDanger ? 'border-rose-200 bg-rose-50' : 'border-gold-200 bg-gold-50',
+          isDanger ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-500/10' : 'border-gold-200 bg-gold-50 dark:border-gold-500/30 dark:bg-gold-500/10',
         )}
       >
         {isDanger ? (
           <AlertTriangleIcon
-            className="mt-0.5 size-5 shrink-0 text-rose-600"
+            className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400"
             aria-hidden
           />
         ) : (

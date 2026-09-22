@@ -36,7 +36,7 @@ export function Select({
       {label && (
         <label htmlFor={fieldId} className="block text-sm font-semibold text-ink-800">
           {label}
-          {requiredMark && <span className="ml-0.5 text-rose-500">*</span>}
+          {requiredMark && <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>}
         </label>
       )}
       <div className="relative">
@@ -71,7 +71,7 @@ export function Select({
         </span>
       </div>
       {error ? (
-        <p className="text-xs font-medium text-rose-600" role="alert">
+        <p className="text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
           {error}
         </p>
       ) : hint ? (

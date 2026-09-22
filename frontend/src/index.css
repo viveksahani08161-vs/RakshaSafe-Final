@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Class-based dark mode: `.dark` on <html> drives every `dark:` utility. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* =============================================================
    RakshaSafe Design System — tokens
    PRIMARY: Golden | BACKGROUND: Cream White | SECONDARY: Sky Blue | TEXT: Dark neutral
@@ -135,6 +138,43 @@
   color-scheme: light;
 }
 
+/* =============================================================
+   Dark theme — same RakshaSafe product, darker surfaces.
+   Only surface/text tokens are remapped; brand (gold), info (sky)
+   and status (rose/emerald/amber) hues stay identical so semantic
+   color meaning is preserved. Components that use those hues on
+   light-tint backgrounds carry explicit `dark:` overrides.
+   ============================================================= */
+.dark {
+  color-scheme: dark;
+
+  /* Primary surface (was white) */
+  --color-white: #1c1a19;
+
+  /* Cream surfaces → warm charcoal */
+  --color-cream-50: #211e1b;
+  --color-cream-100: #161311;
+  --color-cream-200: #2b2724;
+  --color-cream-300: #38332e;
+
+  /* Ink scale → light text on dark surfaces.
+     Roles stay aligned with light mode: 900/950 = primary text,
+     500-800 = secondary/strong text, 400 = muted text, 100-300 =
+     borders/dividers/subtle fills. Every text role keeps ≥ 4.5:1
+     contrast against the dark surfaces above. */
+  --color-ink-50: #232120;
+  --color-ink-100: #2e2b28;
+  --color-ink-200: #3d3a36;
+  --color-ink-300: #55514b;
+  --color-ink-400: #a09a93;
+  --color-ink-500: #8d8880;
+  --color-ink-600: #a8a39c;
+  --color-ink-700: #c4c0b9;
+  --color-ink-800: #d8d5d0;
+  --color-ink-900: #e9e7e4;
+  --color-ink-950: #f5f4f2;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -161,6 +201,36 @@ body {
   body {
     background-image:
       radial-gradient(26rem 20rem at 50% -10%, rgb(212 157 38 / 0.06), transparent 65%);
+  }
+}
+
+/* Dark theme page background: deep warm charcoal with dimmed glows. */
+.dark body {
+  background-color: var(--color-cream-100);
+  background-image:
+    radial-gradient(44rem 32rem at 6% -8%, rgb(212 157 38 / 0.05), transparent 62%),
+    radial-gradient(38rem 30rem at 98% 10%, rgb(53 153 216 / 0.05), transparent 62%),
+    radial-gradient(34rem 26rem at 50% 116%, rgb(212 157 38 / 0.04), transparent 62%);
+}
+
+@media (max-width: 768px) {
+  .dark body {
+    background-image:
+      radial-gradient(26rem 20rem at 50% -10%, rgb(212 157 38 / 0.05), transparent 65%);
+  }
+}
+
+/* Subtle cross-fade when the theme switches. The universal selector has
+   the lowest specificity, so component-level transitions always win. */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none;
   }
 }
 

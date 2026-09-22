@@ -39,10 +39,10 @@ export function EmergencyHelplines() {
               aria-label={`${t('dashboard.helplines.call')} ${t(hl.nameKey as DictKey)} ${hl.number}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-700">
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300">
                   {hl.icon}
                 </span>
-                <span className="shrink-0 rounded-md bg-rose-50 px-1.5 py-0.5 font-mono text-base font-extrabold leading-none text-rose-600">
+                <span className="shrink-0 rounded-md bg-rose-50 px-1.5 py-0.5 font-mono text-base font-extrabold leading-none text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
                   {hl.number}
                 </span>
               </div>
@@ -52,7 +52,7 @@ export function EmergencyHelplines() {
               <p className="truncate text-[11px] text-ink-400" title={t(hl.descriptionKey as DictKey)}>
                 {t(hl.descriptionKey as DictKey)}
               </p>
-              <span className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700">
+              <span className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-300">
                 <PhoneIcon className="size-4" />
                 {t('dashboard.helplines.call')}
               </span>

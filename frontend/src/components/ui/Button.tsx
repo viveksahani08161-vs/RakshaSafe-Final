@@ -26,11 +26,11 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     'bg-sky-500 text-white shadow-sm shadow-sky-500/25 hover:bg-sky-600 active:bg-sky-700 disabled:bg-sky-300',
   outline:
-    'border border-ink-300 bg-white text-ink-700 hover:border-gold-400 hover:text-gold-700 hover:bg-gold-50 active:bg-gold-100 disabled:text-ink-400 dark:border-ink-700 dark:bg-transparent dark:text-ink-200',
+    'border border-ink-300 bg-white text-ink-700 hover:border-gold-400 hover:text-gold-700 hover:bg-gold-50 active:bg-gold-100 disabled:text-ink-400 dark:border-ink-700 dark:bg-transparent dark:text-ink-800 dark:hover:border-gold-500 dark:hover:bg-white/5 dark:hover:text-gold-300 dark:active:bg-white/5',
   ghost:
     'text-ink-700 hover:bg-ink-100 hover:text-ink-900 active:bg-ink-200 disabled:text-ink-400',
   danger:
-    'bg-rose-600 text-white shadow-sm shadow-rose-600/25 hover:bg-rose-700 active:bg-rose-800 disabled:bg-rose-300',
+    'bg-rose-600 text-white shadow-sm shadow-rose-600/25 hover:bg-rose-700 active:bg-rose-800 disabled:bg-rose-300 dark:text-[#fff]',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {

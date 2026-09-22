@@ -29,7 +29,7 @@ export function Input({
       {label && (
         <label htmlFor={fieldId} className="block text-sm font-semibold text-ink-800">
           {label}
-          {requiredMark && <span className="ml-0.5 text-rose-500">*</span>}
+          {requiredMark && <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>}
         </label>
       )}
       <div className="relative">
@@ -43,7 +43,7 @@ export function Input({
           aria-invalid={ariaInvalid ?? error ? true : undefined}
           className={cn(
             'h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-ink-900',
-            'placeholder:text-ink-400',
+            'placeholder:text-ink-400 dark:placeholder:text-ink-500',
             'border-ink-200 shadow-sm transition-colors',
             'focus:border-gold-400 focus:ring-2 focus:ring-gold-300/50 focus:outline-none',
             leftIcon ? 'pl-9' : undefined,
@@ -63,7 +63,7 @@ export function Input({
         )}
       </div>
       {error ? (
-        <p className="text-xs font-medium text-rose-600" role="alert">
+        <p className="text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
           {error}
         </p>
       ) : hint ? (

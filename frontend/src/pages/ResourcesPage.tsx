@@ -191,9 +191,9 @@ export function ResourcesPage() {
               <Button onClick={() => void acquireGps()}>{t('nearby.useMyLocation')}</Button>
             )}
             {acquiring && (
-              <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-500/10">
                 <Spinner size="md" />
-                <p className="text-sm text-sky-900">{t('nearby.locating')}</p>
+                <p className="text-sm text-sky-900 dark:text-sky-100">{t('nearby.locating')}</p>
               </div>
             )}
             {gpsOutcome && !acquiring && gpsOutcome.state !== 'available' && (
@@ -324,7 +324,7 @@ export function ResourcesPage() {
                         <p className="break-words text-base font-bold text-ink-900">{team.name}</p>
                         <Badge variant="secondary" className="mt-1.5">{team.teamType}</Badge>
                       </div>
-                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700" aria-hidden="true">
+                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300" aria-hidden="true">
                         <UsersIcon className="size-5" />
                       </span>
                     </div>
@@ -374,7 +374,7 @@ export function ResourcesPage() {
                           href={mapsUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+                          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/20"
                           aria-label={t('resources.registeredTeams.viewLocationAria', { name: team.name })}
                         >
                           <ExternalLinkIcon className="size-4" aria-hidden="true" />
@@ -465,7 +465,7 @@ export function ResourcesPage() {
                       <p className="truncate text-base font-bold text-ink-900">{f.name}</p>
                       <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-ink-400">{f.facilityType}</p>
                     </div>
-                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
                       <BuildingIcon className="size-5" />
                     </span>
                   </div>

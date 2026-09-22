@@ -1,7 +1,10 @@
 import type { NextFunction, Request, Response } from 'express'
+import { EmergencyContact } from '../models/EmergencyContact.js'
+import { Facility } from '../models/Facility.js'
 import { Incident } from '../models/Incident.js'
 import { IncidentUpdate } from '../models/IncidentUpdate.js'
 import { Location } from '../models/Location.js'
+import { Report } from '../models/Report.js'
 import { Notification } from '../models/Notification.js'
 import { RescueAssignment } from '../models/RescueAssignment.js'
 import { RescueTeam } from '../models/RescueTeam.js'
@@ -320,9 +323,21 @@ export async function updateUserAdmin(req: Request, res: Response, next: NextFun
 }
 
 /**
- * DELETE /api/admin/users/:id — deactivate a user account (admin only).
- * Does NOT hard-delete: sets isActive = false to preserve historical data.
- * Prevents self-deletion and last-admin deactivation.
+ * DELETE /api/admin/users/:id — permanently delete a user account (admin only).
+ *
+ * This is a real deletion, not deactivation. Only records directly owned by
+ * the target user are removed:
+ * - the user document
+ * - the user's incidents and incident-linked updates, assignments, and notifications
+ * - the user's emergency contacts and notifications linked to those contacts
+ * - unsafe-area reports submitted by the user
+ * - generated reports created by the user
+ * - risk assessments and locations used exclusively by the removed records
+ *
+ * Global facilities, rescue teams, other users, and unrelated records are
+ * preserved. A member reference to the deleted user is removed from rescue
+ * teams without deleting the teams themselves. Prevents self-deletion and
+ * deletion of the last active administrator.
  */
 export async function deleteUserAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -354,25 +369,102 @@ export async function deleteUserAdmin(req: Request, res: Response, next: NextFun
     if (targetUser.role === UserRole.ADMIN && targetUser.isActive) {
       const activeAdminCount = await countAdmins()
       if (activeAdminCount <= 1) {
-        next(badRequest('Cannot deactivate the last active administrator.'))
+        next(badRequest('Cannot delete the last active administrator.'))
         return
       }
     }
 
-    // Soft delete: set isActive = false
-    targetUser.isActive = false
-    await targetUser.save()
+    const normalizeIds = (values: unknown[]): string[] => {
+      const ids = new Set<string>()
+      for (const value of values) {
+        if (typeof value === 'string' && value !== '') {
+          ids.add(value)
+        } else if (value && typeof value === 'object') {
+          ids.add(String(value))
+        }
+      }
+      return [...ids]
+    }
+
+    const targetId = targetUser._id
+    const [incidentIds, incidentLocationIds, contactIds, unsafeReportIds, unsafeLocationIds, generatedReportIds] =
+      await Promise.all([
+        Incident.distinct('_id', { userId: targetId }).then(normalizeIds),
+        Incident.distinct('locationId', { userId: targetId, locationId: { $exists: true, $ne: null } }).then(
+          normalizeIds,
+        ),
+        EmergencyContact.distinct('_id', { userId: targetId }).then(normalizeIds),
+        UnsafeAreaReport.distinct('_id', { reportedBy: targetId }).then(normalizeIds),
+        UnsafeAreaReport.distinct('locationId', { reportedBy: targetId, locationId: { $exists: true, $ne: null } }).then(
+          normalizeIds,
+        ),
+        Report.distinct('_id', { generatedBy: targetId }).then(normalizeIds),
+      ])
+    const candidateLocationIds = [...new Set([...incidentLocationIds, ...unsafeLocationIds])]
+
+    if (incidentIds.length > 0) {
+      await IncidentUpdate.deleteMany({ incidentId: { $in: incidentIds } })
+      await RescueAssignment.deleteMany({ incidentId: { $in: incidentIds } })
+      await Notification.deleteMany({ incidentId: { $in: incidentIds } })
+    }
+    if (contactIds.length > 0) {
+      await Notification.deleteMany({ contactId: { $in: contactIds } })
+      await EmergencyContact.deleteMany({ _id: { $in: contactIds } })
+    }
+    const [incidentResult, unsafeResult, generatedResult] = await Promise.all([
+      Incident.deleteMany({ userId: targetId }),
+      UnsafeAreaReport.deleteMany({ reportedBy: targetId }),
+      generatedReportIds.length > 0 ? Report.deleteMany({ _id: { $in: generatedReportIds } }) : Promise.resolve({ deletedCount: 0 }),
+    ])
+    const teamUnlinkResult = await RescueTeam.updateMany({ members: targetId }, { $pull: { members: targetId } })
+    const deletedUser = await User.findOneAndDelete({ _id: targetId })
+    if (!deletedUser) {
+      next(notFoundError('User not found.'))
+      return
+    }
+
+    let riskRemoved = 0
+    let locationsRemoved = 0
+    if (candidateLocationIds.length > 0) {
+      const [incidentLocationRefs, unsafeLocationRefs, facilityLocationRefs, teamLocationRefs] = await Promise.all([
+        Incident.distinct('locationId', { locationId: { $in: candidateLocationIds } }),
+        UnsafeAreaReport.distinct('locationId', { locationId: { $in: candidateLocationIds } }),
+        Facility.distinct('locationId', { locationId: { $in: candidateLocationIds } }),
+        RescueTeam.distinct('locationId', { locationId: { $in: candidateLocationIds } }),
+      ])
+      const retained = new Set([...incidentLocationRefs, ...unsafeLocationRefs, ...facilityLocationRefs, ...teamLocationRefs].map(String))
+      const orphanedLocationIds = candidateLocationIds.filter((locationId) => !retained.has(locationId))
+      if (orphanedLocationIds.length > 0) {
+        const riskResult = await RiskAssessment.deleteMany({ locationId: { $in: orphanedLocationIds } })
+        const locationResult = await Location.deleteMany({ _id: { $in: orphanedLocationIds } })
+        riskRemoved = riskResult.deletedCount ?? 0
+        locationsRemoved = locationResult.deletedCount ?? 0
+      }
+    }
+
+    const removed = {
+      incidents: incidentResult.deletedCount ?? 0,
+      unsafeReports: unsafeResult.deletedCount ?? 0,
+      emergencyContacts: contactIds.length,
+      generatedReports: generatedResult.deletedCount ?? 0,
+      riskAssessments: riskRemoved,
+      locations: locationsRemoved,
+    }
+    const unlinkedTeams = teamUnlinkResult.modifiedCount ?? 0
 
     await logAdminAction(
       req,
       adminId,
-      'user.deactivate',
+      'user.delete',
       id,
       'Users',
-      `Deactivated user: ${targetUser.name} (${targetUser.email})`,
+      `Permanently deleted user role=${targetUser.role}; removed ${removed.incidents} incidents, ${removed.unsafeReports} unsafe reports, ${removed.emergencyContacts} emergency contacts, ${removed.generatedReports} generated reports, ${removed.riskAssessments} risk assessments, ${removed.locations} locations; unlinked ${unlinkedTeams} rescue teams.`,
     )
 
-    res.json({ success: true, data: { message: 'User deactivated.', id } })
+    res.json({
+      success: true,
+      data: { deleted: true, id, removed, unlinkedTeams },
+    })
   } catch (err) {
     next(err)
   }

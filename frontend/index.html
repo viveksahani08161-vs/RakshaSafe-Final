@@ -5,6 +5,19 @@
     <link rel="icon" type="image/png" href="/assets/raksha-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RakshaSafe — Women Safety & Disaster Response</title>
+    <script>
+      // Apply the saved theme before React mounts to avoid a light flash.
+      // Mirrors src/lib/theme.tsx: stored value wins, else system preference.
+      try {
+        var storedTheme = localStorage.getItem('rakshasafe.theme')
+        if (
+          storedTheme === 'dark' ||
+          (storedTheme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+          document.documentElement.classList.add('dark')
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

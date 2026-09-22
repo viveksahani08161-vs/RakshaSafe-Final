@@ -51,6 +51,20 @@ interface ApiEnvelope<T> {
   details?: unknown
 }
 
+type UnauthorizedHandler = () => void
+
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+/**
+ * Register a callback invoked when an authenticated request receives 401
+ * (expired/revoked token). AuthProvider wires this to sign the user out so a
+ * stale session can never linger. Requests sent without a token (login,
+ * register, logout) never trigger it.
+ */
+export function onUnauthorized(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler
+}
+
 /** Typed fetch wrapper for the RakshaSafe REST API. Throws ApiError on failure. */
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const token = options.token === undefined ? getStoredToken() : options.token
@@ -81,6 +95,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   }
 
   if (!res.ok || envelope.success !== true || envelope.data === undefined) {
+    if (res.status === 401 && token) unauthorizedHandler?.()
     throw new ApiError(
       res.status,
       envelope.error ?? `Request failed (${res.status}).`,

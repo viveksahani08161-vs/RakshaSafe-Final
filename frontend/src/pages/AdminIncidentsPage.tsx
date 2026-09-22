@@ -54,6 +54,15 @@ export function AdminIncidentsPage() {
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
 
+  const loadSummary = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const summaryResponse = await api<SummaryResponse>('/admin/incidents/summary', signal ? { signal } : {})
+      if (!signal?.aborted) setSummary(summaryResponse)
+    } catch {
+      /* summary is supplementary; the list shows its own error state */
+    }
+  }, [])
+
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
@@ -79,13 +88,13 @@ export function AdminIncidentsPage() {
 
   useEffect(() => {
     const controller = new AbortController()
+    void loadSummary(controller.signal)
+    return () => controller.abort()
+  }, [loadSummary])
+
+  useEffect(() => {
+    const controller = new AbortController()
     async function initialLoad(): Promise<void> {
-      try {
-        const s = await api<SummaryResponse>('/admin/incidents/summary', { signal: controller.signal })
-        setSummary(s)
-      } catch {
-        /* summary is supplementary; the list shows its own error state */
-      }
       await load(1, controller.signal)
     }
     void initialLoad()
@@ -111,7 +120,7 @@ export function AdminIncidentsPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-ink-400">Total</p>
           </div>
           <div className="rounded-2xl border border-ink-200/70 bg-white p-4 text-center shadow-sm">
-            <p className="text-2xl font-extrabold text-gold-700">{summary.active}</p>
+            <p className="text-2xl font-extrabold text-gold-700 dark:text-gold-300">{summary.active}</p>
             <p className="text-[11px] font-bold uppercase tracking-widest text-ink-400">Active</p>
           </div>
           <div className="rounded-2xl border border-ink-200/70 bg-white p-4 text-center shadow-sm">
@@ -119,7 +128,7 @@ export function AdminIncidentsPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-ink-400">Reported</p>
           </div>
           <div className="rounded-2xl border border-ink-200/70 bg-white p-4 text-center shadow-sm">
-            <p className="text-2xl font-extrabold text-emerald-700">{summary.byStatus.RESOLVED ?? 0}</p>
+            <p className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">{summary.byStatus.RESOLVED ?? 0}</p>
             <p className="text-[11px] font-bold uppercase tracking-widest text-ink-400">Resolved</p>
           </div>
         </div>
@@ -184,9 +193,9 @@ export function AdminIncidentsPage() {
                 description={filtersActive ? 'No incidents match the current filters.' : 'No SOS incidents have been reported yet.'}
               />
             )}
-            {!loading && !failed && data && data.incidents.length > 0 && (
-              <div className="space-y-4">
-                <Table>
+          {!loading && !failed && data && data.incidents.length > 0 && (
+            <div className="space-y-4">
+              <Table>
                   <TableHead>
                     <TableRow>
                       <TableHeaderCell>Category</TableHeaderCell>
@@ -222,9 +231,9 @@ export function AdminIncidentsPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-                <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+                </TableBody>
+              </Table>
+              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
               </div>
             )}
             {!loading && !failed && data && data.incidents.length > 0 && (

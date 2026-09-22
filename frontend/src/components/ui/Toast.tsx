@@ -11,10 +11,10 @@ import {
 } from './icons'
 
 const variantStyles: Record<ToastVariant, { icon: string; ring: string }> = {
-  info: { icon: 'text-sky-600', ring: 'border-sky-200' },
-  success: { icon: 'text-emerald-600', ring: 'border-emerald-200' },
-  warning: { icon: 'text-amber-600', ring: 'border-amber-200' },
-  danger: { icon: 'text-rose-600', ring: 'border-rose-200' },
+  info: { icon: 'text-sky-600 dark:text-sky-400', ring: 'border-sky-200 dark:border-sky-800' },
+  success: { icon: 'text-emerald-600 dark:text-emerald-400', ring: 'border-emerald-200 dark:border-emerald-800' },
+  warning: { icon: 'text-amber-600 dark:text-amber-400', ring: 'border-amber-200 dark:border-amber-800' },
+  danger: { icon: 'text-rose-600 dark:text-rose-400', ring: 'border-rose-200 dark:border-rose-800' },
 }
 
 const toastIcons = {

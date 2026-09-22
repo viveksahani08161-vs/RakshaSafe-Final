@@ -16,7 +16,7 @@ export function EmptyState({ title = 'Nothing here yet', description, action, cl
         className,
       )}
     >
-      <div className="flex size-14 items-center justify-center rounded-full bg-gold-100 ring-8 ring-gold-50">
+      <div className="flex size-14 items-center justify-center rounded-full bg-gold-100 ring-8 ring-gold-50 dark:bg-gold-500/20 dark:ring-gold-400/20">
         <span className="size-3 rounded-full bg-gold-500" aria-hidden />
       </div>
       <p className="mt-4 text-base font-bold text-ink-800">{title}</p>

@@ -111,7 +111,7 @@ export function NotificationsPage() {
                     key={n.id}
                     className={
                       unread
-                        ? 'rounded-2xl border border-gold-300 bg-gold-50/60 p-4 shadow-sm'
+                        ? 'rounded-2xl border border-gold-300 bg-gold-50/60 p-4 shadow-sm dark:border-gold-500/30 dark:bg-gold-500/10'
                         : 'rounded-2xl border border-ink-200/70 bg-white p-4 shadow-sm shadow-ink-900/5'
                     }
                   >
@@ -136,7 +136,7 @@ export function NotificationsPage() {
                               {' '}·{' '}
                               <a
                                 href={`#/incident/${n.incident.id}`}
-                                className="font-semibold text-gold-700 hover:text-gold-800"
+                                className="font-semibold text-gold-700 hover:text-gold-800 dark:text-gold-300 dark:hover:text-gold-200"
                               >
                                 {n.incident.category}
                               </a>

@@ -22,20 +22,25 @@ export function Navbar({ items, className }: NavbarProps) {
         className,
       )}
     >
-      <ul className="flex min-w-max items-center gap-1">
+      <ul className="flex min-w-max items-center gap-1.5">
         {items.map((item) => (
-          <li key={item.href}>
+          <li key={item.href} className="shrink-0">
             <a
               href={item.href}
               aria-current={item.active ? 'page' : undefined}
               className={cn(
-                'inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors',
+                'inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-colors',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500',
                 item.active
                   ? 'bg-gold-500 text-white shadow-sm shadow-gold-500/25'
-                  : 'text-ink-600 hover:bg-gold-100 hover:text-gold-800',
+                  : 'text-ink-600 hover:bg-gold-100 hover:text-gold-800 dark:text-ink-300 dark:hover:bg-white/5 dark:hover:text-gold-300',
               )}
             >
-              {item.icon && <span className="[&>svg]:size-4">{item.icon}</span>}
+              {item.icon && (
+                <span aria-hidden="true" className="[&>svg]:size-4">
+                  {item.icon}
+                </span>
+              )}
               {item.label}
             </a>
           </li>

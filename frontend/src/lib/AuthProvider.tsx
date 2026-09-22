@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ApiError, api, clearStoredToken, getStoredToken, setStoredToken } from './api'
+import { ApiError, api, clearStoredToken, getStoredToken, onUnauthorized, setStoredToken } from './api'
 import {
   AuthContext,
   type AuthContextValue,
@@ -53,6 +53,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [refresh])
+
+  // Expired/revoked tokens encountered by any authenticated request sign the
+  // user out once; the Shell redirect effect then lands on /login.
+  useEffect(() => {
+    onUnauthorized(() => {
+      clearStoredToken()
+      setUser(null)
+      setToken(null)
+    })
+    return () => {
+      onUnauthorized(null)
+    }
+  }, [])
 
   const login = useCallback(async (identifier: string, password: string) => {
     setBusy(true)

@@ -247,7 +247,7 @@ export function EmergencyContactsPage() {
                         </p>
                       )}
                     </div>
-                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300">
                       <PhoneIcon className="size-5" />
                     </span>
                   </div>

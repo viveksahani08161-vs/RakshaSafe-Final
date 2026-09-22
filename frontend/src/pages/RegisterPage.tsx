@@ -7,9 +7,9 @@ import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody } from '../components/ui/Card'
 import { Checkbox } from '../components/ui/Checkbox'
+import { AuthBrand } from '../components/auth/AuthBrand'
 import { Form } from '../components/ui/Form'
 import { Input } from '../components/ui/Input'
-import { Logo } from '../components/ui/Logo'
 import { EyeIcon, EyeOffIcon, ShieldIcon } from '../components/ui/icons'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -135,10 +135,12 @@ export function RegisterPage() {
   return (
     <div className="mx-auto w-full max-w-lg">
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
-        <Logo size="lg" />
+        <div className="w-fit rounded-2xl bg-white p-3 shadow-sm ring-1 ring-ink-900/5 dark:bg-white/95">
+          <AuthBrand size="sm" />
+        </div>
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink-950">{t('register.title')}</h1>
-          <p className="mt-1 text-sm text-ink-500">{t('register.subtitle')}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink-950 dark:text-white">{t('register.title')}</h1>
+          <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">{t('register.subtitle')}</p>
         </div>
       </div>
       <Card className="shadow-md shadow-ink-900/5">
@@ -149,9 +151,9 @@ export function RegisterPage() {
                 {error}
               </Alert>
             )}
-            <div className="flex items-center gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5">
-              <ShieldIcon className="size-5 shrink-0 text-sky-600" />
-              <p className="text-xs font-medium text-sky-900">{t('auth.securityNote')}</p>
+            <div className="flex items-center gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 dark:border-sky-800 dark:bg-sky-500/10">
+              <ShieldIcon className="size-5 shrink-0 text-sky-600 dark:text-sky-400" />
+              <p className="text-xs font-medium text-sky-900 dark:text-sky-100">{t('auth.securityNote')}</p>
             </div>
             <Input
               label={t('register.name')}
@@ -227,11 +229,11 @@ export function RegisterPage() {
                 label={
                   <span>
                     {t('register.termsPrefix')}{' '}
-                    <button type="button" onClick={openLegal('terms')} className="font-semibold text-gold-700 underline underline-offset-2 hover:text-gold-800">
+                    <button type="button" onClick={openLegal('terms')} className="font-semibold text-gold-700 underline underline-offset-2 hover:text-gold-800 dark:text-gold-300 dark:hover:text-gold-200">
                       {t('register.termsLink')}
                     </button>{' '}
                     {t('register.termsAnd')}{' '}
-                    <button type="button" onClick={openLegal('privacy')} className="font-semibold text-gold-700 underline underline-offset-2 hover:text-gold-800">
+                    <button type="button" onClick={openLegal('privacy')} className="font-semibold text-gold-700 underline underline-offset-2 hover:text-gold-800 dark:text-gold-300 dark:hover:text-gold-200">
                       {t('register.privacyLink')}
                     </button>
                     {t('register.termsSuffix')}
@@ -239,7 +241,7 @@ export function RegisterPage() {
                 }
               />
               {fieldErrors.terms && (
-                <p className="mt-1.5 text-xs font-medium text-rose-600" role="alert">
+                <p className="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
                   {t(fieldErrors.terms as DictKey)}
                 </p>
               )}

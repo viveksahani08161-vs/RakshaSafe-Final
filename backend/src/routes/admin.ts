@@ -36,6 +36,7 @@ import { getAdminIncidentNearbyResources } from '../controllers/nearbyController
 import { listRiskAdmin } from '../controllers/adminRiskController.js'
 import { getDashboard } from '../controllers/adminDashboardController.js'
 import {
+  deleteReport,
   exportReport,
   generateReport,
   getReport,
@@ -53,6 +54,7 @@ router.post('/reports', generateReport)
 router.get('/reports', listReports)
 router.get('/reports/:id', getReport)
 router.get('/reports/:id/export', exportReport)
+router.delete('/reports/:id', deleteReport)
 router.get('/users', listUsers)
 router.get('/users/:id', getUserAdmin)
 router.patch('/users/:id', updateUserAdmin)

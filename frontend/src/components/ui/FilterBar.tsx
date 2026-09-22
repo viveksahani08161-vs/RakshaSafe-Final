@@ -41,7 +41,7 @@ export function FilterBar({
               <button
                 type="button"
                 onClick={onReset}
-                className="text-xs font-semibold text-sky-600 transition-colors hover:text-sky-700"
+                className="text-xs font-semibold text-sky-600 transition-colors hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
               >
                 {resetLabel}
               </button>

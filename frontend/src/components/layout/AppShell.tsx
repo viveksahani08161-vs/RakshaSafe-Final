@@ -52,7 +52,7 @@ export function AppShell({
         >
           <div
             className={cn(
-              'animate-fade-in absolute inset-0 bg-ink-950/50 backdrop-blur-sm transition-opacity',
+              'animate-fade-in absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity',
               mobileNavOpen ? 'opacity-100' : 'opacity-0',
             )}
             onClick={() => setMobileNavOpen(false)}

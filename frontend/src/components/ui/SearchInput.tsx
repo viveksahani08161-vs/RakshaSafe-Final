@@ -20,7 +20,7 @@ export function SearchInput({ onClear, label, id, className, ...rest }: SearchIn
         aria-label={label ?? 'Search'}
         className={cn(
           'h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-ink-900',
-          'placeholder:text-ink-400',
+          'placeholder:text-ink-400 dark:placeholder:text-ink-500',
           'border-ink-200 shadow-sm transition-colors',
           'focus:border-gold-400 focus:ring-2 focus:ring-gold-300/50 focus:outline-none',
           className,

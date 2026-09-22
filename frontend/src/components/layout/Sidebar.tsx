@@ -33,7 +33,7 @@ export function Sidebar({ items, heading, footer, label = 'Sidebar', className }
                 'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors',
                 item.active
                   ? 'bg-gold-500 text-white shadow-sm shadow-gold-500/25'
-                  : 'text-ink-600 hover:bg-gold-100 hover:text-gold-800',
+                  : 'text-ink-600 hover:bg-gold-100 hover:text-gold-800 dark:hover:bg-white/5 dark:hover:text-gold-300',
               )}
             >
               {item.icon && <span className="[&>svg]:size-5">{item.icon}</span>}

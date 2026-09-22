@@ -278,7 +278,7 @@ export function IncidentDetailPage() {
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6">
       <div>
-        <a href="#/dashboard" className="text-sm font-semibold text-gold-700 hover:text-gold-800">
+        <a href="#/dashboard" className="text-sm font-semibold text-gold-700 hover:text-gold-800 dark:text-gold-300 dark:hover:text-gold-200">
           ← Back to dashboard
         </a>
       </div>
@@ -553,7 +553,7 @@ export function IncidentDetailPage() {
         onConfirm={() => void onDelete()}
       >
         {deleteError ? (
-          <p className="text-sm leading-relaxed text-rose-700">{deleteError}</p>
+          <p className="text-sm leading-relaxed text-rose-700 dark:text-rose-400">{deleteError}</p>
         ) : (
           t('incident.deleteConfirm')
         )}

@@ -42,7 +42,7 @@ function Stepper({ current }: { current: Step }) {
             aria-current={order[i] === current ? 'step' : undefined}
             className={
               i < currentIndex
-                ? 'flex size-7 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white'
+                ? 'flex size-7 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white dark:text-ink-950'
                 : i === currentIndex
                   ? 'flex size-7 items-center justify-center rounded-full bg-gold-500 text-xs font-bold text-white'
                   : 'flex size-7 items-center justify-center rounded-full bg-ink-200 text-xs font-bold text-ink-500'
@@ -351,9 +351,9 @@ export function SosPage() {
                 </div>
               )}
               {acquiring && (
-                <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-500/10">
                   <Spinner size="md" />
-                  <p className="text-sm text-sky-900">Requesting device location… approve the browser prompt.</p>
+                  <p className="text-sm text-sky-900 dark:text-sky-100">Requesting device location… approve the browser prompt.</p>
                 </div>
               )}
               {outcome && !acquiring && (
@@ -496,7 +496,7 @@ export function SosPage() {
         <Card>
           <CardBody>
             <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-700" aria-hidden>
+              <span className="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" aria-hidden>
                 ✓
               </span>
               <h2 className="text-xl font-extrabold text-ink-950">SOS recorded</h2>

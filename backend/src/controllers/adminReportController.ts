@@ -178,3 +178,40 @@ export async function exportReport(req: Request, res: Response, next: NextFuncti
     next(err)
   }
 }
+
+/**
+ * DELETE /api/admin/reports/:id — permanently delete a generated report record.
+ * Only the Reports document is removed; the snapshot lives inside that
+ * document, and the source records aggregated into it (incidents, users,
+ * facilities, …) are never touched — nothing else references a report.
+ * Logged for accountability.
+ */
+export async function deleteReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const adminId = requireAdminId(req)
+    const { id } = req.params
+    if (!isValidObjectId(id)) {
+      next(badRequest('Invalid report id.'))
+      return
+    }
+    const doc = await Report.findById(id)
+    if (!doc) {
+      next(notFoundError('Report not found.'))
+      return
+    }
+    const reportType = doc.reportType
+    const reportFormat = doc.format
+    await doc.deleteOne()
+    await AdminLog.create({
+      adminId,
+      action: 'report.delete',
+      targetType: 'Reports',
+      targetId: doc._id,
+      details: `${reportType} (${reportFormat})`,
+      ...(req.ip ? { ipAddress: req.ip } : {}),
+    })
+    res.json({ success: true, data: { deleted: true } })
+  } catch (err) {
+    next(err)
+  }
+}

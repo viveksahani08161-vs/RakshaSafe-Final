@@ -113,7 +113,7 @@ export function SosButton({
       </button>
       {holdToConfirm && isHolding && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/60 text-white px-4 py-2 rounded-xl text-sm font-medium text-center">
+          <div className="bg-black/60 text-white dark:text-ink-950 px-4 py-2 rounded-xl text-sm font-medium text-center">
             {t('sos.buttonHold')}
           </div>
         </div>

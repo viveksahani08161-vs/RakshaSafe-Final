@@ -388,7 +388,7 @@ export function UnsafeReportsPage() {
                   error={fieldErrors.description}
                   maxLength={MAX_DESCRIPTION_LENGTH}
                 />
-                <p className={`text-xs text-right ${descriptionLength > MAX_DESCRIPTION_LENGTH ? 'text-rose-600' : 'text-ink-400'}`}>
+                <p className={`text-xs text-right ${descriptionLength > MAX_DESCRIPTION_LENGTH ? 'text-rose-600 dark:text-rose-400' : 'text-ink-400'}`}>
                   {t('unsafeReports.form.descriptionHint', { count: descriptionLength, max: MAX_DESCRIPTION_LENGTH })}
                 </p>
               </div>
@@ -434,7 +434,7 @@ export function UnsafeReportsPage() {
                 )}
 
                 {fieldErrors.location && (
-                  <p className="text-xs font-medium text-rose-600" role="alert">
+                  <p className="text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
                     {fieldErrors.location}
                   </p>
                 )}
@@ -497,7 +497,7 @@ export function UnsafeReportsPage() {
                           <StatusBadge isVerified={r.isVerified} />
                         </div>
                       </div>
-                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300">
                         <MapPinIcon className="size-5" />
                       </span>
                     </div>

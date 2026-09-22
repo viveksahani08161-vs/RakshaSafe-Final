@@ -48,7 +48,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        'transition-colors hover:bg-gold-50/50',
+        'transition-colors hover:bg-gold-50/50 dark:hover:bg-white/5',
         className,
       )}
       {...rest}

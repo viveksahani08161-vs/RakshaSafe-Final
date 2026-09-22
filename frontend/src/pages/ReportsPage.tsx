@@ -18,6 +18,7 @@ import { Alert } from '../components/ui/Alert'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Dialog } from '../components/ui/Dialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
 import { Form } from '../components/ui/Form'
@@ -131,6 +132,9 @@ export function ReportsPage() {
   const [viewTarget, setViewTarget] = useState<ReportDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ReportMeta | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const typeLabel = useCallback(
     (value: string): string => {
@@ -270,6 +274,30 @@ export function ReportsPage() {
     }
   }
 
+  async function onDeleteConfirm(): Promise<void> {
+    if (!deleteTarget || deleting) return
+    const target = deleteTarget
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await api<{ deleted: boolean }>(`/admin/reports/${target.id}`, { method: 'DELETE' })
+      notify({ title: t('admin.reports.toast.deleted'), description: target.title, variant: 'success' })
+      setDeleteTarget(null)
+      if (viewTarget?.id === target.id) setViewTarget(null)
+      await load(page)
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setDeleteError(t('admin.reports.deleteForbidden'))
+      } else if (err instanceof ApiError && err.status === 404) {
+        setDeleteError(t('admin.reports.deleteNotFound'))
+      } else {
+        setDeleteError(err instanceof ApiError ? err.message : t('admin.reports.toast.deleteFailed'))
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const failed = failure !== null
   const latest = !loading && !failed && data && data.reports.length > 0 ? data.reports[0] : null
   const filterEntries = viewTarget ? Object.entries(viewTarget.filters ?? {}) : []
@@ -307,7 +335,7 @@ export function ReportsPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card id="report-generate">
         <CardHeader title={t('admin.reports.generate.title')} description={t('admin.reports.generate.description')} />
         <CardBody>
           <Form onSubmit={(e: FormEvent) => void onGenerate(e)}>
@@ -407,11 +435,20 @@ export function ReportsPage() {
             <EmptyState
               title={t('admin.reports.empty.title')}
               description={t('admin.reports.empty.description')}
+              action={
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => document.getElementById('report-generate')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                >
+                  {t('admin.reports.generate.title')}
+                </Button>
+              }
             />
           )}
           {!loading && !failed && data && data.reports.length > 0 && (
             <div className="space-y-4">
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -448,12 +485,76 @@ export function ReportsPage() {
                                 ? t('admin.reports.list.downloading')
                                 : t('admin.reports.list.download')}
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setDeleteError(null)
+                                setDeleteTarget(r)
+                              }}
+                              aria-label={t('admin.reports.deleteAria', { title: r.title })}
+                            >
+                              {t('common.delete')}
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+              <div className="grid gap-3 md:hidden" role="list" aria-label={t('admin.reports.list.title')}>
+                {data.reports.map((r) => (
+                  <article
+                    key={r.id}
+                    role="listitem"
+                    className="rounded-2xl border border-ink-200/70 bg-white p-4 shadow-sm shadow-ink-900/5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 flex-1 truncate font-bold text-ink-900" title={r.title}>
+                        {r.title}
+                      </p>
+                      <Badge variant={formatVariant(r.format)}>{r.format}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-ink-500">
+                      {typeLabel(r.reportType)} · {formatDateTime(r.createdAt)}
+                    </p>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        fullWidth
+                        onClick={() => void openDetail(r.id)}
+                        disabled={viewLoading}
+                      >
+                        {t('admin.reports.list.view')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        fullWidth
+                        loading={downloading === r.id}
+                        onClick={() => void download(r)}
+                      >
+                        {downloading === r.id
+                          ? t('admin.reports.list.downloading')
+                          : t('admin.reports.list.download')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        fullWidth
+                        onClick={() => {
+                          setDeleteError(null)
+                          setDeleteTarget(r)
+                        }}
+                        aria-label={t('admin.reports.deleteAria', { title: r.title })}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                    </div>
+                  </article>
+                ))}
               </div>
               <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
             </div>
@@ -467,6 +568,21 @@ export function ReportsPage() {
         title={viewTarget?.title ?? t('admin.reports.title')}
         description={viewTarget ? `${typeLabel(viewTarget.reportType)} · ${viewTarget.format} · ${formatDateTime(viewTarget.createdAt)}` : undefined}
         size="lg"
+        footer={
+          viewTarget ? (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => {
+                setDeleteError(null)
+                setDeleteTarget(viewTarget)
+              }}
+              aria-label={t('admin.reports.deleteAria', { title: viewTarget.title })}
+            >
+              {t('admin.reports.delete')}
+            </Button>
+          ) : undefined
+        }
       >
         {viewTarget && (
           <div className="space-y-5">
@@ -500,6 +616,37 @@ export function ReportsPage() {
           </div>
         )}
       </Modal>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onClose={() => {
+          if (!deleting) {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }
+        }}
+        variant="danger"
+        title={t('admin.reports.deleteTitle')}
+        description={deleteTarget?.title}
+        confirmLabel={t('admin.reports.deleteConfirm')}
+        cancelLabel={t('common.cancel')}
+        confirmLoading={deleting}
+        onConfirm={() => void onDeleteConfirm()}
+      >
+        {deleteError ? (
+          <span className="text-rose-700 dark:text-rose-400">{deleteError}</span>
+        ) : (
+          <>
+            {t('admin.reports.deleteWarning')}{' '}
+            {deleteTarget && (
+              <span className="font-semibold">
+                {typeLabel(deleteTarget.reportType)} ({deleteTarget.format}) ·{' '}
+                {formatDateTime(deleteTarget.createdAt)}
+              </span>
+            )}
+          </>
+        )}
+      </Dialog>
     </div>
   )
 }

@@ -174,7 +174,7 @@ export function ResponderDashboardPage() {
                 <p className="text-[11px] font-bold uppercase tracking-widest text-ink-400">{t('responder.stat.assigned')}</p>
               </div>
               <div className="rounded-xl border border-ink-200/70 bg-cream-50 px-4 py-3 text-center">
-                <p className="text-2xl font-extrabold text-gold-700">{loading ? '–' : activeCount}</p>
+                <p className="text-2xl font-extrabold text-gold-700 dark:text-gold-300">{loading ? '–' : activeCount}</p>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-ink-400">{t('responder.stat.active')}</p>
               </div>
             </div>
@@ -366,7 +366,7 @@ export function ResponderDashboardPage() {
                           </div>
                         )}
                         {!detailLoading[a.id] && detailError[a.id] && (
-                          <p className="text-xs font-medium text-rose-600" role="alert">
+                          <p className="text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
                             {detailError[a.id]}{' '}
                             <button
                               type="button"

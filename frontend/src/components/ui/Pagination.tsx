@@ -59,7 +59,7 @@ export function Pagination({
           onClick={() => onPageChange(current - 1)}
           className={cn(
             base,
-            'border-ink-200 bg-white text-ink-700 hover:border-gold-300 hover:text-gold-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-200 disabled:hover:text-ink-700',
+            'border-ink-200 bg-white text-ink-700 hover:border-gold-300 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:text-gold-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-200 disabled:hover:text-ink-700',
           )}
         >
           <ChevronLeftIcon className="size-4" />
@@ -80,7 +80,7 @@ export function Pagination({
                 base,
                 item === current
                   ? 'border-gold-500 bg-gold-500 text-white shadow-sm shadow-gold-500/30'
-                  : 'border-ink-200 bg-white text-ink-700 hover:border-gold-300 hover:text-gold-700',
+                  : 'border-ink-200 bg-white text-ink-700 hover:border-gold-300 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:text-gold-300',
               )}
             >
               {item}
@@ -95,7 +95,7 @@ export function Pagination({
           onClick={() => onPageChange(current + 1)}
           className={cn(
             base,
-            'border-ink-200 bg-white text-ink-700 hover:border-gold-300 hover:text-gold-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-200 disabled:hover:text-ink-700',
+            'border-ink-200 bg-white text-ink-700 hover:border-gold-300 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:text-gold-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-200 disabled:hover:text-ink-700',
           )}
         >
           <ChevronRightIcon className="size-4" />

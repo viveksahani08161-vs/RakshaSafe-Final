@@ -14,28 +14,28 @@ export interface AlertProps {
 
 const styles: Record<AlertVariant, { box: string; icon: string; title: string; body: string }> = {
   info: {
-    box: 'border-sky-200 bg-sky-50',
-    icon: 'text-sky-600',
-    title: 'text-sky-900',
-    body: 'text-sky-800/80',
+    box: 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-500/10',
+    icon: 'text-sky-600 dark:text-sky-400',
+    title: 'text-sky-900 dark:text-sky-100',
+    body: 'text-sky-800/80 dark:text-sky-200/80',
   },
   success: {
-    box: 'border-emerald-200 bg-emerald-50',
-    icon: 'text-emerald-600',
-    title: 'text-emerald-900',
-    body: 'text-emerald-800/80',
+    box: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-500/10',
+    icon: 'text-emerald-600 dark:text-emerald-400',
+    title: 'text-emerald-900 dark:text-emerald-100',
+    body: 'text-emerald-800/80 dark:text-emerald-200/80',
   },
   warning: {
-    box: 'border-amber-200 bg-amber-50',
-    icon: 'text-amber-600',
-    title: 'text-amber-900',
-    body: 'text-amber-800/80',
+    box: 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-500/10',
+    icon: 'text-amber-600 dark:text-amber-400',
+    title: 'text-amber-900 dark:text-amber-100',
+    body: 'text-amber-800/80 dark:text-amber-200/80',
   },
   danger: {
-    box: 'border-rose-200 bg-rose-50',
-    icon: 'text-rose-600',
-    title: 'text-rose-900',
-    body: 'text-rose-800/80',
+    box: 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-500/10',
+    icon: 'text-rose-600 dark:text-rose-400',
+    title: 'text-rose-900 dark:text-rose-100',
+    body: 'text-rose-800/80 dark:text-rose-200/80',
   },
 }
 

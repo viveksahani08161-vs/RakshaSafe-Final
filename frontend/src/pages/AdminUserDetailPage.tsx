@@ -17,7 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } fro
 import { useI18n } from '../lib/i18n'
 import { hashUserId, navigateTo } from '../lib/hash-route'
 import { useToast } from '../components/ui/toast-context'
-import { ChevronLeftIcon, MapPinIcon, ShieldCheckIcon, AlertTriangleIcon, UsersIcon, BellIcon, ActivityIcon, FileTextIcon, ChevronRightIcon } from '../components/ui/icons'
+import { useAuth } from '../lib/auth-context'
+import { ChevronLeftIcon, MapPinIcon, ShieldCheckIcon, AlertTriangleIcon, UsersIcon, BellIcon, ActivityIcon, FileTextIcon, ChevronRightIcon, PhoneIcon, TrashIcon } from '../components/ui/icons'
 
 interface AdminUserDetail {
   id: string
@@ -237,6 +238,7 @@ function toFieldErrors(details: unknown): Record<string, string> {
 export function AdminUserDetailPage() {
   const { t } = useI18n()
   const { notify } = useToast()
+  const { user: currentUser } = useAuth()
   const userId = hashUserId()
   const [user, setUser] = useState<AdminUserDetail | null>(null)
   const [incidents, setIncidents] = useState<AdminUserIncident[]>([])
@@ -382,6 +384,7 @@ export function AdminUserDetailPage() {
       await api(`/admin/users/${deleteModal.user.id}`, { method: 'DELETE' })
       notify({ title: t('admin.users.deleteSuccess'), description: deleteModal.user.name, variant: 'success' })
       setDeleteModal({ user: null })
+      setUser(null)
       navigateTo('/admin/users')
     } catch (err) {
       if (err instanceof ApiError) {
@@ -389,6 +392,10 @@ export function AdminUserDetailPage() {
           notify({ title: t('admin.users.deleteError'), description: t('admin.users.cannotDeleteSelf'), variant: 'danger' })
         } else if (err.status === 400 && err.message.includes('last active administrator')) {
           notify({ title: t('admin.users.deleteError'), description: t('admin.users.lastAdmin'), variant: 'danger' })
+        } else if (err.status === 403) {
+          notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteForbidden'), variant: 'danger' })
+        } else if (err.status === 404) {
+          notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteNotFound'), variant: 'danger' })
         } else {
           notify({ title: t('admin.users.deleteError'), description: err.message, variant: 'danger' })
         }
@@ -433,9 +440,6 @@ export function AdminUserDetailPage() {
                     <Button size="sm" variant="outline" onClick={openEditModal}>
                       {t('admin.users.edit')}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={openDeleteModal}>
-                      {t('admin.users.delete')}
-                    </Button>
                   </div>
                 </div>
                 <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -449,7 +453,20 @@ export function AdminUserDetailPage() {
                   </div>
                   <div>
                     <dt className="font-semibold text-ink-500">{t('admin.users.phone')}</dt>
-                    <dd className="mt-0.5 text-ink-900">{user.phone}</dd>
+                    <dd className="mt-1.5 flex flex-wrap items-center gap-2 text-ink-900">
+                      <span>{user.phone}</span>
+                      {typeof user.phone === 'string' && user.phone.trim() !== '' ? (
+                        <a
+                          href={`tel:${user.phone.trim()}`}
+                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-ink-300 bg-white px-3 text-sm font-semibold text-ink-700 transition-colors hover:border-gold-400 hover:bg-gold-50 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:bg-white/5 dark:hover:text-gold-300"
+                        >
+                          <PhoneIcon className="size-4" />
+                          {t('admin.users.call')}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium text-ink-400">{t('admin.users.noPhone')}</span>
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-ink-500">{t('admin.users.role')}</dt>
@@ -476,7 +493,7 @@ export function AdminUserDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-100 text-gold-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300">
                         <ActivityIcon className="size-5" />
                       </div>
                       <div>
@@ -487,7 +504,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
                         <AlertTriangleIcon className="size-5" />
                       </div>
                       <div>
@@ -498,7 +515,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                         <ShieldCheckIcon className="size-5" />
                       </div>
                       <div>
@@ -520,7 +537,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
                         <AlertTriangleIcon className="size-5" />
                       </div>
                       <div>
@@ -553,7 +570,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
                         <FileTextIcon className="size-5" />
                       </div>
                       <div>
@@ -602,7 +619,7 @@ export function AdminUserDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-4 text-ink-500">
-                      <MapPinIcon className="size-8 mx-auto text-ink-300 mb-2" />
+                      <MapPinIcon className="size-8 mx-auto text-ink-300 dark:text-ink-600 mb-2" />
                       <p>{t('admin.users.noRecordedLocation')}</p>
                     </div>
                   )}
@@ -615,7 +632,7 @@ export function AdminUserDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-100 text-gold-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300">
                         <ActivityIcon className="size-5" />
                       </div>
                       <div>
@@ -626,7 +643,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
                         <AlertTriangleIcon className="size-5" />
                       </div>
                       <div>
@@ -637,7 +654,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
                         <UsersIcon className="size-5" />
                       </div>
                       <div>
@@ -670,7 +687,7 @@ export function AdminUserDetailPage() {
                   </div>
                   <div className="rounded-xl border border-ink-200/70 bg-white p-4">
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                      <div className="inline-flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
                         <FileTextIcon className="size-5" />
                       </div>
                       <div>
@@ -691,7 +708,7 @@ export function AdminUserDetailPage() {
                     onClick={() => setActiveTab('incidents')}
                     className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
                       activeTab === 'incidents'
-                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500'
+                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500 dark:text-gold-300'
                         : 'text-ink-500 hover:text-ink-700'
                     }`}
                   >
@@ -703,7 +720,7 @@ export function AdminUserDetailPage() {
                     onClick={() => setActiveTab('assignments')}
                     className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
                       activeTab === 'assignments'
-                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500'
+                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500 dark:text-gold-300'
                         : 'text-ink-500 hover:text-ink-700'
                     }`}
                   >
@@ -715,7 +732,7 @@ export function AdminUserDetailPage() {
                     onClick={() => setActiveTab('history')}
                     className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
                       activeTab === 'history'
-                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500'
+                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500 dark:text-gold-300'
                         : 'text-ink-500 hover:text-ink-700'
                     }`}
                   >
@@ -727,7 +744,7 @@ export function AdminUserDetailPage() {
                     onClick={() => setActiveTab('risk')}
                     className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
                       activeTab === 'risk'
-                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500'
+                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500 dark:text-gold-300'
                         : 'text-ink-500 hover:text-ink-700'
                     }`}
                   >
@@ -739,7 +756,7 @@ export function AdminUserDetailPage() {
                     onClick={() => setActiveTab('notifications')}
                     className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
                       activeTab === 'notifications'
-                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500'
+                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500 dark:text-gold-300'
                         : 'text-ink-500 hover:text-ink-700'
                     }`}
                   >
@@ -751,7 +768,7 @@ export function AdminUserDetailPage() {
                     onClick={() => setActiveTab('unsafeReports')}
                     className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
                       activeTab === 'unsafeReports'
-                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500'
+                        ? 'bg-cream-100 text-gold-700 border-b-2 border-gold-500 dark:text-gold-300'
                         : 'text-ink-500 hover:text-ink-700'
                     }`}
                   >
@@ -1024,6 +1041,24 @@ export function AdminUserDetailPage() {
                   )}
                 </div>
               )}
+              {/* Danger Zone */}
+              <section aria-labelledby="danger-zone-heading" className="rounded-2xl border border-rose-200 bg-rose-50/70 p-5 dark:border-rose-800 dark:bg-rose-500/10">
+                <h2 id="danger-zone-heading" className="text-lg font-bold text-rose-800">{t('admin.users.dangerZone')}</h2>
+                <p className="mt-1 text-sm leading-relaxed text-rose-900">{t('admin.users.dangerZoneBody')}</p>
+                <p className="mt-2 text-sm leading-relaxed text-rose-900">{t('admin.users.deleteWarning')}</p>
+                <div className="mt-4">
+                  <Button
+                    variant="danger"
+                    disabled={deleting || (currentUser !== null && user !== null && currentUser.id === user.id)}
+                    title={currentUser !== null && user !== null && currentUser.id === user.id ? t('admin.users.cannotDeleteSelf') : undefined}
+                    loading={deleting}
+                    icon={<TrashIcon className="size-4" />}
+                    onClick={openDeleteModal}
+                  >
+                    {t('admin.users.delete')}
+                  </Button>
+                </div>
+              </section>
             </div>
           )}
         </CardBody>
@@ -1075,12 +1110,20 @@ export function AdminUserDetailPage() {
       open={deleteModal !== null}
       onClose={() => setDeleteModal({ user: null })}
       variant="danger"
-      title={t('admin.users.deleteTitle', { name: deleteModal?.user?.name ?? '' })}
+      title={t('admin.users.deleteTitle')}
       confirmLabel={t('admin.users.deleteConfirm')}
+      cancelLabel={t('common.cancel')}
       confirmLoading={deleting}
       onConfirm={() => void onConfirmDelete()}
     >
-      {t('admin.users.deleteConfirmBody')}
+      {t('admin.users.deleteConfirmBody', {
+        name: deleteModal?.user?.name ?? '',
+        email: deleteModal?.user?.email ?? '',
+        phone:
+          deleteModal?.user && typeof deleteModal.user.phone === 'string' && deleteModal.user.phone.trim() !== ''
+            ? deleteModal.user.phone.trim()
+            : t('admin.users.noPhone'),
+      })}
     </Dialog>
     </>
   )

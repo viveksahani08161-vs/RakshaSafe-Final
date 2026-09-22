@@ -159,6 +159,27 @@ export function AdminUnsafeReportsPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [deleteSaving, setDeleteSaving] = useState(false)
 
+  const loadCounts = useCallback(async (signal?: AbortSignal) => {
+    const opts = signal ? { signal } : {}
+    try {
+      const [totalRes, pendingRes, verifiedRes] = await Promise.all([
+        api<ListResponse>('/admin/unsafe-reports?page=1&limit=1', opts),
+        api<ListResponse>('/admin/unsafe-reports?page=1&limit=1&isVerified=false', opts),
+        api<ListResponse>('/admin/unsafe-reports?page=1&limit=1&isVerified=true', opts),
+      ])
+      if (signal?.aborted) return
+      setCounts({
+        total: totalRes.pagination.total,
+        pending: pendingRes.pagination.total,
+        verified: verifiedRes.pagination.total,
+      })
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      if (signal?.aborted) return
+      /* Summary counts are supplementary; the list shows its own error state. */
+    }
+  }, [])
+
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
@@ -168,20 +189,10 @@ export function AdminUnsafeReportsPage() {
         if (statusFilter) params.set('isVerified', statusFilter)
         if (search.trim()) params.set('search', search.trim())
         const opts = signal ? { signal } : {}
-        const [res, totalRes, pendingRes, verifiedRes] = await Promise.all([
-          api<ListResponse>(`/admin/unsafe-reports?${params.toString()}`, opts),
-          api<ListResponse>('/admin/unsafe-reports?page=1&limit=1', opts),
-          api<ListResponse>('/admin/unsafe-reports?page=1&limit=1&isVerified=false', opts),
-          api<ListResponse>('/admin/unsafe-reports?page=1&limit=1&isVerified=true', opts),
-        ])
+        const res = await api<ListResponse>(`/admin/unsafe-reports?${params.toString()}`, opts)
         if (signal?.aborted) return
         setData(res)
         setPage(res.pagination.page)
-        setCounts({
-          total: totalRes.pagination.total,
-          pending: pendingRes.pagination.total,
-          verified: verifiedRes.pagination.total,
-        })
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         if (signal?.aborted) return
@@ -196,6 +207,12 @@ export function AdminUnsafeReportsPage() {
     },
     [statusFilter, search],
   )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void loadCounts(controller.signal)
+    return () => controller.abort()
+  }, [loadCounts])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -239,7 +256,7 @@ export function AdminUnsafeReportsPage() {
       setConfirmTarget(null)
       setViewTarget(null)
       setDetail(null)
-      await load(page)
+      await Promise.all([load(page), loadCounts()])
     } catch (err) {
       notify({
         title: t('admin.unsafeReports.reviewActionFailed'),
@@ -324,7 +341,7 @@ export function AdminUnsafeReportsPage() {
         setViewTarget(null)
         setDetail(null)
       }
-      await load(page)
+      await Promise.all([load(page), loadCounts()])
     } catch (err) {
       if (err instanceof ApiError) {
         const fields = toFieldErrors(err.details)
@@ -353,7 +370,7 @@ export function AdminUnsafeReportsPage() {
         setViewTarget(null)
         setDetail(null)
       }
-      await load(page)
+      await Promise.all([load(page), loadCounts()])
     } catch (err) {
       notify({
         title: t('unsafeReports.deleteError'),

@@ -277,7 +277,7 @@ export function AdminIncidentDetailPage() {
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-6">
       <div>
-        <a href="#/admin/incidents" className="text-sm font-semibold text-gold-700 hover:text-gold-800">
+        <a href="#/admin/incidents" className="text-sm font-semibold text-gold-700 hover:text-gold-800 dark:text-gold-300 dark:hover:text-gold-200">
           ← Back to incidents
         </a>
       </div>
@@ -496,7 +496,7 @@ export function AdminIncidentDetailPage() {
                           </Button>
                         </div>
                         {rowErrors[a.id] && (
-                          <p className="mt-2 text-xs font-medium text-rose-600" role="alert">
+                          <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">
                             {rowErrors[a.id]}
                           </p>
                         )}

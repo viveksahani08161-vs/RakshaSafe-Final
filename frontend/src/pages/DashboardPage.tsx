@@ -45,7 +45,7 @@ function StatTile({ label, value, icon, accent }: {
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-ink-200/70 bg-white p-4 shadow-sm shadow-ink-900/5">
-      <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${accent ?? 'bg-gold-100 text-gold-700'}`}>
+      <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${accent ?? 'bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300'}`}>
         {icon}
       </span>
       <div className="min-w-0">
@@ -145,7 +145,7 @@ export function DashboardPage() {
   return (
     <div className="mx-auto grid w-full max-w-5xl gap-6 px-4 sm:px-6 py-6">
       {/* Welcome / Hero */}
-      <Card className="overflow-hidden border-gold-100 bg-gradient-to-br from-cream-50 via-white to-sky-50/40">
+      <Card className="overflow-hidden border-gold-100 bg-gradient-to-br from-cream-50 via-white to-sky-50/40 dark:border-gold-500/20 dark:to-sky-900/30">
         <CardBody className="py-6 sm:py-8">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:justify-between sm:text-left">
             <div className="min-w-0 flex-1">
@@ -171,14 +171,14 @@ export function DashboardPage() {
                 className="group flex items-center gap-3 rounded-xl border border-white/60 bg-white/80 p-3.5 shadow-sm shadow-ink-900/5 transition-colors hover:border-gold-300 hover:bg-white focus:outline-none focus:ring-2 focus:ring-gold-500"
                 role="listitem"
               >
-                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold-50 text-gold-700 transition-colors group-hover:bg-gold-100">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold-50 text-gold-700 transition-colors group-hover:bg-gold-100 dark:bg-gold-500/15 dark:text-gold-300 dark:group-hover:bg-gold-500/25">
                   {tool.icon}
                 </span>
                 <span className="min-w-0 flex-1 text-left">
                   <span className="block truncate text-sm font-bold text-ink-900">{t(tool.titleKey)}</span>
                   <span className="block truncate text-xs text-ink-500">{t(tool.descriptionKey)}</span>
                 </span>
-                <ChevronRightIcon className="size-4 shrink-0 text-ink-300 transition-colors group-hover:text-gold-600" />
+                <ChevronRightIcon className="size-4 shrink-0 text-ink-300 transition-colors group-hover:text-gold-600 dark:text-ink-600" />
               </a>
             ))}
           </div>
@@ -199,19 +199,19 @@ export function DashboardPage() {
               label={t('dashboard.stat.active')}
               value={loading ? '–' : activeCount}
               icon={<AlertTriangleIcon className="size-5" />}
-              accent="bg-rose-100 text-rose-700"
+              accent="bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"
             />
             <StatTile
               label={t('dashboard.stat.contacts')}
               value={contactsLoading ? '–' : contactsCount}
               icon={<UsersIcon className="size-5" />}
-              accent="bg-sky-100 text-sky-700"
+              accent="bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300"
             />
             <StatTile
               label={t('dashboard.stat.location')}
               value={locationDisplay}
               icon={<MapPinIcon className="size-5" />}
-              accent="bg-emerald-100 text-emerald-700"
+              accent="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
             />
           </div>
         </CardBody>
@@ -287,7 +287,7 @@ export function DashboardPage() {
                     </div>
                     <a
                       href={`#/incident/${incident.id}`}
-                      className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-700 hover:text-gold-800 sm:self-center"
+                      className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-700 hover:text-gold-800 dark:text-gold-300 dark:hover:text-gold-200 sm:self-center"
                     >
                       {t('dashboard.incidents.viewDetails')}
                       <ChevronRightIcon className="size-4" />
@@ -307,9 +307,9 @@ export function DashboardPage() {
       </Card>
 
       {/* Trust / Information Card */}
-      <Card className="border-sky-200 bg-sky-50/30">
+      <Card className="border-sky-200 bg-sky-50/30 dark:border-sky-800 dark:bg-sky-500/10">
         <CardBody className="flex items-center gap-3 p-4 sm:p-6">
-          <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+          <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
             <InfoIcon className="size-5" />
           </div>
           <div className="min-w-0">

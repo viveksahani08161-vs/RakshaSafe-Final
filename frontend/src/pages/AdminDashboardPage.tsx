@@ -10,7 +10,6 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { Skeleton } from '../components/ui/Skeleton'
 import { UsersIcon, ShieldCheckIcon, ActivityIcon, AlertTriangleIcon, ChevronRightIcon } from '../components/ui/icons'
 import { useI18n } from '../lib/i18n'
-import { EmergencyHelplines } from '../components/dashboard/EmergencyHelplines'
 
 function StatCard({ label, value, icon, accent, onClick }: { 
   label: string
@@ -21,7 +20,7 @@ function StatCard({ label, value, icon, accent, onClick }: {
 }) {
   return (
     <div 
-      className={`rounded-2xl border border-ink-200/70 bg-white p-5 text-center shadow-sm shadow-ink-900/5 transition-colors ${onClick ? 'cursor-pointer hover:border-gold-300 hover:bg-gold-50/50' : ''}`}
+      className={`rounded-2xl border border-ink-200/70 bg-white p-5 text-center shadow-sm shadow-ink-900/5 transition-colors ${onClick ? 'cursor-pointer hover:border-gold-300 hover:bg-gold-50/50 dark:hover:border-gold-500/40 dark:hover:bg-white/5' : ''}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -36,6 +35,21 @@ function StatCard({ label, value, icon, accent, onClick }: {
   )
 }
 
+function priorityVariant(priority: string): BadgeVariant {
+  switch (priority) {
+    case 'CRITICAL':
+      return 'danger'
+    case 'HIGH':
+      return 'warning'
+    case 'MEDIUM':
+      return 'secondary'
+    case 'LOW':
+      return 'neutral'
+    default:
+      return 'outline'
+  }
+}
+
 /** Compact status display with count and badge - no progress bars */
 function StatusRow({ label, count, variant, onClick }: { 
   label: string
@@ -45,7 +59,7 @@ function StatusRow({ label, count, variant, onClick }: {
 }) {
   return (
     <div 
-      className={`flex items-center justify-between gap-3 rounded-xl border border-ink-200/70 bg-white p-3 transition-colors ${onClick ? 'cursor-pointer hover:border-gold-300 hover:bg-gold-50/50' : ''}`}
+      className={`flex items-center justify-between gap-3 rounded-xl border border-ink-200/70 bg-white p-3 transition-colors ${onClick ? 'cursor-pointer hover:border-gold-300 hover:bg-gold-50/50 dark:hover:border-gold-500/40 dark:hover:bg-white/5' : ''}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -105,13 +119,28 @@ export function AdminDashboardPage() {
     window.location.href = '#/admin/users'
   }
 
-  const navigateToReports = () => {
-    window.location.href = '#/admin/reports'
-  }
-
   const navigateToUnsafeReports = () => {
     window.location.href = '#/admin/unsafe-reports'
   }
+
+  const PRIORITY_ORDER = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+  const statusEntries = data
+    ? Object.entries(data.incidents.byStatus)
+        .map(([label, count]) => ({ label, count }))
+        .filter(({ count }) => count > 0)
+        .sort((a, b) => b.count - a.count)
+    : []
+  const priorityEntries = data
+    ? [
+        ...PRIORITY_ORDER.map((label) => ({ label, count: data.incidents.byPriority[label] ?? 0 })).filter(
+          ({ count }) => count > 0,
+        ),
+        ...Object.entries(data.incidents.byPriority)
+          .map(([label, count]) => ({ label, count }))
+          .filter(({ label, count }) => count > 0 && !PRIORITY_ORDER.includes(label))
+          .sort((a, b) => b.count - a.count),
+      ]
+    : []
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6">
@@ -127,9 +156,6 @@ export function AdminDashboardPage() {
           </Button>
         )}
       </div>
-
-      {/* Emergency Helplines */}
-      <EmergencyHelplines />
 
       {loading && <Skeleton lines={6} />}
       {!loading && failed && (
@@ -173,7 +199,7 @@ export function AdminDashboardPage() {
               label={t('admin.dashboard.cards.rescueTeams')}
               value={data.teams.active}
               icon={<ShieldCheckIcon className="size-6" />}
-              accent="text-emerald-700"
+              accent="text-emerald-700 dark:text-emerald-300"
               onClick={navigateToTeams}
             />
           </div>
@@ -193,24 +219,42 @@ export function AdminDashboardPage() {
                 }
               />
               <CardBody>
-                <div className="space-y-2">
-                  {Object.entries(data.incidents.byStatus).length > 0 ? (
-                    Object.entries(data.incidents.byStatus)
-                      .map(([label, count]) => ({ label, count }))
-                      .sort((a, b) => b.count - a.count)
-                      .map(({ label, count }) => (
-                        <StatusRow
-                          key={label}
-                          label={label}
-                          count={count}
-                          variant={statusBadgeVariant(label)}
-                          onClick={navigateToIncidents}
-                        />
-                      ))
-                  ) : (
-                    <p className="text-sm text-ink-400 text-center py-4">{t('admin.dashboard.empty')}</p>
-                  )}
-                </div>
+                {statusEntries.length === 0 && priorityEntries.length === 0 ? (
+                  <p className="text-sm text-ink-400 text-center py-4">{t('admin.dashboard.empty')}</p>
+                ) : (
+                  <div className="space-y-4">
+                    {statusEntries.length > 0 && (
+                      <div className="space-y-2">
+                        {statusEntries.map(({ label, count }) => (
+                          <StatusRow
+                            key={label}
+                            label={label}
+                            count={count}
+                            variant={statusBadgeVariant(label)}
+                            onClick={navigateToIncidents}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {priorityEntries.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-ink-400">
+                          {t('admin.dashboard.priority.title')}
+                        </h4>
+                        <p className="text-xs text-ink-500">{t('admin.dashboard.priority.description')}</p>
+                        {priorityEntries.map(({ label, count }) => (
+                          <StatusRow
+                            key={label}
+                            label={label}
+                            count={count}
+                            variant={priorityVariant(label)}
+                            onClick={navigateToIncidents}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardBody>
             </Card>
 
@@ -239,12 +283,6 @@ export function AdminDashboardPage() {
                     count={data.unsafeReports.total}
                     variant="warning"
                     onClick={navigateToUnsafeReports}
-                  />
-                  <StatusRow
-                    label={t('admin.dashboard.operationalSnapshot.reports')}
-                    count={data.unsafeReports.verified + data.unsafeReports.unverified}
-                    variant="outline"
-                    onClick={navigateToReports}
                   />
                 </div>
               </CardBody>

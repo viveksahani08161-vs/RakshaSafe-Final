@@ -18,6 +18,8 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../components/ui/Table'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../components/ui/toast-context'
+import { useAuth } from '../lib/auth-context'
+import { PhoneIcon, TrashIcon } from '../components/ui/icons'
 
 interface UsersResponse {
   users: AuthUser[]
@@ -71,6 +73,7 @@ function formatDate(value: string): string {
 export function AdminUsersPage() {
   const { t } = useI18n()
   const { notify } = useToast()
+  const { user: currentUser } = useAuth()
   const [data, setData] = useState<UsersResponse | null>(null)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -213,10 +216,14 @@ export function AdminUsersPage() {
 
   async function onConfirmDelete(): Promise<void> {
     if (!deleteModal?.user) return
+    const deletedUserId = deleteModal.user.id
     setDeleting(true)
     try {
-      await api(`/admin/users/${deleteModal.user.id}`, { method: 'DELETE' })
+      await api(`/admin/users/${deletedUserId}`, { method: 'DELETE' })
       notify({ title: t('admin.users.deleteSuccess'), description: deleteModal.user.name, variant: 'success' })
+      if (editModal?.user?.id === deletedUserId) {
+        setEditModal(null)
+      }
       setDeleteModal(null)
       await load(page)
     } catch (err) {
@@ -225,6 +232,10 @@ export function AdminUsersPage() {
           notify({ title: t('admin.users.deleteError'), description: t('admin.users.cannotDeleteSelf'), variant: 'danger' })
         } else if (err.status === 400 && err.message.includes('last active administrator')) {
           notify({ title: t('admin.users.deleteError'), description: t('admin.users.lastAdmin'), variant: 'danger' })
+        } else if (err.status === 403) {
+          notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteForbidden'), variant: 'danger' })
+        } else if (err.status === 404) {
+          notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteNotFound'), variant: 'danger' })
         } else {
           notify({ title: t('admin.users.deleteError'), description: err.message, variant: 'danger' })
         }
@@ -316,7 +327,13 @@ export function AdminUsersPage() {
                         <span className="font-medium text-ink-900">{u.name}</span>
                       </TableCell>
                       <TableCell className="break-all">{u.email}</TableCell>
-                      <TableCell>{u.phone}</TableCell>
+                      <TableCell>
+                        {typeof u.phone === 'string' && u.phone.trim() !== '' ? (
+                          <span className="font-medium text-ink-900">{u.phone}</span>
+                        ) : (
+                          <span className="text-ink-400">{t('admin.users.noPhone')}</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={u.role === 'ADMIN' ? 'secondary' : 'primary'}>
                           {u.role}
@@ -325,6 +342,22 @@ export function AdminUsersPage() {
                       <TableCell className="text-ink-500">{formatDate(u.createdAt)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1.5">
+                          {typeof u.phone === 'string' && u.phone.trim() !== '' ? (
+                            <a
+                              href={`tel:${u.phone.trim()}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                              }}
+                              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-ink-300 bg-white px-3 text-sm font-semibold text-ink-700 transition-colors hover:border-gold-400 hover:bg-gold-50 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:bg-white/5 dark:hover:text-gold-300"
+                            >
+                              <PhoneIcon className="size-4" />
+                              {t('admin.users.call')}
+                            </a>
+                          ) : (
+                            <span className="inline-flex h-9 items-center rounded-xl border border-ink-200 px-3 text-sm font-semibold text-ink-400">
+                              {t('admin.users.noPhone')}
+                            </span>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -347,7 +380,10 @@ export function AdminUsersPage() {
                           </Button>
                           <Button
                             size="sm"
-                            variant="ghost"
+                            variant="danger"
+                            icon={<TrashIcon className="size-4" />}
+                            disabled={currentUser?.id === u.id}
+                            title={currentUser?.id === u.id ? t('admin.users.cannotDeleteSelf') : undefined}
                             onClick={(e) => {
                               e.stopPropagation()
                               openDeleteModal(u)
@@ -416,12 +452,20 @@ export function AdminUsersPage() {
         open={deleteModal !== null}
         onClose={closeDeleteModal}
         variant="danger"
-        title={t('admin.users.deleteTitle', { name: deleteModal?.user?.name ?? '' })}
+        title={t('admin.users.deleteTitle')}
         confirmLabel={t('admin.users.deleteConfirm')}
+        cancelLabel={t('common.cancel')}
         confirmLoading={deleting}
         onConfirm={() => void onConfirmDelete()}
       >
-        {t('admin.users.deleteConfirmBody')}
+        {t('admin.users.deleteConfirmBody', {
+          name: deleteModal?.user?.name ?? '',
+          email: deleteModal?.user?.email ?? '',
+          phone:
+            deleteModal?.user && typeof deleteModal.user.phone === 'string' && deleteModal.user.phone.trim() !== ''
+              ? deleteModal.user.phone.trim()
+              : t('admin.users.noPhone'),
+        })}
       </Dialog>
 
     </div>
