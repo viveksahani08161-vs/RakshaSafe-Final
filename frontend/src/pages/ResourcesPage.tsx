@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '../lib/api'
 import { useI18n } from '../lib/i18n'
 import { requestDeviceLocation, type LocationOutcome } from '../lib/geolocation'
@@ -51,19 +51,21 @@ function useResourceList<T>(path: string, key: string) {
   const [items, setItems] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const requestSeq = useRef(0)
 
   const load = useCallback(
     async (query: string, signal?: AbortSignal) => {
+      const seq = ++requestSeq.current
       setLoading(true)
       setLoadError(null)
       try {
         const res = await api<Record<string, T[]>>(`${path}${query}`, signal ? { signal } : {})
-        setItems(res[key] ?? [])
+        if (seq === requestSeq.current) setItems(res[key] ?? [])
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        setLoadError(err instanceof ApiError ? err.message : 'Could not load resources.')
+        if (seq === requestSeq.current) setLoadError(err instanceof ApiError ? err.message : 'Could not load resources.')
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        if (!signal?.aborted && seq === requestSeq.current) setLoading(false)
       }
     },
     [path, key],
@@ -286,7 +288,8 @@ export function ResourcesPage() {
               <button
                 type="button"
                 onClick={applyTeamFilters}
-                className="h-11 shrink-0 rounded-xl bg-gold-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gold-600"
+                disabled={teamsLoading}
+                className="h-11 shrink-0 rounded-xl bg-gold-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t('resources.registeredTeams.search')}
               </button>
@@ -294,7 +297,8 @@ export function ResourcesPage() {
                 <button
                   type="button"
                   onClick={resetTeams}
-                  className="h-11 shrink-0 rounded-xl border border-ink-300 bg-white px-4 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-50"
+                  disabled={teamsLoading}
+                  className="h-11 shrink-0 rounded-xl border border-ink-300 bg-white px-4 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {t('resources.registeredTeams.reset')}
                 </button>
@@ -434,7 +438,8 @@ export function ResourcesPage() {
               <button
                 type="button"
                 onClick={applyFacilityFilters}
-                className="h-11 shrink-0 rounded-xl bg-gold-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gold-600"
+                disabled={facilitiesLoading}
+                className="h-11 shrink-0 rounded-xl bg-gold-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gold-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t('resources.storedFacilities.search')}
               </button>
@@ -442,7 +447,8 @@ export function ResourcesPage() {
                 <button
                   type="button"
                   onClick={resetFacilities}
-                  className="h-11 shrink-0 rounded-xl border border-ink-300 bg-white px-4 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-50"
+                  disabled={facilitiesLoading}
+                  className="h-11 shrink-0 rounded-xl border border-ink-300 bg-white px-4 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {t('resources.storedFacilities.reset')}
                 </button>
@@ -470,7 +476,14 @@ export function ResourcesPage() {
                     </span>
                   </div>
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-800">
-                    <PhoneIcon className="size-4 text-ink-400" /> {f.phone}
+                    <PhoneIcon className="size-4 text-ink-400" />
+                    {f.phone ? (
+                      <a href={buildTelHref(f.phone)} className="break-words hover:text-gold-700 underline-offset-2 hover:underline">
+                        {f.phone}
+                      </a>
+                    ) : (
+                      <span className="font-normal text-ink-400">{t('resources.storedFacilities.phoneNotAvailable')}</span>
+                    )}
                   </p>
                   {f.location && (
                     <p className="flex items-center gap-1.5 text-sm text-ink-500">

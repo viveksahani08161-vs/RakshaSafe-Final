@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { useDebouncedValue } from '../lib/useDebouncedValue'
 import {
   formatDateTime,
   UNSAFE_REPORT_CATEGORIES,
@@ -136,6 +137,7 @@ export function AdminUnsafeReportsPage() {
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search)
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<LoadFailure>(null)
   const [viewTarget, setViewTarget] = useState<UnsafeReport | null>(null)
@@ -187,7 +189,7 @@ export function AdminUnsafeReportsPage() {
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (statusFilter) params.set('isVerified', statusFilter)
-        if (search.trim()) params.set('search', search.trim())
+        if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const opts = signal ? { signal } : {}
         const res = await api<ListResponse>(`/admin/unsafe-reports?${params.toString()}`, opts)
         if (signal?.aborted) return
@@ -205,7 +207,7 @@ export function AdminUnsafeReportsPage() {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [statusFilter, search],
+    [statusFilter, debouncedSearch],
   )
 
   useEffect(() => {
@@ -307,7 +309,7 @@ export function AdminUnsafeReportsPage() {
 
   async function onEditSubmit(event: FormEvent): Promise<void> {
     event.preventDefault()
-    if (!editing) return
+    if (!editing || editSaving) return
     const reportId = editing.id
     const errors: Record<string, string> = {}
     if (!editCategory) errors.category = t('unsafeReports.validation.categoryRequired')
@@ -359,7 +361,7 @@ export function AdminUnsafeReportsPage() {
   }
 
   async function onDeleteConfirm(): Promise<void> {
-    if (!deleting) return
+    if (!deleting || deleteSaving) return
     const reportId = deleting.id
     setDeleteSaving(true)
     try {
@@ -634,7 +636,14 @@ export function AdminUnsafeReportsPage() {
                 <div className="sm:col-span-2">
                   <dt className="font-semibold text-ink-500">{t('admin.unsafeReports.reporter')}</dt>
                   <dd className="mt-0.5 text-ink-900">
-                    {detail.reporter.name} · {detail.reporter.email} · {detail.reporter.phone}
+                    {detail.reporter.name} · {detail.reporter.email} ·{' '}
+                    {detail.reporter.phone ? (
+                      <a href={`tel:${detail.reporter.phone}`} className="hover:text-gold-700 underline-offset-2 hover:underline">
+                        {detail.reporter.phone}
+                      </a>
+                    ) : (
+                      t('admin.unsafeReports.phoneNotAvailable')
+                    )}
                   </dd>
                 </div>
               )}

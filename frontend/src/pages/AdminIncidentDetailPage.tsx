@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
 import { useI18n } from '../lib/i18n'
 import { useHashIncidentId } from '../lib/hash-route'
-import { getAdminIncidentNearbyResources, type NearbyResource } from '../lib/resources'
+import { getAdminIncidentNearbyResources, buildTelHref, type NearbyResource } from '../lib/resources'
 import { NearbyResourcesSection } from '../components/resources/NearbyResourcesSection'
 import {
   ASSIGNMENT_STATUSES,
@@ -75,7 +76,8 @@ export function AdminIncidentDetailPage() {
   const { notify } = useToast()
   const [detail, setDetail] = useState<DetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState<RequestFailureKind | null>(null)
+  const [failureDetail, setFailureDetail] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [comment, setComment] = useState('')
@@ -127,11 +129,13 @@ export function AdminIncidentDetailPage() {
     async (signal?: AbortSignal) => {
       if (!incidentId) {
         setLoading(false)
-        setFailed(true)
+        setFailure('failed')
+        setFailureDetail('No incident exists with this reference.')
         return
       }
       setLoading(true)
-      setFailed(false)
+      setFailure(null)
+      setFailureDetail(null)
       setNotFound(false)
       try {
         const opts = signal ? { signal } : {}
@@ -152,7 +156,8 @@ export function AdminIncidentDetailPage() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
         } else {
-          setFailed(true)
+          setFailure(toRequestFailureKind(err))
+          setFailureDetail(err instanceof ApiError ? err.message : null)
         }
       } finally {
         if (!signal?.aborted) setLoading(false)
@@ -171,11 +176,11 @@ export function AdminIncidentDetailPage() {
   }, [load])
 
   useEffect(() => {
-    if (loading || failed || notFound || !detail?.location) return
+    if (loading || failure || notFound || !detail?.location) return
     const controller = new AbortController()
     void loadNearby(controller.signal)
     return () => controller.abort()
-  }, [loading, failed, notFound, detail, loadNearby])
+  }, [loading, failure, notFound, detail, loadNearby])
 
   async function onStatusSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
@@ -273,6 +278,14 @@ export function AdminIncidentDetailPage() {
   }
 
   const incident = detail?.incident ?? null
+  const failureDescription =
+    failure === 'unauthorized'
+      ? 'Your session has expired. Please log in again.'
+      : failure === 'denied'
+        ? 'Your account does not have permission to view this page.'
+        : failure === 'failed'
+          ? (failureDetail ?? 'Could not load incident.')
+          : 'The server could not be reached.'
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-6">
@@ -288,15 +301,15 @@ export function AdminIncidentDetailPage() {
         </div>
       )}
 
-      {!loading && (failed || notFound) && (
+      {!loading && (failure || notFound) && (
         <ErrorState
           title={notFound ? 'Incident not found' : 'Could not load incident'}
-          description={notFound ? 'No incident exists with this reference.' : 'The server could not be reached.'}
+          description={notFound ? 'No incident exists with this reference.' : failureDescription}
           onRetry={() => void load()}
         />
       )}
 
-      {!loading && !failed && !notFound && incident && detail && (
+      {!loading && !failure && !notFound && incident && detail && (
         <>
           <Card>
             <CardHeader
@@ -354,7 +367,15 @@ export function AdminIncidentDetailPage() {
                     </div>
                     <div>
                       <dt className="font-semibold text-ink-500">Phone</dt>
-                      <dd className="mt-0.5 text-ink-900">{detail.reporter.phone}</dd>
+                      <dd className="mt-0.5 text-ink-900">
+                        {detail.reporter.phone ? (
+                          <a href={buildTelHref(detail.reporter.phone)} className="hover:text-gold-700 underline-offset-2 hover:underline">
+                            {detail.reporter.phone}
+                          </a>
+                        ) : (
+                          'Not available'
+                        )}
+                      </dd>
                     </div>
                   </dl>
                 ) : (
@@ -394,7 +415,7 @@ export function AdminIncidentDetailPage() {
             </Card>
           </div>
 
-          {!loading && !failed && !notFound && incident && detail && detail.location && (
+          {!loading && !failure && !notFound && incident && detail && detail.location && (
             <NearbyResourcesSection
               resources={nearby}
               loading={nearbyLoading}
@@ -405,7 +426,7 @@ export function AdminIncidentDetailPage() {
               titleKey="nearby.recordedLocation"
             />
           )}
-          {!loading && !failed && !notFound && incident && detail && !detail.location && (
+          {!loading && !failure && !notFound && incident && detail && !detail.location && (
             <Card>
               <CardHeader title={t('nearby.recordedLocation')} />
               <CardBody>
@@ -469,9 +490,17 @@ export function AdminIncidentDetailPage() {
                             {a.team ? `${a.team.name} (${a.team.teamType})` : 'Unknown team'}
                           </span>
                         </div>
-                        {a.team && (
-                          <p className="mt-1 text-sm text-ink-500">Contact: {a.team.phone}</p>
-                        )}
+                        {a.team &&
+                        (a.team.phone ? (
+                          <p className="mt-1 text-sm text-ink-500">
+                            Contact:{' '}
+                            <a href={buildTelHref(a.team.phone)} className="hover:text-gold-700 underline-offset-2 hover:underline">
+                              {a.team.phone}
+                            </a>
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-sm text-ink-400">Contact not available</p>
+                        ))}
                         {a.notes && <p className="mt-1 text-sm text-ink-700">{a.notes}</p>}
                         <p className="mt-1 text-xs text-ink-400">
                           Assigned {formatAssignmentDate(a.assignedAt)}

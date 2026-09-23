@@ -21,6 +21,7 @@ export type AppRoute =
   | '/admin/teams'
   | '/admin/unsafe-reports'
   | '/admin/reports'
+  | '/admin/emergency-contacts'
 
 const PREFIX = '#'
 
@@ -55,10 +56,12 @@ export function parseHash(): AppRoute {
     '/admin/user-detail',
     '/admin/dashboard',
     '/admin/incidents',
+    '/admin/incident-detail',
     '/admin/facilities',
     '/admin/teams',
     '/admin/unsafe-reports',
     '/admin/reports',
+    '/admin/emergency-contacts',
   ]
   return (known.includes(raw as AppRoute) ? raw : '/login') as AppRoute
 }

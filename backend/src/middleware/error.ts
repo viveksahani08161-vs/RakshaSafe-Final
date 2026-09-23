@@ -28,6 +28,14 @@ function isJsonParseError(err: unknown): boolean {
   )
 }
 
+function isPayloadTooLarge(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { type?: unknown }).type === 'entity.too.large'
+  )
+}
+
 export function errorHandler(
   err: Error,
   _req: Request,
@@ -71,6 +79,14 @@ export function errorHandler(
     res.status(400).json({
       success: false,
       error: 'Invalid JSON in request body.',
+    })
+    return
+  }
+
+  if (isPayloadTooLarge(err)) {
+    res.status(413).json({
+      success: false,
+      error: 'Request payload too large.',
     })
     return
   }

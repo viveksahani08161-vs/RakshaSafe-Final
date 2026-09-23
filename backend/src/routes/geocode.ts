@@ -1,8 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import { reverseGeocode } from '../services/geocoding.js'
+import { requireAuth } from '../middleware/auth.js'
 import { validateNearbyQuery } from '../validators/nearby.js'
 
 const router = Router()
+
+// Geocoding hits a third-party upstream (Nominatim) — keep it authenticated
+// so anonymous callers cannot bill/abuse the external service. Like the
+// OSM/weather enrichment routes, it stays available without MongoDB.
+router.use(requireAuth)
 
 /**
  * Geocode an address query using OpenStreetMap Nominatim.

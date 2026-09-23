@@ -95,7 +95,7 @@ export async function createUnsafeReport(req: Request, res: Response, next: Next
 export async function listUnsafeReports(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const ownerId = requireOwnerId(req)
-    const docs = await UnsafeAreaReport.find({ reportedBy: ownerId }).sort({ createdAt: -1 })
+    const docs = await UnsafeAreaReport.find({ reportedBy: ownerId }).sort({ createdAt: -1 }).limit(200)
     res.json({ success: true, data: { reports: await withReportLocations(docs) } })
   } catch (err) {
     next(err)

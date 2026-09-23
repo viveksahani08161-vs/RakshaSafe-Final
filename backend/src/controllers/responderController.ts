@@ -46,7 +46,7 @@ export async function listMyAssignments(req: Request, res: Response, next: NextF
       res.json({ success: true, data: { assignments: [] } })
       return
     }
-    const docs = await RescueAssignment.find({ teamId: { $in: teamIds } }).sort({ createdAt: -1 })
+    const docs = await RescueAssignment.find({ teamId: { $in: teamIds } }).sort({ createdAt: -1 }).limit(100)
     const assignments: SafeAssignment[] = await attachTeams(docs)
 
     const incidentIds = [...new Set(docs.map((d) => String(d.incidentId)))]

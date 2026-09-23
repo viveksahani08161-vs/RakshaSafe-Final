@@ -1,6 +1,12 @@
 import { Router } from 'express'
 import { listNotificationsAdmin, listUsers, getUserAdmin, updateUserAdmin, deleteUserAdmin } from '../controllers/adminController.js'
 import {
+  deleteEmergencyContactAdmin,
+  listAllEmergencyContactsAdmin,
+  listEmergencyContactsAdmin,
+  updateEmergencyContactAdmin,
+} from '../controllers/adminEmergencyContactController.js'
+import {
   createFacility,
   getFacilityAdmin,
   listFacilitiesAdmin,
@@ -59,6 +65,10 @@ router.get('/users', listUsers)
 router.get('/users/:id', getUserAdmin)
 router.patch('/users/:id', updateUserAdmin)
 router.delete('/users/:id', deleteUserAdmin)
+router.get('/users/:userId/emergency-contacts', listEmergencyContactsAdmin)
+router.get('/emergency-contacts', listAllEmergencyContactsAdmin)
+router.patch('/emergency-contacts/:contactId', updateEmergencyContactAdmin)
+router.delete('/emergency-contacts/:contactId', deleteEmergencyContactAdmin)
 router.get('/notifications', listNotificationsAdmin)
 router.get('/incidents/summary', getIncidentsSummary)
 router.get('/incidents', listIncidentsAdmin)

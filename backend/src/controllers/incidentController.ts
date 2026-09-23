@@ -120,7 +120,7 @@ export async function createIncident(req: Request, res: Response, next: NextFunc
 export async function listIncidents(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const ownerId = requireOwnerId(req)
-    const docs = await Incident.find({ userId: ownerId }).sort({ createdAt: -1 })
+    const docs = await Incident.find({ userId: ownerId }).sort({ createdAt: -1 }).limit(200)
     res.json({ success: true, data: { incidents: docs.map(toSafeIncident) } })
   } catch (err) {
     next(err)

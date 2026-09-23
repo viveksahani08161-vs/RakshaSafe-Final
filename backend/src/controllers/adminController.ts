@@ -15,6 +15,7 @@ import { AdminLog } from '../models/AdminLog.js'
 import { badRequest, conflict, notFoundError, unauthorized } from '../utils/errors.js'
 import { escapeRegExp } from '../utils/search.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
+import { toSafeContact } from './emergencyContactController.js'
 import { toSafeIncident, toSafeLocation } from './incidentController.js'
 import { toSafeUser } from './authController.js'
 import { toSafeNotification } from './notificationController.js'
@@ -94,7 +95,8 @@ export async function listNotificationsAdmin(req: Request, res: Response, next: 
 /**
  * GET /api/admin/users/:id — get a single user's complete profile and activity.
  * Admin-only endpoint: requires ADMIN role. Returns user profile, incidents,
- * locations, assignments, history, risk assessments, and notifications.
+ * locations, assignments, history, risk assessments, notifications, and
+ * emergency contacts.
  */
 export async function getUserAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -165,6 +167,9 @@ export async function getUserAdmin(req: Request, res: Response, next: NextFuncti
       return toSafeUnsafeReport(report, location)
     })
 
+    // Fetch this user's emergency contacts (admin-only view; no secrets exposed)
+    const emergencyContacts = await EmergencyContact.find({ userId: user._id }).sort({ createdAt: -1 })
+
     res.json({
       success: true,
       data: {
@@ -192,6 +197,7 @@ export async function getUserAdmin(req: Request, res: Response, next: NextFuncti
         })),
         notifications: notifications.map((n) => toSafeNotification(n, null)),
         unsafeReports: unsafeReportsWithLocation,
+        emergencyContacts: emergencyContacts.map(toSafeContact),
       },
     })
   } catch (err) {

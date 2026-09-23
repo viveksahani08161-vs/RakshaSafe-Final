@@ -96,12 +96,27 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     }
 
     const identifier = input.identifier.trim()
-    const query = isEmail(identifier)
-      ? { email: identifier.toLowerCase() }
-      : { phone: identifier }
-
-    const user = await User.findOne(query)
+    let user: IUser | null
+    if (isEmail(identifier)) {
+      user = await User.findOne({ email: identifier.toLowerCase() })
+    } else {
+      // Administrators and imported accounts may store their phone with a
+      // +91 prefix while the login form submits the normalized 10-digit form
+      // (mirrors the frontend's normalizePhone). Match every variant.
+      const normalized = identifier.replace(/^\+91[\s-]?/, '').replace(/[\s-]/g, '')
+      user = await User.findOne({
+        $or: [
+          { phone: identifier },
+          { phone: normalized },
+          { phone: normalized.length === 10 ? `+91${normalized}` : normalized },
+        ],
+      })
+    }
     if (!user) {
+      next(unauthorized('Invalid credentials.'))
+      return
+    }
+    if (user.isActive === false) {
       next(unauthorized('Invalid credentials.'))
       return
     }

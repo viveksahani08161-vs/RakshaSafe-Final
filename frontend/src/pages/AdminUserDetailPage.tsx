@@ -5,6 +5,7 @@ import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Checkbox } from '../components/ui/Checkbox'
 import { Dialog } from '../components/ui/Dialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
@@ -107,6 +108,20 @@ interface AdminUserNotification {
   updatedAt: string
 }
 
+interface AdminUserEmergencyContact {
+  id: string
+  userId: string
+  name: string
+  phone: string
+  email?: string
+  relationship?: string
+  notifyViaSms: boolean
+  notifyViaEmail: boolean
+  isPrimary: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 interface AdminUserDetailResponse {
   user: {
     id: string
@@ -133,6 +148,7 @@ interface AdminUserDetailResponse {
   }[]
   notifications: AdminUserNotification[]
   unsafeReports: AdminUserUnsafeReport[]
+  emergencyContacts: AdminUserEmergencyContact[]
 }
 
 interface AdminUserHistory {
@@ -247,8 +263,11 @@ export function AdminUserDetailPage() {
   const [riskAssessments, setRiskAssessments] = useState<AdminUserDetailResponse['riskAssessments']>([])
   const [notifications, setNotifications] = useState<AdminUserNotification[]>([])
   const [unsafeReports, setUnsafeReports] = useState<AdminUserUnsafeReport[]>([])
+  const [emergencyContacts, setEmergencyContacts] = useState<AdminUserEmergencyContact[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [contactsLoading, setContactsLoading] = useState(true)
+  const [contactsError, setContactsError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'incidents' | 'assignments' | 'history' | 'risk' | 'notifications' | 'unsafeReports'>('incidents')
 
   const [editModal, setEditModal] = useState<{ user: AdminUserDetail | null }>({ user: null })
@@ -258,6 +277,14 @@ export function AdminUserDetailPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  const [contactEditModal, setContactEditModal] = useState<{ contact: AdminUserEmergencyContact | null }>({ contact: null })
+  const [contactDeleteModal, setContactDeleteModal] = useState<{ contact: AdminUserEmergencyContact | null }>({ contact: null })
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', relationship: '', notifyViaSms: false, notifyViaEmail: false })
+  const [contactFieldErrors, setContactFieldErrors] = useState<Record<string, string>>({})
+  const [contactFormError, setContactFormError] = useState<string | null>(null)
+  const [contactSaving, setContactSaving] = useState(false)
+  const [contactDeleting, setContactDeleting] = useState(false)
 
   // Activity statuses considered as "active" per existing workflow
   const ACTIVE_STATUSES = ['REPORTED', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS']
@@ -270,6 +297,7 @@ export function AdminUserDetailPage() {
   const cancelledIncidents = incidents.filter((i) => i.status === 'CANCELLED').length
   const totalUnsafeReports = unsafeReports.length
   const totalNotifications = notifications.length
+  const totalEmergencyContacts = emergencyContacts.length
   const totalAssignments = assignments.length
   const totalRiskAssessments = riskAssessments.length
 
@@ -297,14 +325,33 @@ export function AdminUserDetailPage() {
     }
   }, [userId])
 
+  const loadContacts = useCallback(async (signal?: AbortSignal) => {
+    if (!userId) return
+    setContactsLoading(true)
+    setContactsError(null)
+    try {
+      const res = await api<{ data: { contacts: AdminUserEmergencyContact[] } }>(
+        `/admin/users/${userId}/emergency-contacts`,
+        signal ? { signal } : {},
+      )
+      setEmergencyContacts(res.data.contacts)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setContactsError(err instanceof ApiError ? err.message : t('admin.users.emergencyContactsError'))
+    } finally {
+      if (!signal?.aborted) setContactsLoading(false)
+    }
+  }, [userId, t])
+
   useEffect(() => {
     const controller = new AbortController()
     async function initialLoad(): Promise<void> {
       await load(controller.signal)
     }
     void initialLoad()
+    void loadContacts(controller.signal)
     return () => controller.abort()
-  }, [load])
+  }, [load, loadContacts])
 
   function handleBack(): void {
     navigateTo('/admin/users')
@@ -404,6 +451,70 @@ export function AdminUserDetailPage() {
       }
     } finally {
       setDeleting(false)
+    }
+  }
+
+  function openEditContact(contact: AdminUserEmergencyContact): void {
+    setContactForm({
+      name: contact.name,
+      phone: contact.phone,
+      email: contact.email ?? '',
+      relationship: contact.relationship ?? '',
+      notifyViaSms: contact.notifyViaSms,
+      notifyViaEmail: contact.notifyViaEmail,
+    })
+    setContactFieldErrors({})
+    setContactFormError(null)
+    setContactEditModal({ contact })
+  }
+
+  async function onSubmitContactEdit(e: FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!contactEditModal?.contact) return
+    setContactSaving(true)
+    setContactFieldErrors({})
+    setContactFormError(null)
+    try {
+      const body = {
+        name: contactForm.name.trim(),
+        phone: contactForm.phone.trim(),
+        email: contactForm.email.trim(),
+        relationship: contactForm.relationship.trim(),
+        notifyViaSms: contactForm.notifyViaSms,
+        notifyViaEmail: contactForm.notifyViaEmail,
+      }
+      await api(`/admin/emergency-contacts/${contactEditModal.contact.id}`, { method: 'PATCH', body })
+      notify({ title: t('admin.users.emergencyContactEditSuccess'), description: body.name, variant: 'success' })
+      setContactEditModal({ contact: null })
+      await loadContacts()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fields = toFieldErrors(err.details)
+        if (Object.keys(fields).length > 0) {
+          setContactFieldErrors(fields)
+        } else {
+          setContactFormError(err.message)
+        }
+      } else {
+        setContactFormError(t('contacts.form.saveError'))
+      }
+    } finally {
+      setContactSaving(false)
+    }
+  }
+
+  async function onConfirmDeleteContact(): Promise<void> {
+    if (!contactDeleteModal?.contact) return
+    setContactDeleting(true)
+    try {
+      await api(`/admin/emergency-contacts/${contactDeleteModal.contact.id}`, { method: 'DELETE' })
+      notify({ title: t('admin.users.emergencyContactDeleteSuccess'), description: contactDeleteModal.contact.name, variant: 'success' })
+      setContactDeleteModal({ contact: null })
+      await loadContacts()
+    } catch (err) {
+      notify({ title: t('admin.users.emergencyContactDeleteError'), description: err instanceof ApiError ? err.message : t('admin.users.emergencyContactDeleteError'), variant: 'danger' })
+    } finally {
+      setContactDeleting(false)
     }
   }
 
@@ -658,7 +769,7 @@ export function AdminUserDetailPage() {
                         <UsersIcon className="size-5" />
                       </div>
                       <div>
-                        <p className="text-2xl font-extrabold text-ink-900">—</p>
+                        <p className="text-2xl font-extrabold text-ink-900">{totalEmergencyContacts}</p>
                         <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">{t('admin.users.emergencyContactsCount')}</p>
                       </div>
                     </div>
@@ -1061,6 +1172,100 @@ export function AdminUserDetailPage() {
               </section>
             </div>
           )}
+
+          {/* Emergency Contacts */}
+          <section aria-labelledby="emergency-contacts-heading">
+            <h2 id="emergency-contacts-heading" className="text-lg font-bold text-ink-900 mb-4">{t('admin.users.emergencyContactsTitle')}</h2>
+            {user && (
+              <p className="mb-4 text-sm text-ink-500">
+                {t('admin.users.emergencyContactsOwner')}: <span className="font-semibold text-ink-800">{user.name}</span> ({user.email})
+              </p>
+            )}
+            {contactsLoading && (
+              <div className="rounded-xl border border-ink-200/70 bg-white p-4">
+                <Skeleton lines={2} />
+                <p className="mt-3 text-sm text-ink-500">{t('admin.users.emergencyContactsLoading')}</p>
+              </div>
+            )}
+            {!contactsLoading && contactsError && (
+              <ErrorState title={t('admin.users.emergencyContactsError')} description={contactsError} onRetry={() => void loadContacts()} />
+            )}
+            {!contactsLoading && !contactsError && emergencyContacts.length === 0 && (
+              <EmptyState title={t('admin.users.emergencyContactsEmptyTitle')} description={t('admin.users.emergencyContactsEmptyDesc')} />
+            )}
+            {!contactsLoading && !contactsError && emergencyContacts.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {emergencyContacts.map((contact) => (
+                  <div key={contact.id} className="flex flex-col rounded-xl border border-ink-200/70 bg-white p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
+                        <UsersIcon className="size-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-bold text-ink-900">{contact.name}</p>
+                          {contact.isPrimary && <Badge variant="primary">{t('contacts.form.isPrimary')}</Badge>}
+                        </div>
+                        {contact.relationship && <p className="mt-0.5 text-sm text-ink-500">{contact.relationship}</p>}
+                        <dl className="mt-3 space-y-2 text-sm">
+                          <div>
+                            <dt className="font-semibold text-ink-500">{t('contacts.phone')}</dt>
+                            <dd className="mt-1">
+                              <span className="text-ink-900">{contact.phone}</span>
+                            </dd>
+                          </div>
+                          {contact.email && (
+                            <div>
+                              <dt className="font-semibold text-ink-500">{t('contacts.email')}</dt>
+                              <dd className="mt-1 text-sky-700 hover:underline dark:text-sky-300">
+                                <a href={`mailto:${contact.email}`} className="break-all">{contact.email}</a>
+                              </dd>
+                            </div>
+                          )}
+                          <div>
+                            <dt className="font-semibold text-ink-500">{t('contacts.smsAlerts')}</dt>
+                            <dd className="mt-1">
+                              <Badge variant={contact.notifyViaSms ? 'success' : 'neutral'}>
+                                {contact.notifyViaSms ? t('common.enabled') : t('common.disabled')}
+                              </Badge>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold text-ink-500">{t('contacts.emailAlerts')}</dt>
+                            <dd className="mt-1">
+                              <Badge variant={contact.notifyViaEmail ? 'success' : 'neutral'}>
+                                {contact.notifyViaEmail ? t('common.enabled') : t('common.disabled')}
+                              </Badge>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold text-ink-500">{t('admin.users.emergencyContactAdded')}</dt>
+                            <dd className="mt-0.5 text-ink-900">{formatIncidentDateTime(contact.createdAt)}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink-200/70 pt-3">
+                      <a
+                        href={`tel:${contact.phone}`}
+                        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-ink-300 bg-white px-3 text-sm font-semibold text-ink-700 transition-colors hover:border-gold-400 hover:bg-gold-50 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:bg-white/5 dark:hover:text-gold-300"
+                      >
+                        <PhoneIcon className="size-4" />
+                        {t('admin.users.call')}
+                      </a>
+                      <Button size="sm" variant="outline" onClick={() => openEditContact(contact)}>
+                        {t('contacts.edit')}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setContactDeleteModal({ contact })}>
+                        <TrashIcon className="size-4" />
+                        {t('contacts.delete')}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </CardBody>
       </Card>
     </div>
@@ -1123,6 +1328,99 @@ export function AdminUserDetailPage() {
           deleteModal?.user && typeof deleteModal.user.phone === 'string' && deleteModal.user.phone.trim() !== ''
             ? deleteModal.user.phone.trim()
             : t('admin.users.noPhone'),
+      })}
+    </Dialog>
+
+    <Modal
+      open={contactEditModal !== null}
+      onClose={() => setContactEditModal({ contact: null })}
+      title={t('contacts.modal.editTitle')}
+    >
+      <Form onSubmit={(e: FormEvent) => void onSubmitContactEdit(e)}>
+        {contactFormError && (
+          <Alert variant="danger" title={t('contacts.form.saveError')} onClose={() => setContactFormError(null)}>
+            {contactFormError}
+          </Alert>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t('contacts.form.name')}
+            name="contact-name"
+            placeholder={t('contacts.form.namePlaceholder')}
+            requiredMark
+            value={contactForm.name}
+            error={contactFieldErrors.name}
+            onChange={(e) => setContactForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          <Input
+            label={t('contacts.form.phone')}
+            name="contact-phone"
+            type="tel"
+            placeholder={t('contacts.form.phonePlaceholder')}
+            requiredMark
+            value={contactForm.phone}
+            error={contactFieldErrors.phone}
+            onChange={(e) => setContactForm((f) => ({ ...f, phone: e.target.value }))}
+          />
+          <Input
+            label={t('contacts.form.email')}
+            name="contact-email"
+            type="email"
+            placeholder={t('contacts.form.emailPlaceholder')}
+            value={contactForm.email}
+            error={contactFieldErrors.email}
+            onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+          />
+          <Input
+            label={t('contacts.form.relationship')}
+            name="contact-relationship"
+            placeholder={t('contacts.form.relationshipPlaceholder')}
+            value={contactForm.relationship}
+            error={contactFieldErrors.relationship}
+            onChange={(e) => setContactForm((f) => ({ ...f, relationship: e.target.value }))}
+          />
+        </div>
+        {(contactFieldErrors.notifyViaSms ?? contactFieldErrors.notifyViaEmail) && (
+          <Alert variant="danger">{contactFieldErrors.notifyViaSms ?? contactFieldErrors.notifyViaEmail}</Alert>
+        )}
+        <div className="flex flex-col gap-2">
+          <Checkbox
+            label={t('contacts.form.notifySms')}
+            checked={contactForm.notifyViaSms}
+            onChange={(e) => setContactForm((f) => ({ ...f, notifyViaSms: e.target.checked }))}
+          />
+          <Checkbox
+            label={t('contacts.form.notifyEmail')}
+            checked={contactForm.notifyViaEmail}
+            onChange={(e) => setContactForm((f) => ({ ...f, notifyViaEmail: e.target.checked }))}
+          />
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" loading={contactSaving} disabled={contactSaving}>
+            {t('contacts.form.saveChanges')}
+          </Button>
+          <Button variant="ghost" onClick={() => setContactEditModal({ contact: null })}>
+            {t('contacts.form.cancel')}
+          </Button>
+        </div>
+      </Form>
+    </Modal>
+
+    <Dialog
+      open={contactDeleteModal !== null}
+      onClose={() => {
+        if (!contactDeleting) setContactDeleteModal({ contact: null })
+      }}
+      variant="danger"
+      title={t('admin.users.emergencyContactDeleteTitle')}
+      confirmLabel={t('contacts.delete.confirm')}
+      cancelLabel={t('common.cancel')}
+      confirmLoading={contactDeleting}
+      onConfirm={() => void onConfirmDeleteContact()}
+    >
+      {t('admin.users.emergencyContactDeleteBody', {
+        name: contactDeleteModal?.contact?.name ?? '',
+        phone: contactDeleteModal?.contact?.phone ?? '',
       })}
     </Dialog>
     </>

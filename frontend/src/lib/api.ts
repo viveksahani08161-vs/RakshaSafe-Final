@@ -15,15 +15,21 @@ export class ApiError extends Error {
 
 export function getStoredToken(): string | null {
   try {
-    return window.localStorage.getItem(TOKEN_KEY)
+    return window.localStorage.getItem(TOKEN_KEY) ?? window.sessionStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
 }
 
-export function setStoredToken(token: string): void {
+export function setStoredToken(token: string, persistent = true): void {
   try {
-    window.localStorage.setItem(TOKEN_KEY, token)
+    if (persistent) {
+      window.localStorage.setItem(TOKEN_KEY, token)
+      window.sessionStorage.removeItem(TOKEN_KEY)
+    } else {
+      window.sessionStorage.setItem(TOKEN_KEY, token)
+      window.localStorage.removeItem(TOKEN_KEY)
+    }
   } catch {
     /* storage unavailable — session lasts for this tab only */
   }
@@ -32,6 +38,11 @@ export function setStoredToken(token: string): void {
 export function clearStoredToken(): void {
   try {
     window.localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.sessionStorage.removeItem(TOKEN_KEY)
   } catch {
     /* ignore */
   }

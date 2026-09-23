@@ -37,6 +37,7 @@ export function ProfilePage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
+    if (busy) return
     setSaved(false)
     try {
       await updateProfile({

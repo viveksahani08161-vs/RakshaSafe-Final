@@ -63,7 +63,9 @@ export async function listNotifications(req: Request, res: Response, next: NextF
       return
     }
 
-    const docs = await Notification.find({ incidentId: { $in: [...incidentMap.keys()] } }).sort({ createdAt: -1 })
+    const docs = await Notification.find({ incidentId: { $in: [...incidentMap.keys()] } })
+      .sort({ createdAt: -1 })
+      .limit(100)
     const contacts = await EmergencyContact.find({ userId: ownerId }).select('_id name')
     const contactNames = new Map(contacts.map((c) => [String(c._id), c.name]))
 

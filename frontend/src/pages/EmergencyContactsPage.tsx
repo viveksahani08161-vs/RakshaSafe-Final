@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { buildTelHref } from '../lib/resources'
 import { useToast } from '../components/ui/toast-context'
 import { useI18n } from '../lib/i18n'
 import { Alert } from '../components/ui/Alert'
@@ -134,7 +135,7 @@ export function EmergencyContactsPage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!modal) return
+    if (!modal || saving) return
     setSaving(true)
     setFieldErrors({})
     setFormError(null)
@@ -177,7 +178,7 @@ export function EmergencyContactsPage() {
   }
 
   async function onConfirmDelete(): Promise<void> {
-    if (!deleteTarget) return
+    if (!deleteTarget || deleting) return
     setDeleting(true)
     try {
       await api(`/emergency-contacts/${deleteTarget.id}`, { method: 'DELETE' })
@@ -252,9 +253,17 @@ export function EmergencyContactsPage() {
                     </span>
                   </div>
                   <div className="space-y-1 text-sm">
-                    <p className="font-semibold text-ink-800">{contact.phone}</p>
+                    <p className="font-semibold text-ink-800">
+                      <a href={buildTelHref(contact.phone)} className="hover:text-gold-700 underline-offset-2 hover:underline">
+                        {contact.phone}
+                      </a>
+                    </p>
                     {contact.email && (
-                      <p className="break-all text-ink-500">{contact.email}</p>
+                      <p className="break-all text-ink-500">
+                        <a href={`mailto:${contact.email}`} className="hover:text-gold-700 underline-offset-2 hover:underline">
+                          {contact.email}
+                        </a>
+                      </p>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">

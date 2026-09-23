@@ -40,7 +40,7 @@ export interface AuthContextValue {
   initializing: boolean
   busy: boolean
   error: string | null
-  login: (identifier: string, password: string) => Promise<void>
+  login: (identifier: string, password: string, remember?: boolean) => Promise<AuthUser>
   register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
   refresh: () => Promise<void>

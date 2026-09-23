@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import { ApiError, api } from '../lib/api'
+import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
 import { type DashboardData } from '../lib/dashboard'
 import { statusBadgeVariant } from '../lib/incidents'
 import { Alert } from '../components/ui/Alert'
@@ -78,17 +79,20 @@ export function AdminDashboardPage() {
   const { t } = useI18n()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState<RequestFailureKind | null>(null)
+  const [failureDetail, setFailureDetail] = useState<string | null>(null)
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
-    setFailed(false)
+    setFailure(null)
+    setFailureDetail(null)
     try {
       const res = await api<DashboardData>('/admin/dashboard', signal ? { signal } : {})
       setData(res)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
-      setFailed(true)
+      setFailure(toRequestFailureKind(err))
+      setFailureDetail(err instanceof ApiError ? err.message : null)
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
@@ -124,6 +128,15 @@ export function AdminDashboardPage() {
   }
 
   const PRIORITY_ORDER = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+  const failed = failure !== null
+  const failureDescription =
+    failure === 'unauthorized'
+      ? t('auth.sessionExpired')
+      : failure === 'denied'
+        ? t('admin.dashboard.accessDeniedDesc')
+        : failure === 'failed'
+          ? (failureDetail ?? t('admin.dashboard.errorTitle'))
+          : t('admin.dashboard.errorDescription')
   const statusEntries = data
     ? Object.entries(data.incidents.byStatus)
         .map(([label, count]) => ({ label, count }))
@@ -158,10 +171,10 @@ export function AdminDashboardPage() {
       </div>
 
       {loading && <Skeleton lines={6} />}
-      {!loading && failed && (
+      {!loading && failure && (
         <ErrorState
           title={t('admin.dashboard.errorTitle')}
-          description={t('admin.dashboard.errorDescription')}
+          description={failureDescription}
           onRetry={() => void load()}
         />
       )}

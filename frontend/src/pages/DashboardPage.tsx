@@ -64,6 +64,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [contactsLoading, setContactsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [contactsError, setContactsError] = useState(false)
 
   const [locationOutcome, setLocationOutcome] = useState<LocationOutcome | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
@@ -84,11 +85,13 @@ export function DashboardPage() {
 
   const loadContacts = useCallback(async (signal?: AbortSignal) => {
     setContactsLoading(true)
+    setContactsError(false)
     try {
       const res = await api<{ contacts: { id: string }[] }>('/emergency-contacts', signal ? { signal } : {})
-      setContacts(res.contacts)
+      if (!signal?.aborted) setContacts(res.contacts)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
+      if (!signal?.aborted) setContactsError(true)
     } finally {
       if (!signal?.aborted) setContactsLoading(false)
     }
@@ -203,7 +206,7 @@ export function DashboardPage() {
             />
             <StatTile
               label={t('dashboard.stat.contacts')}
-              value={contactsLoading ? '–' : contactsCount}
+              value={contactsLoading || contactsError ? '–' : contactsCount}
               icon={<UsersIcon className="size-5" />}
               accent="bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300"
             />
@@ -214,6 +217,21 @@ export function DashboardPage() {
               accent="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
             />
           </div>
+          {contactsError && (
+            <Alert
+              variant="warning"
+              title={t('contacts.errorTitle')}
+              className="mt-3"
+              onClose={() => setContactsError(false)}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm text-ink-600">{t('dashboard.stat.contactsErrorBody')}</span>
+                <Button size="sm" variant="outline" onClick={() => void loadContacts()}>
+                  {t('common.tryAgain')}
+                </Button>
+              </div>
+            </Alert>
+          )}
         </CardBody>
       </Card>
 

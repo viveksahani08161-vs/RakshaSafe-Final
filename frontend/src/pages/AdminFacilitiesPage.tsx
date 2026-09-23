@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
+import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { FACILITY_TYPES, formatCoords, type Facility } from '../lib/resources'
 import { useToast } from '../components/ui/toast-context'
 import { useI18n } from '../lib/i18n'
@@ -101,8 +103,10 @@ export function AdminFacilitiesPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState<RequestFailureKind | null>(null)
+  const [failureDetail, setFailureDetail] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
   const [toggleTarget, setToggleTarget] = useState<Facility | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -114,23 +118,25 @@ export function AdminFacilitiesPage() {
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
-      setFailed(false)
+      setFailure(null)
+      setFailureDetail(null)
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (typeFilter) params.set('facilityType', typeFilter)
         if (statusFilter) params.set('isOperational', statusFilter)
-        if (search.trim()) params.set('search', search.trim())
+        if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/facilities?${params.toString()}`, signal ? { signal } : {})
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        setFailed(true)
+        setFailure(toRequestFailureKind(err))
+        setFailureDetail(err instanceof ApiError ? err.message : null)
       } finally {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [typeFilter, statusFilter, search],
+    [typeFilter, statusFilter, debouncedSearch],
   )
 
   useEffect(() => {
@@ -194,7 +200,7 @@ export function AdminFacilitiesPage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!modal) return
+    if (!modal || saving) return
     setSaving(true)
     setFieldErrors({})
     setFormError(null)
@@ -274,6 +280,15 @@ export function AdminFacilitiesPage() {
   }
 
   const filtersActive = typeFilter !== '' || statusFilter !== '' || search.trim() !== ''
+  const failed = failure !== null
+  const failureDescription =
+    failure === 'unauthorized'
+      ? t('auth.sessionExpired')
+      : failure === 'denied'
+        ? t('admin.facilities.accessDeniedDesc')
+        : failure === 'failed'
+          ? (failureDetail ?? t('admin.facilities.errorLoad'))
+          : t('admin.facilities.serverUnreachable')
   const total = data?.pagination.total ?? 0
   const operational = data?.facilities.filter((f) => f.isOperational).length ?? 0
   const inactive = total - operational
@@ -351,10 +366,10 @@ export function AdminFacilitiesPage() {
 
           {loading && <Skeleton lines={5} />}
 
-          {!loading && failed && (
+          {!loading && failure && (
             <ErrorState
               title={t('admin.facilities.errorLoad')}
-              description={t('admin.facilities.serverUnreachable')}
+              description={failureDescription}
               onRetry={() => void load(page)}
             />
           )}

@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (identifier: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string, remember = true) => {
     setBusy(true)
     setError(null)
     try {
@@ -76,9 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token: null,
         body: { identifier, password },
       })
-      setStoredToken(data.token)
+      setStoredToken(data.token, remember)
       setUser(data.user)
       setToken(data.token)
+      return data.user
     } catch (err) {
       setError(friendlyMessage(err))
       throw err

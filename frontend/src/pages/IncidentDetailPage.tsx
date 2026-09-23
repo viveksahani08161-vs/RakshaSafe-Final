@@ -10,7 +10,7 @@ import {
   type Incident,
   type IncidentLocation,
 } from '../lib/incidents'
-import { getIncidentNearbyResources, type NearbyResource } from '../lib/resources'
+import { getIncidentNearbyResources, buildTelHref, type NearbyResource } from '../lib/resources'
 import { useEnrichment } from '../lib/useEnrichment'
 import type { RiskAssessment } from '../lib/risks'
 import { LocationEnrichment } from '../components/enrichment/LocationEnrichment'
@@ -211,7 +211,7 @@ export function IncidentDetailPage() {
   }
 
   async function onSaveEdit(): Promise<void> {
-    if (!incidentId || !incident) return
+    if (!incidentId || !incident || editSaving) return
     const errs: typeof editErrors = {}
     if (!editType) errs.type = 'Please select an incident type.'
     if (editCategory.trim().length < 2) errs.category = 'Category must be at least 2 characters.'
@@ -245,7 +245,7 @@ export function IncidentDetailPage() {
   }
 
   async function onDelete(): Promise<void> {
-    if (!incidentId) return
+    if (!incidentId || deleteLoading) return
     setDeleteLoading(true)
     setDeleteError(null)
     try {
@@ -438,7 +438,17 @@ export function IncidentDetailPage() {
                           {a.team ? `${a.team.name} (${a.team.teamType})` : 'Response team'}
                         </span>
                       </div>
-                      {a.team && <p className="mt-1 text-sm text-ink-500">Contact: {a.team.phone}</p>}
+                      {a.team &&
+                        (a.team.phone ? (
+                          <p className="mt-1 text-sm text-ink-500">
+                            Contact:{' '}
+                            <a href={buildTelHref(a.team.phone)} className="hover:text-gold-700 underline-offset-2 hover:underline">
+                              {a.team.phone}
+                            </a>
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-sm text-ink-400">Contact not available</p>
+                        ))}
                       <p className="mt-1 text-xs text-ink-400">Assigned {formatDateTime(a.assignedAt)}</p>
                     </li>
                   ))}

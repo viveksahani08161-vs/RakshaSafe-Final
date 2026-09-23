@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
+import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { useI18n } from '../lib/i18n'
 import { TEAM_TYPES, buildTelHref, type RescueTeam } from '../lib/resources'
 import { useToast } from '../components/ui/toast-context'
@@ -87,6 +88,7 @@ export function AdminTeamsPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [denied, setDenied] = useState(false)
@@ -108,6 +110,7 @@ export function AdminTeamsPage() {
   const [memberFieldError, setMemberFieldError] = useState<string | null>(null)
   const [memberBusy, setMemberBusy] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null)
 
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
@@ -118,7 +121,7 @@ export function AdminTeamsPage() {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (typeFilter) params.set('teamType', typeFilter)
         if (statusFilter) params.set('isActive', statusFilter)
-        if (search.trim()) params.set('search', search.trim())
+        if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/rescue-teams?${params.toString()}`, signal ? { signal } : {})
         if (signal?.aborted) return
         setData(res)
@@ -135,7 +138,7 @@ export function AdminTeamsPage() {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [typeFilter, statusFilter, search],
+    [typeFilter, statusFilter, debouncedSearch],
   )
 
   useEffect(() => {
@@ -231,7 +234,7 @@ export function AdminTeamsPage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!modal) return
+    if (!modal || saving) return
     setSaving(true)
     setFieldErrors({})
     setFormError(null)
@@ -335,7 +338,7 @@ export function AdminTeamsPage() {
 
   async function onAddMember(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!membersTeam) return
+    if (!membersTeam || memberBusy) return
     setMemberBusy(true)
     setMemberFieldError(null)
     setMembersError(null)
@@ -369,7 +372,7 @@ export function AdminTeamsPage() {
   }
 
   async function onRemoveMember(memberId: string): Promise<void> {
-    if (!membersTeam) return
+    if (!membersTeam || removingId) return
     setRemovingId(memberId)
     try {
       const res = await api<{ team: RescueTeam }>(
@@ -379,6 +382,7 @@ export function AdminTeamsPage() {
       notify({ title: t('admin.teams.unlinked'), variant: 'info' })
       setMembers((prev) => prev.filter((m) => m.id !== memberId))
       setMembersTeam(res.team)
+      setRemoveTarget(null)
       await load(page)
     } catch (err) {
       notify({
@@ -660,7 +664,7 @@ export function AdminTeamsPage() {
                   size="sm"
                   variant="ghost"
                   disabled={removingId === m.id}
-                  onClick={() => void onRemoveMember(m.id)}
+                  onClick={() => setRemoveTarget(m)}
                   aria-label={`${t('admin.teams.remove')}: ${m.name}`}
                 >
                   {removingId === m.id ? t('common.loading') : t('admin.teams.remove')}
@@ -688,6 +692,23 @@ export function AdminTeamsPage() {
           </p>
         </Form>
       </Modal>
+
+      <Dialog
+        open={removeTarget !== null}
+        onClose={() => {
+          if (!removingId) setRemoveTarget(null)
+        }}
+        variant="danger"
+        title={removeTarget ? t('admin.teams.removeTitle', { name: removeTarget.name }) : ''}
+        confirmLabel={t('admin.teams.remove')}
+        cancelLabel={t('admin.teams.cancel')}
+        confirmLoading={removingId !== null}
+        onConfirm={() => {
+          if (removeTarget) void onRemoveMember(removeTarget.id)
+        }}
+      >
+        {t('admin.teams.removeBody')}
+      </Dialog>
 
       <Modal
         open={viewTeam !== null}

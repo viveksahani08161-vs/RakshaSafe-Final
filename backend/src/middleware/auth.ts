@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
-import { UserRole } from '../models/User.js'
+import mongoose from 'mongoose'
+import { User, UserRole } from '../models/User.js'
 import { forbidden, unauthorized } from '../utils/errors.js'
 import { verifyAuthToken } from '../utils/jwt.js'
 
@@ -11,8 +12,18 @@ function extractBearerToken(req: Request): string | null {
   return token
 }
 
-/** Require a valid JWT. Attaches `{ userId, role }` to `req.auth`. */
-export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
+/**
+ * Require a valid JWT and load the account's current state from the
+ * database whenever MongoDB is reachable. Deleted or deactivated accounts
+ * lose access immediately; role changes take effect on the next request
+ * instead of lingering until the token expires. Attaches `{ userId, role }`
+ * to `req.auth`, preferring DB state over token claims.
+ *
+ * When the database is unreachable the token is still accepted (the same
+ * policy as the database-independent OSM/weather/geocode routes); routes
+ * that need the database are independently rejected by `requireDb`.
+ */
+export async function requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   const token = extractBearerToken(req)
   if (!token) {
     next(unauthorized('Authentication required. Provide a Bearer token.'))
@@ -23,6 +34,26 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     next(unauthorized('Invalid or expired token.'))
     return
   }
+
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const user = await User.findById(payload.sub).select('_id role isActive').lean()
+      if (!user) {
+        next(unauthorized('Account no longer exists. Please sign in again.'))
+        return
+      }
+      if (user.isActive === false) {
+        next(unauthorized('Account is deactivated. Contact support.'))
+        return
+      }
+      req.auth = { userId: String(user._id), role: user.role }
+      next()
+      return
+    } catch {
+      // DB glitch mid-request: fall back to token-only auth for this call.
+    }
+  }
+
   req.auth = { userId: payload.sub, role: payload.role }
   next()
 }

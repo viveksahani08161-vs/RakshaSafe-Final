@@ -70,6 +70,11 @@ function formatDate(value: string): string {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString()
 }
 
+/** Normalize phone for tel: links — strips spaces, dashes, parens, keeps digits and leading +. */
+function normalizePhoneForTel(phone: string): string {
+  return phone.replace(/[\s\-\(\)]/g, '')
+}
+
 export function AdminUsersPage() {
   const { t } = useI18n()
   const { notify } = useToast()
@@ -342,18 +347,23 @@ export function AdminUsersPage() {
                       <TableCell className="text-ink-500">{formatDate(u.createdAt)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1.5">
-                          {typeof u.phone === 'string' && u.phone.trim() !== '' ? (
-                            <a
-                              href={`tel:${u.phone.trim()}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                              }}
-                              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-ink-300 bg-white px-3 text-sm font-semibold text-ink-700 transition-colors hover:border-gold-400 hover:bg-gold-50 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:bg-white/5 dark:hover:text-gold-300"
-                            >
-                              <PhoneIcon className="size-4" />
-                              {t('admin.users.call')}
-                            </a>
-                          ) : (
+{typeof u.phone === 'string' && u.phone.trim() !== '' ? (() => {
+                            const phone = u.phone.trim()
+                            const telNumber = normalizePhoneForTel(phone)
+                            return (
+                              <a
+                                href={`tel:${telNumber}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                }}
+                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-ink-300 bg-white px-3 text-sm font-semibold text-ink-700 transition-colors hover:border-gold-400 hover:bg-gold-50 hover:text-gold-700 dark:hover:border-gold-500 dark:hover:bg-white/5 dark:hover:text-gold-300"
+                                aria-label={`${t('admin.users.call')} ${u.name}`}
+                              >
+                                <PhoneIcon className="size-4" />
+                                {t('admin.users.call')}
+                              </a>
+                            )
+                          })() : (
                             <span className="inline-flex h-9 items-center rounded-xl border border-ink-200 px-3 text-sm font-semibold text-ink-400">
                               {t('admin.users.noPhone')}
                             </span>

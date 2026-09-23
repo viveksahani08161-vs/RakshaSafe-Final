@@ -95,6 +95,7 @@ export function RegisterPage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
+    if (busy) return
     if (!validateForm()) return
     try {
       const normalizedPhone = normalizePhone(phone)

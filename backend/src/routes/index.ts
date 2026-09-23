@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
-import { env } from '../config/env.js'
 import authRoutes from './auth.js'
 import adminRoutes from './admin.js'
 import emergencyContactRoutes from './emergencyContacts.js'
@@ -41,7 +40,6 @@ router.get('/health', (_req, res) => {
       state: dbState, // 0 disconnected, 1 connected, 2 connecting, 3 disconnecting
       connected: dbState === 1,
     },
-    aiServiceUrl: env.aiServiceUrl,
     time: new Date().toISOString(),
   })
 })

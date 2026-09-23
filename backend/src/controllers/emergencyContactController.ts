@@ -68,7 +68,7 @@ export async function createContact(req: Request, res: Response, next: NextFunct
 export async function listContacts(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const ownerId = requireOwnerId(req)
-    const docs = await EmergencyContact.find({ userId: ownerId }).sort({ createdAt: -1 })
+    const docs = await EmergencyContact.find({ userId: ownerId }).sort({ createdAt: -1 }).limit(100)
     res.json({ success: true, data: { contacts: docs.map(toSafeContact) } })
   } catch (err) {
     next(err)

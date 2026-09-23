@@ -11,6 +11,7 @@ import { getIncidentNearbyResources } from '../controllers/nearbyController.js'
 import { assessRisk, listRisk } from '../controllers/riskController.js'
 import { requireAuth } from '../middleware/auth.js'
 import { requireDb } from '../middleware/requireDb.js'
+import { rateLimit } from '../middleware/rateLimit.js'
 
 const router = Router()
 
@@ -18,7 +19,8 @@ const router = Router()
 // Status changes are administrative and live outside this user foundation module.
 router.use(requireAuth, requireDb)
 
-router.post('/', createIncident)
+// A flood of incident reports is a SOS-poisoning vector: cap creation per IP.
+router.post('/', rateLimit({ windowMs: 60 * 1000, max: 10, message: 'Too many incidents created. Please wait a moment.' }), createIncident)
 router.get('/', listIncidents)
 router.get('/:id', getIncident)
 router.patch('/:id', updateIncident)

@@ -214,6 +214,7 @@ export function SosPage() {
   }
 
   async function submitSos(): Promise<void> {
+    if (submitting) return
     setSubmitting(true)
     setSubmitError(null)
     try {

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import { ApiError, api } from '../lib/api'
+import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
+import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { formatDateTime, statusBadgeVariant, type Incident } from '../lib/incidents'
 import { Alert } from '../components/ui/Alert'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
@@ -51,8 +53,10 @@ export function AdminIncidentsPage() {
   const [priority, setPriority] = useState('')
   const [type, setType] = useState('')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search)
   const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState<RequestFailureKind | null>(null)
+  const [failureDetail, setFailureDetail] = useState<string | null>(null)
 
   const loadSummary = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -66,24 +70,26 @@ export function AdminIncidentsPage() {
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
-      setFailed(false)
+      setFailure(null)
+      setFailureDetail(null)
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (status) params.set('status', status)
         if (priority) params.set('priority', priority)
         if (type) params.set('type', type)
-        if (search.trim()) params.set('search', search.trim())
+        if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/incidents?${params.toString()}`, signal ? { signal } : {})
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        setFailed(true)
+        setFailure(toRequestFailureKind(err))
+        setFailureDetail(err instanceof ApiError ? err.message : null)
       } finally {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [status, priority, type, search],
+    [status, priority, type, debouncedSearch],
   )
 
   useEffect(() => {
@@ -110,6 +116,15 @@ export function AdminIncidentsPage() {
   }
 
   const filtersActive = status !== '' || priority !== '' || type !== '' || search.trim() !== ''
+  const failed = failure !== null
+  const failureDescription =
+    failure === 'unauthorized'
+      ? 'Your session has expired. Please log in again.'
+      : failure === 'denied'
+        ? 'Your account does not have permission to view this page.'
+        : failure === 'failed'
+          ? (failureDetail ?? 'Could not load incidents.')
+          : 'The server could not be reached. Check that the backend and database are running.'
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6">
@@ -180,10 +195,10 @@ export function AdminIncidentsPage() {
                 <Skeleton lines={5} />
               </div>
             )}
-            {!loading && failed && (
+            {!loading && failure && (
               <ErrorState
                 title="Could not load incidents"
-                description="The server could not be reached. Check that the backend and database are running."
+                description={failureDescription}
                 onRetry={() => void load(page)}
               />
             )}

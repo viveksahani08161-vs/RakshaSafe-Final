@@ -211,7 +211,7 @@ export function UnsafeReportsPage() {
 
   async function onEditSubmit(event: FormEvent): Promise<void> {
     event.preventDefault()
-    if (!editing) return
+    if (!editing || editSaving) return
     const reportId = editing.id
     const errors: FieldErrors = {}
     if (!editCategory) errors.category = t('unsafeReports.validation.categoryRequired')
@@ -258,7 +258,7 @@ export function UnsafeReportsPage() {
   }
 
   async function onDeleteConfirm(): Promise<void> {
-    if (!deleting) return
+    if (!deleting || deleteSaving) return
     const reportId = deleting.id
     setDeleteSaving(true)
     try {

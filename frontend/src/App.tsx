@@ -86,7 +86,7 @@ function Shell() {
     if (!user && live !== '/login' && live !== '/register') {
       navigateTo('/login')
     } else if (user && (live === '/login' || live === '/register')) {
-      navigateTo(user.role === 'RESPONDER' ? '/responder' : '/dashboard')
+      navigateTo(user.role === 'ADMIN' ? '/admin/dashboard' : user.role === 'RESPONDER' ? '/responder' : '/dashboard')
     } else if (user && user.role === 'RESPONDER' && (live === '/dashboard' || live === '/sos' || live.startsWith('/admin/'))) {
       navigateTo('/responder')
     } else if (user && live === '/responder' && user.role === 'USER') {
@@ -189,9 +189,11 @@ function Shell() {
       </main>
 
       <footer className="border-t border-ink-200 bg-cream-50 py-6 text-center text-sm text-ink-400">
-        <span className="inline-flex items-center justify-center gap-2">
+        <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4">
           <Logo size="sm" withWordmark={false} />
-          <span>RakshaSafe · Women Safety &amp; Disaster Emergency Response</span>
+          <span>RakshaSafe · Women Safety &amp; Disaster Management System</span>
+          <span aria-hidden="true">·</span>
+          <span>Developed by Vivek &amp; Vaibhav</span>
         </span>
       </footer>
     </div>
