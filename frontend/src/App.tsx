@@ -16,6 +16,7 @@ import { navigateTo, parseHash, useHashRoute, type AppRoute } from './lib/hash-r
 import { I18nProvider, useI18n } from './lib/i18n'
 import { getLastSeen, isUnread, type NotificationItem } from './lib/notifications'
 import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage'
+import { AdminEmergencyContactsPage } from './pages/AdminEmergencyContactsPage'
 import { AdminIncidentDetailPage } from './pages/AdminIncidentDetailPage'
 import { AdminIncidentsPage } from './pages/AdminIncidentsPage'
 import { AdminTeamsPage } from './pages/AdminTeamsPage'
@@ -125,6 +126,12 @@ function Shell() {
       })
       items.push({ label: t('nav.facilities'), href: '#/admin/facilities', icon: <BuildingIcon />, active: route === '/admin/facilities' })
       items.push({ label: t('nav.teams'), href: '#/admin/teams', icon: <UserIcon />, active: route === '/admin/teams' })
+      items.push({
+        label: t('nav.adminEmergencyContacts'),
+        href: '#/admin/emergency-contacts',
+        icon: <PhoneIcon />,
+        active: route === '/admin/emergency-contacts',
+      })
       items.push({ label: t('nav.unsafeAreas'), href: '#/admin/unsafe-reports', icon: <ListIcon />, active: route === '/admin/unsafe-reports' })
       items.push({ label: t('nav.reports'), href: '#/admin/reports', icon: <FileTextIcon />, active: route === '/admin/reports' })
       items.push({ label: t('nav.users'), href: '#/admin/users', icon: <UsersIcon />, active: route === '/admin/users' })
@@ -310,6 +317,12 @@ function RouteView({ route }: { route: AppRoute }) {
       return (
         <RequireAdmin>
           <AdminUserDetailPage />
+        </RequireAdmin>
+      )
+    case '/admin/emergency-contacts':
+      return (
+        <RequireAdmin>
+          <AdminEmergencyContactsPage />
         </RequireAdmin>
       )
     case '/login':
