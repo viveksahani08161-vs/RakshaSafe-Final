@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { Incident, IncidentStatus, type IIncident } from '../models/Incident.js'
 import { Location, type ILocation } from '../models/Location.js'
+import { resolveAndStoreAddress } from '../services/geocoding.js'
 import { IncidentUpdate } from '../models/IncidentUpdate.js'
 import { RescueAssignment } from '../models/RescueAssignment.js'
 import { attachTeams } from './adminAssignmentController.js'
@@ -29,9 +30,13 @@ export interface SafeLocation {
   longitude: number
   address?: string
   city?: string
+  district?: string
   state?: string
+  postalCode?: string
   country?: string
   accuracy?: number
+  /** Capture time (the record's creation time) — shown as "Captured". */
+  capturedAt: Date
 }
 
 /** Owner-scoped location payload — only ever served alongside its own incident. */
@@ -42,9 +47,12 @@ export function toSafeLocation(doc: ILocation): SafeLocation {
     longitude: doc.longitude,
     ...(doc.address ? { address: doc.address } : {}),
     ...(doc.city ? { city: doc.city } : {}),
+    ...(doc.district ? { district: doc.district } : {}),
     ...(doc.state ? { state: doc.state } : {}),
+    ...(doc.postalCode ? { postalCode: doc.postalCode } : {}),
     ...(doc.country ? { country: doc.country } : {}),
     ...(doc.accuracy !== undefined ? { accuracy: doc.accuracy } : {}),
+    capturedAt: doc.createdAt,
   }
 }
 
@@ -151,6 +159,12 @@ export async function getIncident(req: Request, res: Response, next: NextFunctio
       doc.locationId ? Location.findById(doc.locationId) : Promise.resolve(null),
       RescueAssignment.find({ incidentId: doc._id }).sort({ createdAt: -1 }),
     ])
+    // Backfill a readable address once per location (best-effort, async):
+    // the response is not delayed, and the live reverse-geocode endpoint
+    // covers display until the stored record is enriched.
+    if (location && !location.address && doc.locationId) {
+      void resolveAndStoreAddress(String(doc.locationId))
+    }
     // User view carries only response-facing fields: no assignedBy, no internal notes.
     const assignments = (await attachTeams(assignmentDocs)).map((a) => ({
       id: a.id,

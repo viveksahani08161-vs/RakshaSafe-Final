@@ -45,9 +45,12 @@ export interface IncidentLocation {
   longitude: number
   address?: string
   city?: string
+  district?: string
   state?: string
+  postalCode?: string
   country?: string
   accuracy?: number
+  capturedAt?: string
 }
 
 /** Documented incident category examples (Chapter 3 §3.4.1.5). */

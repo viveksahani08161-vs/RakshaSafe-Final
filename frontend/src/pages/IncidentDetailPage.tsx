@@ -14,6 +14,7 @@ import { getIncidentNearbyResources, buildTelHref, type NearbyResource } from '.
 import { useEnrichment } from '../lib/useEnrichment'
 import type { RiskAssessment } from '../lib/risks'
 import { LocationEnrichment } from '../components/enrichment/LocationEnrichment'
+import { LocationDetail } from '../components/location/LocationDetail'
 import { NearbyResourcesSection } from '../components/resources/NearbyResourcesSection'
 import { HistoryTimeline, type HistoryEntry } from '../components/incidents/HistoryTimeline'
 import { RiskPanel } from '../components/risks/RiskPanel'
@@ -357,30 +358,20 @@ export function IncidentDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Location" description="Coordinates captured from your device, if provided." />
+            <CardHeader title="Location" description="Captured from your device when permission was granted." />
             <CardBody>
               {location ? (
-                <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="font-semibold text-ink-500">Coordinates</dt>
-                    <dd className="mt-0.5 text-ink-900">
-                      {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                      {location.accuracy !== undefined && ` (±${Math.round(location.accuracy)} m)`}
-                    </dd>
-                  </div>
-                  {(location.address ?? location.city ?? location.state ?? location.country) && (
-                    <div>
-                      <dt className="font-semibold text-ink-500">Area</dt>
-                      <dd className="mt-0.5 text-ink-900">
-                        {[location.address, location.city, location.state, location.country]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
+                <LocationDetail
+                  location={location}
+                  liveAddress={detailEnrichment.address?.displayName ?? null}
+                  addressLoading={detailEnrichment.addressLoading}
+                />
               ) : (
-                <p className="text-sm text-ink-500">No location was attached to this incident.</p>
+                <p className="text-sm text-ink-500">
+                  No location was captured for this incident. Allow location access when
+                  reporting so responders can see where help is needed — other features
+                  keep working without it.
+                </p>
               )}
             </CardBody>
           </Card>

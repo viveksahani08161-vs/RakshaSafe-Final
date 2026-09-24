@@ -19,6 +19,7 @@ import {
 } from '../lib/incidents'
 import { useToast } from '../components/ui/toast-context'
 import { HistoryTimeline, type HistoryEntry } from '../components/incidents/HistoryTimeline'
+import { LocationDetail } from '../components/location/LocationDetail'
 import { RiskPanel } from '../components/risks/RiskPanel'
 import type { RiskAssessment } from '../lib/risks'
 import { Alert } from '../components/ui/Alert'
@@ -385,29 +386,10 @@ export function AdminIncidentDetailPage() {
             </Card>
 
             <Card>
-              <CardHeader title="Location" description="Attached coordinates, if provided." />
+              <CardHeader title="Incident Location" description="The reporting user's captured location." />
               <CardBody>
                 {detail.location ? (
-                  <dl className="grid gap-3 text-sm">
-                    <div>
-                      <dt className="font-semibold text-ink-500">Coordinates</dt>
-                      <dd className="mt-0.5 text-ink-900">
-                        {detail.location.latitude.toFixed(6)}, {detail.location.longitude.toFixed(6)}
-                        {detail.location.accuracy !== undefined &&
-                          ` (±${Math.round(detail.location.accuracy)} m)`}
-                      </dd>
-                    </div>
-                    {(detail.location.address ?? detail.location.city ?? detail.location.state ?? detail.location.country) && (
-                      <div>
-                        <dt className="font-semibold text-ink-500">Area</dt>
-                        <dd className="mt-0.5 text-ink-900">
-                          {[detail.location.address, detail.location.city, detail.location.state, detail.location.country]
-                            .filter(Boolean)
-                            .join(', ')}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
+                  <LocationDetail location={detail.location} />
                 ) : (
                   <p className="text-sm text-ink-500">No location was attached to this incident.</p>
                 )}
@@ -575,6 +557,8 @@ export function AdminIncidentDetailPage() {
             noLocation={!loading && detail.incident.locationId === undefined}
             onAssess={() => undefined}
             onDismissError={() => undefined}
+            emptyTitle="No assessment has been performed for this incident."
+            emptyDescription="Assessments appear here once generated for this incident's location."
           />
 
           <Card>

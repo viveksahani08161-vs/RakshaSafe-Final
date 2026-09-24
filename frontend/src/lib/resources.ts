@@ -148,6 +148,33 @@ export function buildDirectionsUrl(latitude: number | null, longitude: number | 
 }
 
 /**
+ * "Open in Maps" link built from real stored coordinates only.
+ * Universal Google Maps query URL (no API key): opens the Maps app on
+ * mobile, maps.google.com on desktop. Returns null for invalid input —
+ * callers must hide the link then. Never invents a destination.
+ */
+export function buildMapsUrl(latitude: number | null, longitude: number | null): string | null {
+  if (latitude === null || longitude === null) return null
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null
+  return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
+}
+
+/** Readable one-line area from stored address components (real values only). */
+export function describeStoredArea(location: {
+  address?: string
+  city?: string
+  district?: string
+  state?: string
+  country?: string
+} | null): string | null {
+  if (!location) return null
+  if (location.address) return location.address
+  const parts = [location.district, location.city, location.state, location.country].filter(Boolean)
+  return parts.length > 0 ? parts.join(', ') : null
+}
+
+/**
  * Preferred navigation link for a resource: the provider's own maps URL
  * when supplied, otherwise a directions URL built from valid coordinates,
  * otherwise null (Directions must be hidden then).

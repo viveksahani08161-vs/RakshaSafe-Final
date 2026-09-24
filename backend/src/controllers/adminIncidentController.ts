@@ -3,6 +3,7 @@ import { AdminLog } from '../models/AdminLog.js'
 import { Incident, IncidentPriority, IncidentStatus, IncidentType } from '../models/Incident.js'
 import { IncidentUpdate } from '../models/IncidentUpdate.js'
 import { Location } from '../models/Location.js'
+import { resolveAndStoreAddress } from '../services/geocoding.js'
 import { RescueAssignment } from '../models/RescueAssignment.js'
 import { User } from '../models/User.js'
 import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
@@ -148,6 +149,12 @@ export async function getIncidentAdmin(req: Request, res: Response, next: NextFu
       IncidentUpdate.find({ incidentId: doc._id }).sort({ createdAt: 1 }),
       RescueAssignment.find({ incidentId: doc._id }).sort({ createdAt: -1 }),
     ])
+
+    // Same lazy address backfill as the user view: the admin sees the
+    // stored address as soon as any view has resolved it once.
+    if (location && !location.address && doc.locationId) {
+      void resolveAndStoreAddress(String(doc.locationId))
+    }
 
     res.json({
       success: true,

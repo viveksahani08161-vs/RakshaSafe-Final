@@ -1,3 +1,4 @@
+import { Location } from '../models/Location.js'
 import { TtlCache, coordsCacheKey } from '../utils/geo.js'
 
 export interface ReverseAddress {
@@ -114,5 +115,33 @@ export async function reverseGeocode(
     return null
   } finally {
     clearTimeout(timer)
+  }
+}
+
+/**
+ * Best-effort address backfill for a stored Locations record. Fills only
+ * fields the record is missing (never overwrites caller-supplied values)
+ * with values Nominatim actually returned. Never throws — callers fire and
+ * forget so reads stay fast; the live /geocode/reverse endpoint (same
+ * server-side cache) covers display until the backfill lands.
+ */
+export async function resolveAndStoreAddress(locationId: string): Promise<void> {
+  try {
+    const doc = await Location.findById(locationId).select(
+      'latitude longitude address city district state postalCode country',
+    )
+    if (!doc || doc.address) return
+    const resolved = await reverseGeocode(doc.latitude, doc.longitude)
+    if (!resolved) return
+    if (resolved.displayName) doc.address = resolved.displayName
+    if (resolved.city && !doc.city) doc.city = resolved.city
+    if (resolved.neighbourhood && !doc.district) doc.district = resolved.neighbourhood
+    else if (resolved.suburb && !doc.district) doc.district = resolved.suburb
+    if (resolved.state && !doc.state) doc.state = resolved.state
+    if (resolved.postcode && !doc.postalCode) doc.postalCode = resolved.postcode
+    if (resolved.country && !doc.country) doc.country = resolved.country
+    if (doc.isModified()) await doc.save()
+  } catch {
+    /* address enrichment must never break incident reads */
   }
 }
