@@ -1,0 +1,8 @@
+%% Flowchart 4.2.14: Admin Masters
+flowchart TD
+    A([Open admin master screen]) --> B[Facilities / teams / users / reports]
+    B --> C{Action permitted - requireAdmin?}
+    C -- No --> D[Access denied] --> A
+    C -- Yes --> E[Create / edit / verify record]
+    E --> F[Log action to AdminLogs]
+    F --> G([List refreshed])

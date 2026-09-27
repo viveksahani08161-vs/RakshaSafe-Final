@@ -1,0 +1,10 @@
+%% Flowchart 4.2.5: Incident Detail
+flowchart TD
+    A([Open an incident]) --> B[Load facts, location, history]
+    B --> C[Load nearby resources + weather]
+    C --> D{Assignable team attached?}
+    D -- Yes --> E[Show assignment and team contact]
+    D -- No --> F
+    E --> F{REPORTED / ACKNOWLEDGED and unassigned?}
+    F -- Yes --> G([Allow edit and delete])
+    F -- No --> H([Read-only view])

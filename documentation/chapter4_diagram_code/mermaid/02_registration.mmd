@@ -1,0 +1,9 @@
+%% Flowchart 4.2.2: Registration
+flowchart TD
+    A([User opens Registration page]) --> B[Enter name, email, phone, password]
+    B --> C{Fields valid and unique?}
+    C -- No --> D[Show field-level errors] --> B
+    C -- Yes --> E[Hash password with bcrypt]
+    E --> F[Create USER account]
+    F --> G[Create session]
+    G --> H([Open user dashboard])

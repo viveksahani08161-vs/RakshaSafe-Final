@@ -1,0 +1,8 @@
+%% Flowchart 4.2.12: Admin Dashboard
+flowchart TD
+    A([Admin signs in]) --> B[Query users, incidents, status breaks]
+    B --> C[Render counters + activity feed]
+    C --> D{Drill into incident?}
+    D -- Yes --> E[Show incident + risk + assignments]
+    D -- No --> F([Continue administration])
+    E --> F

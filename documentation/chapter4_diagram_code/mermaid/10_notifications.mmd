@@ -1,0 +1,8 @@
+%% Flowchart 4.2.10: Notifications
+flowchart TD
+    A([Open Notifications]) --> B[Load own notification records]
+    B --> C[Show channel + status badges]
+    C --> D{Open linked incident?}
+    D -- Yes --> E[Show incident context] --> F[Mark entry read]
+    D -- No --> F
+    F --> G([Continue scanning])

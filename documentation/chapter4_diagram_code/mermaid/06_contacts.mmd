@@ -1,0 +1,9 @@
+%% Flowchart 4.2.6: Emergency Contacts
+flowchart TD
+    A([Open Emergency Contacts]) --> B[Add / edit contact form]
+    B --> C{Phone valid and normalised?}
+    C -- No --> B
+    C -- Yes --> D{Only one primary per user?}
+    D -- No --> B
+    D -- Yes --> E[Save to Mongo]
+    E --> F([Contact list refreshed])

@@ -1,0 +1,8 @@
+%% Flowchart 4.2.11: Profile
+flowchart TD
+    A([Open Profile]) --> B[Edit name, email, phone, language]
+    B --> C{Valid and unique values?}
+    C -- No --> B
+    C -- Yes --> D[Save changes]
+    D --> E([Confirm updated account])
+    E --> F([Sign out / continue])

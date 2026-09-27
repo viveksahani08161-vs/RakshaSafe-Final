@@ -1,0 +1,11 @@
+%% Flowchart 4.2.4: SOS Creation
+flowchart TD
+    A([User opens SOS page]) --> B[Select type, category, description, priority]
+    B --> C{Use My Location?}
+    C -- Yes --> D[Capture device coordinates]
+    C -- No --> E[Continue without location]
+    D --> F{Coordinates valid?}
+    F -- No --> D
+    F -- Yes --> G[Submit incident]
+    E --> G
+    G --> H([Stored as REPORTED + reference shown])

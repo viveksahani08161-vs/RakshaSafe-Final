@@ -1,0 +1,8 @@
+%% Flowchart 4.2.3: User Dashboard
+flowchart TD
+    A([User signs in]) --> B[Load own incidents and notifications]
+    B --> C[Render stat summary and quick actions]
+    C --> D{Open incident detail?}
+    D -- Yes --> E[Show timeline, location, risk]
+    D -- No --> F
+    E --> F([Continue using dashboard])

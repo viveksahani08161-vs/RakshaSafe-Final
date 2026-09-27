@@ -1,0 +1,10 @@
+%% Flowchart 4.2.7: Resource Lookup
+flowchart TD
+    A([Open Resources]) --> B[Enter search term / filters]
+    B --> C{Use current location?}
+    C -- Yes --> D[Get device coordinates]
+    C -- No --> E[Skip location]
+    D --> F[Query stored facilities + providers]
+    E --> F
+    F --> G[Sort by distance]
+    G --> H([Show call + directions cards])

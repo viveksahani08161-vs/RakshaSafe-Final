@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Flowchart 4.2.9: Risk Assessment</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    primaryColor: '#d6eaf8', primaryTextColor: '#17202a',
+    primaryBorderColor: '#2e86de', lineColor: '#34495e',
+    secondaryColor: '#d5f5e3', tertiaryColor: '#fdebd0',
+    fontFamily: 'Segoe UI, Arial, sans-serif'
+  }
+});</script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: white; padding: 24px; }
+  .cap { font-weight: 600; color: #10314f; margin-bottom: 12px; font-size: 15px; }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="cap">Flowchart 4.2.9: Risk Assessment</div>
+<pre class="mermaid">flowchart TD
+    A([Open incident with location]) --&gt; B[Click Assess Risk]
+    B --&gt; C[Backend counts nearby factors]
+    C --&gt; D[(POST /risk/assess - FastAPI)]
+    D --&gt; E{Response valid - score 0-100, level enum?}
+    E -- No --&gt; F[Retryable error panel] --&gt; B
+    E -- Yes --&gt; G[Store RiskAssessment + show panel]
+    G --&gt; H([Decision-support disclaimer shown])</pre>
+</body></html>

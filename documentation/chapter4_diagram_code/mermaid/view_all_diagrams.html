@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RakshaSafe Chapter 4 — Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    primaryColor: '#d6eaf8',
+    primaryTextColor: '#17202a',
+    primaryBorderColor: '#2e86de',
+    lineColor: '#34495e',
+    secondaryColor: '#d5f5e3',
+    tertiaryColor: '#fdebd0',
+    fontFamily: 'Segoe UI, Arial, sans-serif'
+  }
+});
+function exportPng(id, title) {
+  const svg = document.getElementById(id).querySelector('svg');
+  const xml = new XMLSerializer().serializeToString(svg);
+  const svg64 = btoa(unescape(encodeURIComponent(xml)));
+  const img = new Image();
+  img.onload = function () {
+    const scale = 2;
+    const cv = document.createElement('canvas');
+    cv.width = img.width * scale;
+    cv.height = img.height * scale;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    cv.toBlob(function (blob) {
+      const a = document.createElement('a');
+      a.download = title.replace(/[^a-z0-9]+/gi, '_') + '.png';
+      a.href = URL.createObjectURL(blob);
+      a.click();
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;base64,' + svg64;
+}
+function copyCode(elemId) {
+  const el = document.getElementById(elemId);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(function () {
+    const b = document.querySelector('[data-copy="' + elemId + '"]');
+    b.textContent = 'Copied!';
+    setTimeout(function () { b.textContent = 'Copy code'; }, 1200);
+  });
+}
+</script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f0f4f8; color: #17202a; }
+  header { background: #10314f; color: #fff; padding: 22px 30px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 6px 0 0; color: #c9ddec; font-size: 13px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 26px; }
+  .card { background: #fff; border: 1px solid #d9e2ec; border-radius: 12px; margin: 22px 0; overflow: hidden; }
+  .card h2 { margin: 0; padding: 14px 20px; background: #1f6feb; color: #fff; font-size: 16px; }
+  .diagram { padding: 26px 20px; overflow-x: auto; text-align: center; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .tools { padding: 8px 20px 18px; display: flex; gap: 10px; }
+  .tools button { border: none; border-radius: 8px; padding: 9px 16px; font-size: 13px; cursor: pointer; font-weight: 600; }
+  .btn-png { background: #0e9f6e; color: #fff; }
+  .btn-copy { background: #f1f5f9; color: #1f6feb; border: 1px solid #cbd5e1 !important; }
+  .codebox { display: none; } 
+  .note { max-width: 1000px; margin: 0 auto; padding: 0 26px 30px; }
+  .note ul { background: #fff; border: 1px solid #d9e2ec; border-radius: 12px; padding: 18px 26px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RakshaSafe — Chapter 4 System Design Diagrams</h1>
+  <p>Open this file in your browser. Use "Download PNG" to export any diagram free.</p>
+</header>
+<div class="wrap">
+
+  <div class="card">
+    <h2>1. Flowchart 4.2.1: Login</h2>
+    <div class="diagram" id="dg1">
+      <pre class="mermaid">flowchart TD
+    A([User opens Login page]) --&gt; B[Enter email / phone and password]
+    B --&gt; C{Valid credentials?}
+    C -- Yes --&gt; D{Account active?}
+    C -- No --&gt; E[Show invalid-credentials error]
+    D -- Yes --&gt; F[Create JWT session]
+    D -- No --&gt; E
+    F --&gt; G{Role: USER / ADMIN / RESPONDER?}
+    G --&gt; H[[Redirect to user dashboard]]
+    G --&gt; I[[Redirect to admin dashboard]]
+    G --&gt; J[[Redirect to responder dashboard]]
+    E --&gt; B
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg1', 'Flowchart 4.2.1: Login')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg1_code" onclick="copyCode('dg1_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg1_code">flowchart TD
+    A([User opens Login page]) --&gt; B[Enter email / phone and password]
+    B --&gt; C{Valid credentials?}
+    C -- Yes --&gt; D{Account active?}
+    C -- No --&gt; E[Show invalid-credentials error]
+    D -- Yes --&gt; F[Create JWT session]
+    D -- No --&gt; E
+    F --&gt; G{Role: USER / ADMIN / RESPONDER?}
+    G --&gt; H[[Redirect to user dashboard]]
+    G --&gt; I[[Redirect to admin dashboard]]
+    G --&gt; J[[Redirect to responder dashboard]]
+    E --&gt; B
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>2. Flowchart 4.2.2: Registration</h2>
+    <div class="diagram" id="dg2">
+      <pre class="mermaid">flowchart TD
+    A([User opens Registration page]) --&gt; B[Enter name, email, phone, password]
+    B --&gt; C{Fields valid and unique?}
+    C -- No --&gt; D[Show field-level errors] --&gt; B
+    C -- Yes --&gt; E[Hash password with bcrypt]
+    E --&gt; F[Create USER account]
+    F --&gt; G[Create session]
+    G --&gt; H([Open user dashboard])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg2', 'Flowchart 4.2.2: Registration')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg2_code" onclick="copyCode('dg2_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg2_code">flowchart TD
+    A([User opens Registration page]) --&gt; B[Enter name, email, phone, password]
+    B --&gt; C{Fields valid and unique?}
+    C -- No --&gt; D[Show field-level errors] --&gt; B
+    C -- Yes --&gt; E[Hash password with bcrypt]
+    E --&gt; F[Create USER account]
+    F --&gt; G[Create session]
+    G --&gt; H([Open user dashboard])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>3. Flowchart 4.2.3: User Dashboard</h2>
+    <div class="diagram" id="dg3">
+      <pre class="mermaid">flowchart TD
+    A([User signs in]) --&gt; B[Load own incidents and notifications]
+    B --&gt; C[Render stat summary and quick actions]
+    C --&gt; D{Open incident detail?}
+    D -- Yes --&gt; E[Show timeline, location, risk]
+    D -- No --&gt; F
+    E --&gt; F([Continue using dashboard])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg3', 'Flowchart 4.2.3: User Dashboard')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg3_code" onclick="copyCode('dg3_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg3_code">flowchart TD
+    A([User signs in]) --&gt; B[Load own incidents and notifications]
+    B --&gt; C[Render stat summary and quick actions]
+    C --&gt; D{Open incident detail?}
+    D -- Yes --&gt; E[Show timeline, location, risk]
+    D -- No --&gt; F
+    E --&gt; F([Continue using dashboard])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>4. Flowchart 4.2.4: SOS Creation</h2>
+    <div class="diagram" id="dg4">
+      <pre class="mermaid">flowchart TD
+    A([User opens SOS page]) --&gt; B[Select type, category, description, priority]
+    B --&gt; C{Use My Location?}
+    C -- Yes --&gt; D[Capture device coordinates]
+    C -- No --&gt; E[Continue without location]
+    D --&gt; F{Coordinates valid?}
+    F -- No --&gt; D
+    F -- Yes --&gt; G[Submit incident]
+    E --&gt; G
+    G --&gt; H([Stored as REPORTED + reference shown])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg4', 'Flowchart 4.2.4: SOS Creation')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg4_code" onclick="copyCode('dg4_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg4_code">flowchart TD
+    A([User opens SOS page]) --&gt; B[Select type, category, description, priority]
+    B --&gt; C{Use My Location?}
+    C -- Yes --&gt; D[Capture device coordinates]
+    C -- No --&gt; E[Continue without location]
+    D --&gt; F{Coordinates valid?}
+    F -- No --&gt; D
+    F -- Yes --&gt; G[Submit incident]
+    E --&gt; G
+    G --&gt; H([Stored as REPORTED + reference shown])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>5. Flowchart 4.2.5: Incident Detail</h2>
+    <div class="diagram" id="dg5">
+      <pre class="mermaid">flowchart TD
+    A([Open an incident]) --&gt; B[Load facts, location, history]
+    B --&gt; C[Load nearby resources + weather]
+    C --&gt; D{Assignable team attached?}
+    D -- Yes --&gt; E[Show assignment and team contact]
+    D -- No --&gt; F
+    E --&gt; F{REPORTED / ACKNOWLEDGED and unassigned?}
+    F -- Yes --&gt; G([Allow edit and delete])
+    F -- No --&gt; H([Read-only view])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg5', 'Flowchart 4.2.5: Incident Detail')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg5_code" onclick="copyCode('dg5_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg5_code">flowchart TD
+    A([Open an incident]) --&gt; B[Load facts, location, history]
+    B --&gt; C[Load nearby resources + weather]
+    C --&gt; D{Assignable team attached?}
+    D -- Yes --&gt; E[Show assignment and team contact]
+    D -- No --&gt; F
+    E --&gt; F{REPORTED / ACKNOWLEDGED and unassigned?}
+    F -- Yes --&gt; G([Allow edit and delete])
+    F -- No --&gt; H([Read-only view])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>6. Flowchart 4.2.6: Emergency Contacts</h2>
+    <div class="diagram" id="dg6">
+      <pre class="mermaid">flowchart TD
+    A([Open Emergency Contacts]) --&gt; B[Add / edit contact form]
+    B --&gt; C{Phone valid and normalised?}
+    C -- No --&gt; B
+    C -- Yes --&gt; D{Only one primary per user?}
+    D -- No --&gt; B
+    D -- Yes --&gt; E[Save to Mongo]
+    E --&gt; F([Contact list refreshed])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg6', 'Flowchart 4.2.6: Emergency Contacts')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg6_code" onclick="copyCode('dg6_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg6_code">flowchart TD
+    A([Open Emergency Contacts]) --&gt; B[Add / edit contact form]
+    B --&gt; C{Phone valid and normalised?}
+    C -- No --&gt; B
+    C -- Yes --&gt; D{Only one primary per user?}
+    D -- No --&gt; B
+    D -- Yes --&gt; E[Save to Mongo]
+    E --&gt; F([Contact list refreshed])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>7. Flowchart 4.2.7: Resource Lookup</h2>
+    <div class="diagram" id="dg7">
+      <pre class="mermaid">flowchart TD
+    A([Open Resources]) --&gt; B[Enter search term / filters]
+    B --&gt; C{Use current location?}
+    C -- Yes --&gt; D[Get device coordinates]
+    C -- No --&gt; E[Skip location]
+    D --&gt; F[Query stored facilities + providers]
+    E --&gt; F
+    F --&gt; G[Sort by distance]
+    G --&gt; H([Show call + directions cards])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg7', 'Flowchart 4.2.7: Resource Lookup')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg7_code" onclick="copyCode('dg7_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg7_code">flowchart TD
+    A([Open Resources]) --&gt; B[Enter search term / filters]
+    B --&gt; C{Use current location?}
+    C -- Yes --&gt; D[Get device coordinates]
+    C -- No --&gt; E[Skip location]
+    D --&gt; F[Query stored facilities + providers]
+    E --&gt; F
+    F --&gt; G[Sort by distance]
+    G --&gt; H([Show call + directions cards])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>8. Flowchart 4.2.8: Unsafe Reporting</h2>
+    <div class="diagram" id="dg8">
+      <pre class="mermaid">flowchart TD
+    A([Open Unsafe Area Report]) --&gt; B[Choose category, severity, description]
+    B --&gt; C{Location attached?}
+    C -- Yes --&gt; D[Validate coordinates]
+    C -- No --&gt; E[Use device / searched place] --&gt; D
+    D --&gt; F{Coordinates valid?}
+    F -- No --&gt; E
+    F -- Yes --&gt; G[Submit report]
+    G --&gt; H([Stored unverified, queued for admin])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg8', 'Flowchart 4.2.8: Unsafe Reporting')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg8_code" onclick="copyCode('dg8_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg8_code">flowchart TD
+    A([Open Unsafe Area Report]) --&gt; B[Choose category, severity, description]
+    B --&gt; C{Location attached?}
+    C -- Yes --&gt; D[Validate coordinates]
+    C -- No --&gt; E[Use device / searched place] --&gt; D
+    D --&gt; F{Coordinates valid?}
+    F -- No --&gt; E
+    F -- Yes --&gt; G[Submit report]
+    G --&gt; H([Stored unverified, queued for admin])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>9. Flowchart 4.2.9: Risk Assessment</h2>
+    <div class="diagram" id="dg9">
+      <pre class="mermaid">flowchart TD
+    A([Open incident with location]) --&gt; B[Click Assess Risk]
+    B --&gt; C[Backend counts nearby factors]
+    C --&gt; D[(POST /risk/assess - FastAPI)]
+    D --&gt; E{Response valid - score 0-100, level enum?}
+    E -- No --&gt; F[Retryable error panel] --&gt; B
+    E -- Yes --&gt; G[Store RiskAssessment + show panel]
+    G --&gt; H([Decision-support disclaimer shown])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg9', 'Flowchart 4.2.9: Risk Assessment')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg9_code" onclick="copyCode('dg9_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg9_code">flowchart TD
+    A([Open incident with location]) --&gt; B[Click Assess Risk]
+    B --&gt; C[Backend counts nearby factors]
+    C --&gt; D[(POST /risk/assess - FastAPI)]
+    D --&gt; E{Response valid - score 0-100, level enum?}
+    E -- No --&gt; F[Retryable error panel] --&gt; B
+    E -- Yes --&gt; G[Store RiskAssessment + show panel]
+    G --&gt; H([Decision-support disclaimer shown])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>10. Flowchart 4.2.10: Notifications</h2>
+    <div class="diagram" id="dg10">
+      <pre class="mermaid">flowchart TD
+    A([Open Notifications]) --&gt; B[Load own notification records]
+    B --&gt; C[Show channel + status badges]
+    C --&gt; D{Open linked incident?}
+    D -- Yes --&gt; E[Show incident context] --&gt; F[Mark entry read]
+    D -- No --&gt; F
+    F --&gt; G([Continue scanning])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg10', 'Flowchart 4.2.10: Notifications')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg10_code" onclick="copyCode('dg10_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg10_code">flowchart TD
+    A([Open Notifications]) --&gt; B[Load own notification records]
+    B --&gt; C[Show channel + status badges]
+    C --&gt; D{Open linked incident?}
+    D -- Yes --&gt; E[Show incident context] --&gt; F[Mark entry read]
+    D -- No --&gt; F
+    F --&gt; G([Continue scanning])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>11. Flowchart 4.2.11: Profile</h2>
+    <div class="diagram" id="dg11">
+      <pre class="mermaid">flowchart TD
+    A([Open Profile]) --&gt; B[Edit name, email, phone, language]
+    B --&gt; C{Valid and unique values?}
+    C -- No --&gt; B
+    C -- Yes --&gt; D[Save changes]
+    D --&gt; E([Confirm updated account])
+    E --&gt; F([Sign out / continue])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg11', 'Flowchart 4.2.11: Profile')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg11_code" onclick="copyCode('dg11_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg11_code">flowchart TD
+    A([Open Profile]) --&gt; B[Edit name, email, phone, language]
+    B --&gt; C{Valid and unique values?}
+    C -- No --&gt; B
+    C -- Yes --&gt; D[Save changes]
+    D --&gt; E([Confirm updated account])
+    E --&gt; F([Sign out / continue])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>12. Flowchart 4.2.12: Admin Dashboard</h2>
+    <div class="diagram" id="dg12">
+      <pre class="mermaid">flowchart TD
+    A([Admin signs in]) --&gt; B[Query users, incidents, status breaks]
+    B --&gt; C[Render counters + activity feed]
+    C --&gt; D{Drill into incident?}
+    D -- Yes --&gt; E[Show incident + risk + assignments]
+    D -- No --&gt; F([Continue administration])
+    E --&gt; F
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg12', 'Flowchart 4.2.12: Admin Dashboard')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg12_code" onclick="copyCode('dg12_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg12_code">flowchart TD
+    A([Admin signs in]) --&gt; B[Query users, incidents, status breaks]
+    B --&gt; C[Render counters + activity feed]
+    C --&gt; D{Drill into incident?}
+    D -- Yes --&gt; E[Show incident + risk + assignments]
+    D -- No --&gt; F([Continue administration])
+    E --&gt; F
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>13. Flowchart 4.2.13: Admin Incidents</h2>
+    <div class="diagram" id="dg13">
+      <pre class="mermaid">flowchart TD
+    A([Open admin incident list]) --&gt; B[Filter by status / priority / text]
+    B --&gt; C{Status update workflow legal?}
+    C -- No --&gt; D[List allowed transitions] --&gt; B
+    C -- Yes --&gt; E[Write IncidentUpdates + AdminLog]
+    E --&gt; F{Assign rescue team?}
+    F -- Yes --&gt; G[Create ASSIGNED assignment]
+    F -- No --&gt; H([Review detail / resolve])
+    G --&gt; H
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg13', 'Flowchart 4.2.13: Admin Incidents')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg13_code" onclick="copyCode('dg13_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg13_code">flowchart TD
+    A([Open admin incident list]) --&gt; B[Filter by status / priority / text]
+    B --&gt; C{Status update workflow legal?}
+    C -- No --&gt; D[List allowed transitions] --&gt; B
+    C -- Yes --&gt; E[Write IncidentUpdates + AdminLog]
+    E --&gt; F{Assign rescue team?}
+    F -- Yes --&gt; G[Create ASSIGNED assignment]
+    F -- No --&gt; H([Review detail / resolve])
+    G --&gt; H
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>14. Flowchart 4.2.14: Admin Masters</h2>
+    <div class="diagram" id="dg14">
+      <pre class="mermaid">flowchart TD
+    A([Open admin master screen]) --&gt; B[Facilities / teams / users / reports]
+    B --&gt; C{Action permitted - requireAdmin?}
+    C -- No --&gt; D[Access denied] --&gt; A
+    C -- Yes --&gt; E[Create / edit / verify record]
+    E --&gt; F[Log action to AdminLogs]
+    F --&gt; G([List refreshed])
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg14', 'Flowchart 4.2.14: Admin Masters')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg14_code" onclick="copyCode('dg14_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg14_code">flowchart TD
+    A([Open admin master screen]) --&gt; B[Facilities / teams / users / reports]
+    B --&gt; C{Action permitted - requireAdmin?}
+    C -- No --&gt; D[Access denied] --&gt; A
+    C -- Yes --&gt; E[Create / edit / verify record]
+    E --&gt; F[Log action to AdminLogs]
+    F --&gt; G([List refreshed])
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>15. Figure 4.1: RakshaSafe System Architecture</h2>
+    <div class="diagram" id="dg15">
+      <pre class="mermaid">flowchart TB
+    subgraph FRONTEND[&quot;FRONTEND - React + TypeScript + Vite&quot;]
+        FE[&quot;Pages and components&lt;br/&gt;Roles: USER | ADMIN | RESPONDER&lt;br/&gt;i18n dictionary&quot;]
+    end
+    subgraph BACKEND[&quot;BACKEND - Node.js + Express + Mongoose  :5000&quot;]
+        API[&quot;REST API /api&quot;]
+        SVC[&quot;Services: geocoding, weather,&lt;br/&gt;OSM nearby, reports, notifications, risk&quot;]
+    end
+    subgraph AI[&quot;AI SERVICE - FastAPI  :8000&quot;]
+        RISK[&quot;POST /risk/assess&lt;br/&gt;raksha-risk-v1 deterministic scoring&quot;]
+    end
+    subgraph DB[&quot;MongoDB  :27017&quot;]
+        MONGO[(&quot;15 collections&lt;br/&gt;schema-validated&quot;)]
+    end
+    FE -- &quot;HTTPS / REST (Vite proxy)&quot; ---&gt; API
+    API --- SVC
+    API -- &quot;risk factors&quot; --&gt; RISK
+    RISK -- &quot;score + level&quot; --&gt; API
+    API -- &quot;Mongoose ODM&quot; ---&gt; MONGO
+</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg15', 'Figure 4.1: RakshaSafe System Architecture')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg15_code" onclick="copyCode('dg15_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg15_code">flowchart TB
+    subgraph FRONTEND[&quot;FRONTEND - React + TypeScript + Vite&quot;]
+        FE[&quot;Pages and components&lt;br/&gt;Roles: USER | ADMIN | RESPONDER&lt;br/&gt;i18n dictionary&quot;]
+    end
+    subgraph BACKEND[&quot;BACKEND - Node.js + Express + Mongoose  :5000&quot;]
+        API[&quot;REST API /api&quot;]
+        SVC[&quot;Services: geocoding, weather,&lt;br/&gt;OSM nearby, reports, notifications, risk&quot;]
+    end
+    subgraph AI[&quot;AI SERVICE - FastAPI  :8000&quot;]
+        RISK[&quot;POST /risk/assess&lt;br/&gt;raksha-risk-v1 deterministic scoring&quot;]
+    end
+    subgraph DB[&quot;MongoDB  :27017&quot;]
+        MONGO[(&quot;15 collections&lt;br/&gt;schema-validated&quot;)]
+    end
+    FE -- &quot;HTTPS / REST (Vite proxy)&quot; ---&gt; API
+    API --- SVC
+    API -- &quot;risk factors&quot; --&gt; RISK
+    RISK -- &quot;score + level&quot; --&gt; API
+    API -- &quot;Mongoose ODM&quot; ---&gt; MONGO
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>16. Figure 4.3: RakshaSafe Deployment View</h2>
+    <div class="diagram" id="dg16">
+      <pre class="mermaid">flowchart LR
+    subgraph CLIENT[&quot;CLIENT - Browser&quot;]
+        SPA[&quot;React SPA&lt;br/&gt;port 5173 (dev) / vite build (prod)&quot;]
+    end
+    subgraph BE[&quot;BACKEND - Node.js&quot;]
+        EX[&quot;Express API&lt;br/&gt;port 5000 / api + health&quot;]
+    end
+    subgraph AIS[&quot;AI SERVICE - Python&quot;]
+        FA[&quot;FastAPI&lt;br/&gt;port 8000 / risk/assess&quot;]
+    end
+    subgraph DATA[&quot;Data layer&quot;]
+        MDB[(&quot;MongoDB 127.0.0.1:27017&lt;br/&gt;15 collections&quot;)]
+    end
+    subgraph EXT[&quot;External APIs&quot;]
+        EXT1[&quot;Open-Meteo weather&quot;]
+        EXT2[&quot;OSM Nominatim / Overpass&quot;]
+    end
+    SPA -- &quot;HTTP proxy /api&quot; &lt;--&gt; EX
+    EX -- &quot;factors / score&quot; &lt;--&gt; FA
+    EX -- &quot;Mongoose ODM&quot; &lt;--&gt; MDB
+    EX -. &quot;fetch (proxy)&quot; .-&gt; EXT1
+    EX -. &quot;fetch (proxy)&quot; .-&gt; EXT2</pre>
+    </div>
+    <div class="tools">
+      <button class="btn-png" onclick="exportPng('dg16', 'Figure 4.3: RakshaSafe Deployment View')">Download PNG</button>
+      <button class="btn-copy" data-copy="dg16_code" onclick="copyCode('dg16_code')">Copy code</button>
+    </div>
+    <pre class="codebox" id="dg16_code">flowchart LR
+    subgraph CLIENT[&quot;CLIENT - Browser&quot;]
+        SPA[&quot;React SPA&lt;br/&gt;port 5173 (dev) / vite build (prod)&quot;]
+    end
+    subgraph BE[&quot;BACKEND - Node.js&quot;]
+        EX[&quot;Express API&lt;br/&gt;port 5000 / api + health&quot;]
+    end
+    subgraph AIS[&quot;AI SERVICE - Python&quot;]
+        FA[&quot;FastAPI&lt;br/&gt;port 8000 / risk/assess&quot;]
+    end
+    subgraph DATA[&quot;Data layer&quot;]
+        MDB[(&quot;MongoDB 127.0.0.1:27017&lt;br/&gt;15 collections&quot;)]
+    end
+    subgraph EXT[&quot;External APIs&quot;]
+        EXT1[&quot;Open-Meteo weather&quot;]
+        EXT2[&quot;OSM Nominatim / Overpass&quot;]
+    end
+    SPA -- &quot;HTTP proxy /api&quot; &lt;--&gt; EX
+    EX -- &quot;factors / score&quot; &lt;--&gt; FA
+    EX -- &quot;Mongoose ODM&quot; &lt;--&gt; MDB
+    EX -. &quot;fetch (proxy)&quot; .-&gt; EXT1
+    EX -. &quot;fetch (proxy)&quot; .-&gt; EXT2</pre>
+  </div>
+</div>
+<div class="note">
+<ul>
+  <li><b>Edit online:</b> open <code>mermaid.live</code>, paste the copied code, edit text, download PNG free.</li>
+  <li><b>draw.io (free):</b> File → New → Flowchart; paste text by right-clicking a shape → Edit → Edit Data.</li>
+  <li>All diagrams here are matches to the images already placed in <b>CHAPTER_4_RakshaSafe_System_Design_FINAL.docx</b>.</li>
+</ul>
+</div>
+</body>
+</html>

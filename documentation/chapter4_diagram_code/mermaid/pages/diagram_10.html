@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Flowchart 4.2.10: Notifications</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    primaryColor: '#d6eaf8', primaryTextColor: '#17202a',
+    primaryBorderColor: '#2e86de', lineColor: '#34495e',
+    secondaryColor: '#d5f5e3', tertiaryColor: '#fdebd0',
+    fontFamily: 'Segoe UI, Arial, sans-serif'
+  }
+});</script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: white; padding: 24px; }
+  .cap { font-weight: 600; color: #10314f; margin-bottom: 12px; font-size: 15px; }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="cap">Flowchart 4.2.10: Notifications</div>
+<pre class="mermaid">flowchart TD
+    A([Open Notifications]) --&gt; B[Load own notification records]
+    B --&gt; C[Show channel + status badges]
+    C --&gt; D{Open linked incident?}
+    D -- Yes --&gt; E[Show incident context] --&gt; F[Mark entry read]
+    D -- No --&gt; F
+    F --&gt; G([Continue scanning])</pre>
+</body></html>

@@ -1,0 +1,9 @@
+%% Flowchart 4.2.9: Risk Assessment
+flowchart TD
+    A([Open incident with location]) --> B[Click Assess Risk]
+    B --> C[Backend counts nearby factors]
+    C --> D[(POST /risk/assess - FastAPI)]
+    D --> E{Response valid - score 0-100, level enum?}
+    E -- No --> F[Retryable error panel] --> B
+    E -- Yes --> G[Store RiskAssessment + show panel]
+    G --> H([Decision-support disclaimer shown])

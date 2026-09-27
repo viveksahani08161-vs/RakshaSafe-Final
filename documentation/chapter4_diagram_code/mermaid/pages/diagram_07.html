@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Flowchart 4.2.7: Resource Lookup</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    primaryColor: '#d6eaf8', primaryTextColor: '#17202a',
+    primaryBorderColor: '#2e86de', lineColor: '#34495e',
+    secondaryColor: '#d5f5e3', tertiaryColor: '#fdebd0',
+    fontFamily: 'Segoe UI, Arial, sans-serif'
+  }
+});</script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: white; padding: 24px; }
+  .cap { font-weight: 600; color: #10314f; margin-bottom: 12px; font-size: 15px; }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="cap">Flowchart 4.2.7: Resource Lookup</div>
+<pre class="mermaid">flowchart TD
+    A([Open Resources]) --&gt; B[Enter search term / filters]
+    B --&gt; C{Use current location?}
+    C -- Yes --&gt; D[Get device coordinates]
+    C -- No --&gt; E[Skip location]
+    D --&gt; F[Query stored facilities + providers]
+    E --&gt; F
+    F --&gt; G[Sort by distance]
+    G --&gt; H([Show call + directions cards])</pre>
+</body></html>

@@ -1,0 +1,13 @@
+%% Flowchart 4.2.1: Login
+flowchart TD
+    A([User opens Login page]) --> B[Enter email / phone and password]
+    B --> C{Valid credentials?}
+    C -- Yes --> D{Account active?}
+    C -- No --> E[Show invalid-credentials error]
+    D -- Yes --> F[Create JWT session]
+    D -- No --> E
+    F --> G{Role: USER / ADMIN / RESPONDER?}
+    G --> H[[Redirect to user dashboard]]
+    G --> I[[Redirect to admin dashboard]]
+    G --> J[[Redirect to responder dashboard]]
+    E --> B

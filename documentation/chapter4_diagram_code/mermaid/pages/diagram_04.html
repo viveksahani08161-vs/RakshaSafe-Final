@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Flowchart 4.2.4: SOS Creation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    primaryColor: '#d6eaf8', primaryTextColor: '#17202a',
+    primaryBorderColor: '#2e86de', lineColor: '#34495e',
+    secondaryColor: '#d5f5e3', tertiaryColor: '#fdebd0',
+    fontFamily: 'Segoe UI, Arial, sans-serif'
+  }
+});</script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: white; padding: 24px; }
+  .cap { font-weight: 600; color: #10314f; margin-bottom: 12px; font-size: 15px; }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="cap">Flowchart 4.2.4: SOS Creation</div>
+<pre class="mermaid">flowchart TD
+    A([User opens SOS page]) --&gt; B[Select type, category, description, priority]
+    B --&gt; C{Use My Location?}
+    C -- Yes --&gt; D[Capture device coordinates]
+    C -- No --&gt; E[Continue without location]
+    D --&gt; F{Coordinates valid?}
+    F -- No --&gt; D
+    F -- Yes --&gt; G[Submit incident]
+    E --&gt; G
+    G --&gt; H([Stored as REPORTED + reference shown])</pre>
+</body></html>

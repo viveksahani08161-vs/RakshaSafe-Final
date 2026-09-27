@@ -1,0 +1,23 @@
+%% Figure 4.3: RakshaSafe Deployment View
+flowchart LR
+    subgraph CLIENT["CLIENT - Browser"]
+        SPA["React SPA<br/>port 5173 (dev) / vite build (prod)"]
+    end
+    subgraph BE["BACKEND - Node.js"]
+        EX["Express API<br/>port 5000 / api + health"]
+    end
+    subgraph AIS["AI SERVICE - Python"]
+        FA["FastAPI<br/>port 8000 / risk/assess"]
+    end
+    subgraph DATA["Data layer"]
+        MDB[("MongoDB 127.0.0.1:27017<br/>15 collections")]
+    end
+    subgraph EXT["External APIs"]
+        EXT1["Open-Meteo weather"]
+        EXT2["OSM Nominatim / Overpass"]
+    end
+    SPA -- "HTTP proxy /api" <--> EX
+    EX -- "factors / score" <--> FA
+    EX -- "Mongoose ODM" <--> MDB
+    EX -. "fetch (proxy)" .-> EXT1
+    EX -. "fetch (proxy)" .-> EXT2

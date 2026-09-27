@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Figure 4.3: RakshaSafe Deployment View</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    primaryColor: '#d6eaf8', primaryTextColor: '#17202a',
+    primaryBorderColor: '#2e86de', lineColor: '#34495e',
+    secondaryColor: '#d5f5e3', tertiaryColor: '#fdebd0',
+    fontFamily: 'Segoe UI, Arial, sans-serif'
+  }
+});</script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: white; padding: 24px; }
+  .cap { font-weight: 600; color: #10314f; margin-bottom: 12px; font-size: 15px; }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="cap">Figure 4.3: RakshaSafe Deployment View</div>
+<pre class="mermaid">flowchart LR
+    subgraph CLIENT[&quot;CLIENT - Browser&quot;]
+        SPA[&quot;React SPA&lt;br/&gt;port 5173 (dev) / vite build (prod)&quot;]
+    end
+    subgraph BE[&quot;BACKEND - Node.js&quot;]
+        EX[&quot;Express API&lt;br/&gt;port 5000 / api + health&quot;]
+    end
+    subgraph AIS[&quot;AI SERVICE - Python&quot;]
+        FA[&quot;FastAPI&lt;br/&gt;port 8000 / risk/assess&quot;]
+    end
+    subgraph DATA[&quot;Data layer&quot;]
+        MDB[(&quot;MongoDB 127.0.0.1:27017&lt;br/&gt;15 collections&quot;)]
+    end
+    subgraph EXT[&quot;External APIs&quot;]
+        EXT1[&quot;Open-Meteo weather&quot;]
+        EXT2[&quot;OSM Nominatim / Overpass&quot;]
+    end
+    SPA -- &quot;HTTP proxy /api&quot; &lt;--&gt; EX
+    EX -- &quot;factors / score&quot; &lt;--&gt; FA
+    EX -- &quot;Mongoose ODM&quot; &lt;--&gt; MDB
+    EX -. &quot;fetch (proxy)&quot; .-&gt; EXT1
+    EX -. &quot;fetch (proxy)&quot; .-&gt; EXT2</pre>
+</body></html>

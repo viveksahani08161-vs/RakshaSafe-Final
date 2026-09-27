@@ -1,0 +1,10 @@
+%% Flowchart 4.2.8: Unsafe Reporting
+flowchart TD
+    A([Open Unsafe Area Report]) --> B[Choose category, severity, description]
+    B --> C{Location attached?}
+    C -- Yes --> D[Validate coordinates]
+    C -- No --> E[Use device / searched place] --> D
+    D --> F{Coordinates valid?}
+    F -- No --> E
+    F -- Yes --> G[Submit report]
+    G --> H([Stored unverified, queued for admin])

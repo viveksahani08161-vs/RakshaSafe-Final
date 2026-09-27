@@ -1,0 +1,10 @@
+%% Flowchart 4.2.13: Admin Incidents
+flowchart TD
+    A([Open admin incident list]) --> B[Filter by status / priority / text]
+    B --> C{Status update workflow legal?}
+    C -- No --> D[List allowed transitions] --> B
+    C -- Yes --> E[Write IncidentUpdates + AdminLog]
+    E --> F{Assign rescue team?}
+    F -- Yes --> G[Create ASSIGNED assignment]
+    F -- No --> H([Review detail / resolve])
+    G --> H
