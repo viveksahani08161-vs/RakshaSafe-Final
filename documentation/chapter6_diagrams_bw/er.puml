@@ -1,14 +1,18 @@
 @startuml
 ' ============================================================
-'  RAKSHASAFE - ER DIAGRAM (B&W, StarUML class-diagram style)
+'  RAKSHASAFE - ER DIAGRAM (B&W, PORTRAIT top-to-bottom layout)
 ' ============================================================
+top to bottom direction
 hide circle
 hide empty members
 skinparam monochrome true
 skinparam shadowing false
 skinparam classAttributeIconSize 0
-skinparam ranksep 50
-skinparam nodesep 40
+skinparam linetype ortho
+skinparam ranksep 70
+skinparam nodesep 55
+skinparam wrapWidth 260
+skinparam defaultFontSize 15
 
 entity "USER" as U {
   * id : ObjectId  <<PK>>
@@ -189,6 +193,13 @@ N }o--|| A : "triggered for responder"
 
 UR }o--o| L : "located at"
 F }o--o| L : "located at"
+
+' ---- portrait spine: force a compact vertical backbone ----
+U -[hidden]down- EC
+EC -[hidden]down- I
+I -[hidden]down- IU
+IU -[hidden]down- A
+A -[hidden]down- N
 
 note right of I
   STATUS WORKFLOW
