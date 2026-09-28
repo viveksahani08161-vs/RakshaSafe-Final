@@ -1,0 +1,58 @@
+@startuml
+' ============================================================
+'  RAKSHASAFE - DFD LEVEL 0 (CONTEXT DIAGRAM)  - B&W
+' ============================================================
+hide circle
+skinparam monochrome true
+skinparam shadowing false
+skinparam rectangle {
+  BackGroundColor White
+  BorderColor Black
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam storage {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "CITIZEN / USER" as USER
+actor "EMERGENCY RESPONDER" as RESPONDER
+actor "ADMINISTRATOR" as ADMIN
+actor "SMS GATEWAY" as SMS
+actor "EMAIL PROVIDER" as EMAIL
+
+storage "D0\nMONGO DATABASE" as DB
+
+rectangle "RAKSHASAFE\nCORE APPLICATION" as APP
+
+note bottom of APP
+  Frontend (React / Vite)
+  + Backend (Node / Express)
+  + MongoDB data layer
+end note
+
+USER --> APP : "SOS / incidents / contacts / profile"
+USER <-- APP : "incident status / notifications / nearby resources"
+
+RESPONDER --> APP : "assignment status / incident context"
+RESPONDER <-- APP : "assignments / incident alerts"
+
+ADMIN --> APP : "dashboard / users / facilities /\nteams / reports / logs"
+ADMIN <-- APP : "analytics / exports / audit trail"
+
+APP --> DB : "read / write all entities"
+DB --> APP : "documents / query results"
+
+rectangle "AI RISK SERVICE" as AI
+APP --> AI : "risk factors (location, active incidents,\nverified reports, facilities)"
+AI --> APP : "risk score (0-100) + level"
+
+APP --> SMS : "SMS alerts (primary contacts)"
+SMS --> APP : "delivery status"
+APP --> EMAIL : "email alerts (primary contacts)"
+EMAIL --> APP : "delivery status"
+
+@enduml

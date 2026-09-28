@@ -1,0 +1,82 @@
+@startuml
+' ============================================================
+'  RAKSHASAFE - DFD LEVEL 2 (INCIDENT MANAGEMENT DETAIL) - B&W
+' ============================================================
+hide circle
+skinparam monochrome true
+skinparam shadowing false
+skinparam rectangle {
+  BackGroundColor White
+  BorderColor Black
+}
+skinparam storage {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "CITIZEN / USER" as USER
+actor "EMERGENCY RESPONDER" as RESPONDER
+actor "ADMINISTRATOR" as ADMIN
+
+storage "D2 INCIDENT" as IDB
+storage "D2a INCIDENT UPDATE" as IUDB
+storage "D5 ASSIGNMENT" as ADB
+storage "D4 RESCUE TEAM" as TDB
+storage "D1 USER" as UDB
+storage "D7 NOTIFICATION" as NDB
+
+rectangle "2.1\nCREATE\nINCIDENT" as P21
+rectangle "2.2\nVALIDATE\n& ENRICH" as P22
+rectangle "2.3\nPERSIST\nINCIDENT" as P23
+rectangle "2.4\nSTATUS\nWORKFLOW" as P24
+rectangle "2.5\nOWNERSHIP &\nVISIBILITY" as P25
+rectangle "2.6\nRISK ASSESS-\nMENT TRIGGER" as P26
+rectangle "2.7\nHISTORY\nRECORDING" as P27
+rectangle "2.8\nASSIGNMENT\nLINKING" as P28
+
+rectangle "AI RISK SERVICE" as AI
+
+' ------- create path -------
+USER --> P21 : "SOS request (type, category,\ndescription, location)"
+P21 --> P22 : "raw payload"
+P22 --> P22 : "normalize phone, validate enums,\nnumeric coordinate ranges, reject\nforged status/userId/location"
+P22 --> P23 : "validated data"
+P23 --> IDB : "INSERT"
+P23 --> P27 : "seed REPORTED history"
+P27 --> IUDB : "INSERT initial entry"
+P23 --> P26 : "incident id + location"
+P26 --> AI : "factors (active incidents,\nverified reports, facilities)"
+AI --> P26 : "score 0-100 + level"
+P26 --> IDB : "UPDATE risk"
+USER <-- P23 : "201 + id, status=REPORTED"
+
+' ------- workflow path -------
+RESPONDER --> P24 : "advance (EN_ROUTE / ON_SCENE)"
+ADMIN --> P24 : "any transition / force complete"
+P24 --> IDB : "UPDATE status"
+P24 --> P27 : "status change"
+P27 --> IUDB : "INSERT prev->new, changedBy"
+P24 --> P28 : "on ASSIGNED"
+P24 --> P28 : "on assignment advance"
+P28 --> ADB : "INSERT / UPDATE assignment"
+P28 --> TDB : "team activity"
+P28 --> P25 : "refresh visibility"
+P28 --> P26 : "re-evaluate risk"
+RESPONDER <-- P24 : "assignment updated"
+
+' ------- visibility path -------
+P25 --> UDB : "resolve owner"
+P25 --> IDB : "filter by owner"
+USER <-- P25 : "own incidents only"
+ADMIN <-- P25 : "all incidents"
+RESPONDER <-- P28 : "assigned incident context"
+
+' ------- notification path -------
+P23 --> NDB : "incident.created"
+P28 --> NDB : "assignment.changed"
+
+@enduml

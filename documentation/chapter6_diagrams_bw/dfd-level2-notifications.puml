@@ -1,0 +1,72 @@
+@startuml
+' ============================================================
+'  RAKSHASAFE - DFD LEVEL 2 (NOTIFICATIONS & AI RISK) - B&W
+' ============================================================
+hide circle
+skinparam monochrome true
+skinparam shadowing false
+skinparam rectangle {
+  BackGroundColor White
+  BorderColor Black
+}
+skinparam storage {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "CITIZEN / USER" as USER
+actor "EMERGENCY RESPONDER" as RESPONDER
+actor "SMS GATEWAY" as SMS
+actor "EMAIL PROVIDER" as EMAIL
+
+storage "D2 INCIDENT" as IDB
+storage "D7 NOTIFICATION" as NDB
+storage "D3 EMERGENCY CONTACT" as CDB
+storage "D1 USER" as UDB
+storage "D8 UNSAFE REPORT" as URDB
+storage "D6 FACILITY" as FDB
+
+rectangle "6.1\nCREATE\nNOTIFICATION" as P61
+rectangle "6.2\nCHANNEL\nDISPATCH" as P62
+rectangle "6.3\nSTATUS\nRECORD" as P63
+rectangle "7.1\nCOLLECT\nFACTORS" as P71
+rectangle "7.2\nSCORE &\nLEVEL" as P72
+rectangle "7.3\nRETURN &\nPERSIST" as P73
+
+rectangle "AI RISK SERVICE" as AI
+
+' ------- notification flow -------
+IDB --> P61 : "incident events\n(created / status.changed)"
+CDB --> P61 : "primary contacts (SMS / email)"
+UDB --> P61 : "owner + responder ids"
+P61 --> NDB : "INSERT notification record"
+P61 --> P62 : "channel payload"
+
+P62 --> SMS : "SMS (if provider configured)"
+SMS --> P62 : "delivery receipt"
+P62 --> EMAIL : "email (if provider configured)"
+EMAIL --> P62 : "delivery receipt"
+P62 --> P63 : "provider response"
+
+P63 --> NDB : "UPDATE status\n(SENT / DELIVERED / FAILED /\nNOT_CONFIGURED)"
+
+USER <-- P63 : "in-app notification feed\n(DELIVERED)"
+RESPONDER <-- P63 : "assigned incident events"
+
+' ------- AI risk flow -------
+IDB --> P71 : "incident location + type + priority"
+URDB --> P71 : "verified reports nearby"
+FDB --> P71 : "operational facilities nearby"
+IDB --> P71 : "active incident count"
+P71 --> P72 : "factor vector"
+P72 --> AI : "POST /risk/assess"
+AI --> P72 : "score (0-100) + level"
+P72 --> P73 : "risk package"
+P73 --> IDB : "UPDATE incident risk"
+P73 --> P61 : "risk alert (CRITICAL / HIGH)"
+
+@enduml

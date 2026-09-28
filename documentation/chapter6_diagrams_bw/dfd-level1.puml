@@ -1,0 +1,117 @@
+@startuml
+' ============================================================
+'  RAKSHASAFE - DFD LEVEL 1 (MAJOR PROCESSES) - B&W
+' ============================================================
+hide circle
+skinparam monochrome true
+skinparam shadowing false
+skinparam usecase {
+  BackGroundColor White
+  BorderColor Black
+  FontSize 12
+}
+skinparam storage {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "CITIZEN / USER" as USER
+actor "EMERGENCY RESPONDER" as RESPONDER
+actor "ADMINISTRATOR" as ADMIN
+actor "SMS GATEWAY" as SMS
+actor "EMAIL PROVIDER" as EMAIL
+
+storage "D1 USER" as UDB
+storage "D2 INCIDENT" as IDB
+storage "D3 EMERGENCY CONTACT" as CDB
+storage "D4 RESCUE TEAM" as TDB
+storage "D5 ASSIGNMENT" as ADB
+storage "D6 FACILITY" as FDB
+storage "D7 NOTIFICATION" as NDB
+storage "D8 UNSAFE REPORT" as URDB
+storage "D9 REPORT" as RDB
+storage "D10 ADMIN LOG" as ADMB
+
+usecase "1.0\nAUTH &\nPROFILE" as P1
+usecase "2.0\nINCIDENT\nMANAGEMENT" as P2
+usecase "3.0\nEMERGENCY\nCONTACTS" as P3
+usecase "4.0\nTEAMS & ASSIGN-\nMENTS" as P4
+usecase "5.0\nFACILITIES\n& NEARBY" as P5
+usecase "6.0\nNOTIFICA-\nTIONS" as P6
+usecase "7.0\nAI RISK\nASSESSMENT" as P7
+usecase "8.0\nUNSAFE AREA\nREPORTING" as P8
+usecase "9.0\nADMIN DASH-\nBOARD & REPORTS" as P9
+usecase "10.0\nAUDIT LOG" as P10
+
+' ------- user flows -------
+USER --> P1 : "register / login / profile"
+P1 <--> UDB
+USER <-- P1 : "JWT / profile"
+
+USER --> P2 : "create SOS / list /\nhistory"
+P2 <--> IDB
+P2 --> P7 : "request risk"
+P7 --> P2 : "score + level"
+
+USER --> P3 : "manage contacts"
+P3 <--> CDB
+
+USER --> P5 : "nearby resources"
+P5 <--> FDB
+P5 --> IDB : "incident location"
+
+USER --> P8 : "submit report"
+P8 <--> URDB
+
+' ------- responder flows -------
+RESPONDER --> P4 : "my assignments /\nadvance status"
+P4 <--> ADB
+P4 <--> IDB : "incident context"
+RESPONDER <-- P4 : "assignment list"
+
+' ------- admin flows -------
+ADMIN --> P1 : "manage users"
+ADMIN --> P2 : "all incidents /\nforce status"
+ADMIN --> P3 : "all contacts"
+ADMIN --> P4 : "create teams /\nassign"
+ADMIN --> P5 : "facility CRUD"
+ADMIN --> P8 : "verify reports"
+
+ADMIN --> P9 : "dashboard /\nreports / export"
+P9 --> UDB : "counts"
+P9 --> IDB : "counts"
+P9 --> CDB : "counts"
+P9 --> TDB : "counts"
+P9 --> ADB : "counts"
+P9 --> FDB : "counts"
+P9 --> NDB : "counts"
+P9 --> URDB : "counts"
+P9 <--> RDB : "generate / store"
+ADMIN <-- P9 : "stats / CSV / PDF / JSON"
+
+ADMIN --> P10 : "view logs"
+P10 <--> ADMB
+
+' ------- notification flows -------
+P2 --> P6 : "incident events"
+P4 --> P6 : "assignment events"
+P6 <--> NDB
+P6 --> SMS : "SMS"
+SMS --> P6 : "receipt"
+P6 --> EMAIL : "email"
+EMAIL --> P6 : "receipt"
+
+' ------- audit trail (triggered by admin actions) -------
+P1 ..> P10 : "log"
+P2 ..> P10 : "log"
+P3 ..> P10 : "log"
+P4 ..> P10 : "log"
+P5 ..> P10 : "log"
+P8 ..> P10 : "log"
+P9 ..> P10 : "log"
+
+@enduml

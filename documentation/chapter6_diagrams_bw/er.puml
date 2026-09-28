@@ -1,0 +1,213 @@
+@startuml
+' ============================================================
+'  RAKSHASAFE - ER DIAGRAM (B&W, StarUML class-diagram style)
+' ============================================================
+hide circle
+hide empty members
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ranksep 50
+skinparam nodesep 40
+
+entity "USER" as U {
+  * id : ObjectId  <<PK>>
+  --
+  name : String
+  phone : String
+  email : String
+  passwordHash : String
+  role : Enum[USER, ADMIN, RESPONDER]
+  language : Enum[en, hi]
+  isActive : Boolean
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+entity "EMERGENCY_CONTACT" as EC {
+  * id : ObjectId  <<PK>>
+  * userId : ObjectId  <<FK>>
+  --
+  name : String
+  phone : String
+  email : String
+  relationship : String
+  notifyViaSms : Boolean
+  notifyViaEmail : Boolean
+  isPrimary : Boolean
+}
+
+entity "INCIDENT" as I {
+  * id : ObjectId  <<PK>>
+  * userId : ObjectId  <<FK>>
+  --
+  type : Enum[Safety, Disaster]
+  category : String
+  priority : Enum[LOW..CRITICAL]
+  status : Enum[REPORTED..CLOSED, CANCELLED]
+  description : String
+  latitude : Double
+  longitude : Double
+  accuracy : Double
+  address : String
+  resolvedAt : DateTime
+}
+
+entity "INCIDENT_UPDATE" as IU {
+  * id : ObjectId  <<PK>>
+  * incidentId : ObjectId  <<FK>>
+  --
+  previousStatus : String
+  newStatus : String
+  changedBy : ObjectId
+  changedAt : DateTime
+  note : String
+}
+
+entity "LOCATION" as L {
+  * id : ObjectId  <<PK>>
+  --
+  latitude : Double
+  longitude : Double
+  accuracy : Double
+  address : String
+}
+
+entity "RESCUE_TEAM" as RT {
+  * id : ObjectId  <<PK>>
+  --
+  name : String
+  type : Enum[Police, Medical, Fire, Volunteer, NGO]
+  phone : String
+  email : String
+  specializations : String[]
+  isActive : Boolean
+  latitude : Double
+  longitude : Double
+}
+
+entity "TEAM_MEMBERSHIP" as TM {
+  * id : ObjectId  <<PK>>
+  * userId : ObjectId  <<FK>>
+  * teamId : ObjectId  <<FK>>
+  --
+  joinedAt : DateTime
+}
+
+entity "ASSIGNMENT" as A {
+  * id : ObjectId  <<PK>>
+  * incidentId : ObjectId  <<FK>>
+  * teamId : ObjectId  <<FK>>
+  --
+  responderId : ObjectId
+  status : Enum[ASSIGNED, EN_ROUTE, ON_SCENE, COMPLETED, CANCELLED]
+  assignedAt : DateTime
+  completedAt : DateTime
+  notes : String
+}
+
+entity "NOTIFICATION" as N {
+  * id : ObjectId  <<PK>>
+  * userId : ObjectId  <<FK>>
+  --
+  incidentId : ObjectId
+  channel : Enum[In-App, SMS, Email]
+  status : Enum[PENDING, SENT, DELIVERED, FAILED, NOT_CONFIGURED]
+  providerResponse : String
+  sentAt : DateTime
+  deliveredAt : DateTime
+}
+
+entity "UNSAFE_REPORT" as UR {
+  * id : ObjectId  <<PK>>
+  * userId : ObjectId  <<FK>>
+  --
+  category : String
+  description : String
+  latitude : Double
+  longitude : Double
+  isVerified : Boolean
+  verifiedBy : ObjectId
+  verifiedAt : DateTime
+}
+
+entity "FACILITY" as F {
+  * id : ObjectId  <<PK>>
+  --
+  name : String
+  type : Enum[Hospital, Shelter, Police Station, Fire Station, Relief Centre]
+  phone : String
+  email : String
+  operatingHours : String
+  capacity : Integer
+  isOperational : Boolean
+  latitude : Double
+  longitude : Double
+}
+
+entity "ADMIN_LOG" as AL {
+  * id : ObjectId  <<PK>>
+  * adminId : ObjectId  <<FK>>
+  --
+  action : String
+  targetType : String
+  targetId : ObjectId
+  details : String
+  createdAt : DateTime
+}
+
+entity "REPORT" as R {
+  * id : ObjectId  <<PK>>
+  * adminId : ObjectId  <<FK>>
+  --
+  reportType : Enum[incident-summary, resource-summary, safety-overview]
+  format : Enum[PDF, CSV, JSON]
+  title : String
+  filters : String
+  dataSnapshot : String
+  generatedAt : DateTime
+}
+
+U ||--o{ EC : "has"
+U ||--o{ I : "creates"
+U ||--o{ N : "receives"
+U ||--o{ UR : "submits"
+U ||--o{ TM : "is member of"
+U ||--o{ AL : "logs (admin)"
+U ||--o{ R : "generates (admin)"
+
+I ||--o{ IU : "history"
+I ||--o{ A : "assigned via"
+I }o--o| L : "stored at"
+
+RT ||--o{ TM : "has member"
+RT ||--o{ A : "handles"
+
+A }|--|| RT : "assigned team"
+A }|--|| I : "for incident"
+N }o--|| A : "triggered for responder"
+
+UR }o--o| L : "located at"
+F }o--o| L : "located at"
+
+note right of I
+  STATUS WORKFLOW
+  REPORTED -> ACKNOWLEDGED -> ASSIGNED
+  -> IN_PROGRESS -> RESOLVED -> CLOSED
+  CANCELLED allowed from any open state
+end note
+
+note right of A
+  ASSIGNMENT WORKFLOW
+  ASSIGNED -> EN_ROUTE -> ON_SCENE
+  -> COMPLETED
+  admin may force COMPLETED
+end note
+
+note bottom of N
+  External channels (SMS / Email) are
+  recorded as NOT_CONFIGURED when no
+  provider is configured
+end note
+
+@enduml

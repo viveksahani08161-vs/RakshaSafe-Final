@@ -1,0 +1,99 @@
+@startuml
+' ============================================================
+'  RAKSHASAFE - DFD LEVEL 2 (ADMIN DASHBOARD & REPORTS) - B&W
+' ============================================================
+hide circle
+skinparam monochrome true
+skinparam shadowing false
+skinparam rectangle {
+  BackGroundColor White
+  BorderColor Black
+}
+skinparam storage {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "ADMINISTRATOR" as ADMIN
+
+storage "D1 USER" as UDB
+storage "D2 INCIDENT" as IDB
+storage "D3 EMERGENCY CONTACT" as CDB
+storage "D4 RESCUE TEAM" as TDB
+storage "D6 FACILITY" as FDB
+storage "D7 NOTIFICATION" as NDB
+storage "D8 UNSAFE REPORT" as URDB
+storage "D9 REPORT" as RDB
+storage "D10 ADMIN LOG" as ADMB
+
+rectangle "9.1\nAGGREGATE\nDASHBOARD" as P91
+rectangle "9.2\nUSER\nMANAGEMENT" as P92
+rectangle "9.3\nFACILITY\nMANAGEMENT" as P93
+rectangle "9.4\nTEAM\nMANAGEMENT" as P94
+rectangle "9.5\nINCIDENT\nOVERSIGHT" as P95
+rectangle "9.6\nREPORT\nGENERATION" as P96
+rectangle "9.7\nREPORT\nEXPORT" as P97
+rectangle "9.8\nAUDIT LOG\nVIEWER" as P98
+
+' ------- dashboard -------
+ADMIN --> P91 : "GET /api/admin/dashboard"
+P91 --> UDB : "count users"
+P91 --> IDB : "count by status / priority"
+P91 --> TDB : "count teams"
+P91 --> FDB : "count facilities"
+P91 --> NDB : "count notifications"
+P91 --> URDB : "count unsafe reports"
+P91 --> ADMB : "recent activity"
+ADMIN <-- P91 : "aggregated JSON"
+
+' ------- management -------
+ADMIN --> P92 : "GET /api/admin/users (search, page)"
+P92 --> UDB : "paginated query"
+ADMIN <-- P92 : "user list / rename"
+P92 ..> ADMB : "log user.update"
+
+ADMIN --> P93 : "CRUD /api/admin/facilities"
+P93 --> FDB : "read / write"
+ADMIN <-- P93 : "facility list"
+P93 ..> ADMB : "log facility.*"
+
+ADMIN --> P94 : "CRUD /api/admin/teams"
+P94 --> TDB : "read / write"
+P94 ..> ADMB : "log team.*"
+ADMIN <-- P94 : "team list"
+
+ADMIN --> P95 : "GET /api/admin/incidents + PATCH /status"
+P95 --> IDB : "read / write"
+P95 ..> ADMB : "log incident.status.change"
+ADMIN <-- P95 : "all incidents / status"
+
+' ------- reports -------
+ADMIN --> P96 : "POST /api/admin/reports/generate"
+P96 --> UDB : "snapshot"
+P96 --> IDB : "snapshot"
+P96 --> CDB : "snapshot"
+P96 --> TDB : "snapshot"
+P96 --> FDB : "snapshot"
+P96 --> NDB : "snapshot"
+P96 --> URDB : "snapshot"
+P96 --> RDB : "INSERT metadata + snapshot"
+P96 ..> ADMB : "log report.generate"
+ADMIN <-- P96 : "report id"
+
+ADMIN --> P97 : "GET /api/admin/reports/:id/export\n?format=CSV|PDF|JSON"
+P97 --> RDB : "read snapshot"
+P97 --> P97 : "flatten to CSV / PDF / JSON"
+P97 ..> ADMB : "log report.export"
+ADMIN <-- P97 : "file download"
+
+' ------- audit log -------
+ADMIN --> P98 : "GET /api/admin/logs"
+P98 --> ADMB : "paginated select"
+P98 ..> ADMB : "log log.view"
+ADMIN <-- P98 : "log entries"
+
+@enduml
