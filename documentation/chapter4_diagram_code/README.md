@@ -4,16 +4,18 @@ Ye folder Chapter 4 ke saare diagram banaane wale **source code** aur unse bani 
 ek jagah organize karta hai.
 
 ## Final Word Document (ready)
-`../CHAPTER_4_RakshaSafe_System_Design_UML_FINAL.docx` — saare 30 images ke saath final file.
-- 16 Black & White StarUML-style diagrams (flowcharts, architecture, deployment)
-- 14 colorful dummy interface screenshots
+`../CHAPTER_4_RakshaSafe_System_Design_UML_REAL.docx` — FINAL file, saare 34 images ke saath.
+- 16 Black & White StarUML-style diagrams (14 interface flowcharts + architecture + deployment)
+- 4 naye B&W diagrams: ER + DFD Level 0/1/2 (Figures 4.1.2 - 4.1.5)
+- 14 REAL interface screenshots (live app ke captures: register, dashboard, SOS, incident detail, admin screens)
 - content text black & white
 
 ## Diagram Images
 | Folder | Kya hai |
 |---|---|
-| `../ch4_bw/` | 16 B&W StarUML-style PNGs (14 flowcharts + architecture + deployment) |
-| `../ch4_images/` | 14 colorful dummy interface screenshots + 2 colorful system diagrams |
+| `../ch4_bw/` | 20 B&W StarUML-style PNGs (14 interface flowcharts + architecture + deployment + ER + DFD L0/L1/L2) |
+| `../test-evidence/screenshots/` | 27 REAL live-app screenshots (24 e2e + unsafe + risk + incident detail) |
+| `../ch4_images/` | 14 colorful dummy interface screenshots (ab sirf draft/backup) |
 | `mermaid/png/` | 16 Mermaid-rendered PNGs (colorful alternative) |
 | `mermaid/*.mmd` | Mermaid source code (mermaid.live mein paste karo) |
 | `mermaid/view_all_diagrams.html` | Browser mein kholo -> saare diagrams + Download PNG |
@@ -30,6 +32,7 @@ ek jagah organize karta hai.
 | `07_render_png_from_mermaid.py` | Mermaid PNG render (headless Edge) |
 | `08_uml_flowcharts.py` | **B&W StarUML flowcharts (auto text-fit, no overflow)** |
 | `09_uml_architecture_deployment.py` | **B&W StarUML architecture + deployment** |
+| `10_er_dfd_diagrams.py` | **B&W StarUML ER diagram + DFD Level 0 / 1 / 2 (auto-fit)** |
 
 ## Require
 - Python 3.12
@@ -40,5 +43,6 @@ ek jagah organize karta hai.
 ```powershell
 python 08_uml_flowcharts.py
 python 09_uml_architecture_deployment.py
-python 03_fill_word_document.py
+python 10_er_dfd_diagrams.py
+python ch4_real_build.py   # (documentation rebuild script - screenshots + ER/DFD insert)
 ```
