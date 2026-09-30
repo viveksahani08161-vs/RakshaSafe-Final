@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RakshaSafe - Code to Output Execution Flow</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: #1f2937; }
+  .sheet { width: 1060px; padding: 30px 30px 24px; background: #fff; }
+
+  .h1 { font-size: 32px; font-weight: 800; color: #7c2d12; margin: 0 0 4px; letter-spacing: -0.2px; }
+  .sub { font-size: 16.5px; color: #57534e; margin: 0 0 20px; font-weight: 600; }
+
+  .tier { border: 1.7px solid #d6d3d1; border-radius: 12px; overflow: hidden; }
+  .thead { padding: 11px 18px; color: #fff; display: flex; align-items: baseline; gap: 12px; }
+  .thead .n { font-size: 21px; font-weight: 800; }
+  .thead .t { font-size: 15.5px; font-weight: 600; opacity: .96; }
+  .thead .p { margin-left: auto; font-size: 13.5px; font-weight: 700; opacity: .95;
+              background: rgba(255,255,255,.20); border-radius: 20px; padding: 4px 13px; }
+
+  .b1 .thead { background: #1d4ed8; }
+  .b2 .thead { background: #0f766e; }
+  .b3 .thead { background: #6d28d9; }
+  .b4 .thead { background: #b45309; }
+  .b1 { border-color: #bfdbfe; }
+  .b2 { border-color: #99f6e4; }
+  .b3 { border-color: #ddd6fe; }
+  .b4 { border-color: #fde68a; }
+
+  .cells { display: flex; gap: 0; }
+  .cell { flex: 1 1 50%; padding: 13px 17px 14px; background: #fafaf9; }
+  .cell + .cell { border-left: 1.6px dashed #d6d3d1; }
+  .cell .ch { font-size: 12.8px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 6px; }
+  .b1 .cell .ch { color: #1d4ed8; }
+  .b2 .cell .ch { color: #0f766e; }
+  .b3 .cell .ch { color: #6d28d9; }
+  .b4 .cell .ch { color: #b45309; }
+  .cell .cb { font-size: 14px; color: #292524; line-height: 1.55; }
+  .cell code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12.6px;
+               background: #ecebea; border-radius: 3px; padding: 0 4px; color: #7c2d12; }
+  .out { background: #1f2430; }
+  .out .ch { color: #6ee7b7; }
+  .out .cb { color: #e5e7eb; }
+  .out code { background: #313746; color: #fcd34d; }
+
+  .arrow { display: flex; justify-content: center; align-items: center; height: 34px; }
+  .arrow .bar { width: 0; height: 0; border-left: 11px solid transparent;
+                border-right: 11px solid transparent; border-top: 15px solid #9ca3af; }
+  .arrow .lbl { font-size: 13px; font-weight: 700; color: #57534e; margin-left: 12px; }
+  .arrow code { font-family: Consolas, monospace; font-size: 12.6px; color: #7c2d12;
+                background: #ecebea; border-radius: 3px; padding: 0 4px; }
+
+  .legend { margin-top: 18px; border: 1.6px solid #e7e5e4; border-radius: 10px;
+            background: #fafaf9; padding: 12px 16px; display: flex; gap: 20px; align-items: center; }
+  .legend .li { font-size: 12.8px; color: #44403c; display: flex; align-items: center; gap: 6px; font-weight: 700; }
+  .legend .sw { width: 14px; height: 14px; border-radius: 3px; border: 1.3px solid #57534e; }
+  .legend .note { margin-left: auto; font-size: 12.4px; color: #57534e; font-weight: 700; text-align: right; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="h1">Code &#8594; Output Execution Flow</div>
+  <div class="sub">How every listing in Chapter 5 produces the output screen printed beneath it</div>
+
+  <div class="tier b1">
+    <div class="thead"><span class="n">1. FRONTEND</span><span class="t">React 19 + Vite + Tailwind CSS</span><span class="p">localhost:5173</span></div>
+    <div class="cells">
+      <div class="cell">
+        <div class="ch">Source code &#8212; section 5.5</div>
+        <div class="cb"><code>App.tsx</code> hash router and role guards &#183; <code>lib/api.ts</code> typed fetch wrapper &#183; <code>pages/LoginPage.tsx</code> &#183; <code>pages/SosPage.tsx</code> &#183; <code>pages/ResourcesPage.tsx</code> &#183; <code>pages/AdminIncidentsPage.tsx</code></div>
+      </div>
+      <div class="cell out">
+        <div class="ch">Output screen captured live</div>
+        <div class="cb">Figures 5.6 &#8211; 5.12: citizen dashboard, three-step SOS form, nearby resources with <code>tel:</code> links, notifications, admin incident module</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="bar"></div><div class="lbl"><code>POST /api/incidents</code> &#183; <code>Authorization: Bearer &lt;JWT&gt;</code></div></div>
+
+  <div class="tier b2">
+    <div class="thead"><span class="n">2. BACKEND API</span><span class="t">Express 5 + TypeScript + Mongoose</span><span class="p">localhost:5000</span></div>
+    <div class="cells">
+      <div class="cell">
+        <div class="ch">Source code &#8212; section 5.4</div>
+        <div class="cb"><code>server.ts</code> boot &#183; <code>app.ts</code> assembly &#183; <code>middleware/auth.ts</code> JWT + role guard &#183; <code>controllers/incidentController.ts</code> &#183; <code>controllers/riskController.ts</code> &#183; <code>services/weather.ts</code></div>
+      </div>
+      <div class="cell out">
+        <div class="ch">Output printed in 5.4</div>
+        <div class="cb">Terminal <code>[db] Connected to MongoDB (rakshasafe)</code> &#183; <code>GET /api/health</code> &#183; <code>201</code> incident JSON carrying a real ObjectId &#183; <code>DELIVERED</code> notification record</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="bar"></div><div class="lbl"><code>POST /risk/assess</code> &#183; validated numeric factors only</div></div>
+
+  <div class="tier b3">
+    <div class="thead"><span class="n">3. AI SERVICE</span><span class="t">Python 3.12 + FastAPI</span><span class="p">localhost:8000</span></div>
+    <div class="cells">
+      <div class="cell">
+        <div class="ch">Source code &#8212; section 5.4.8</div>
+        <div class="cb"><code>app/main.py</code> route table &#183; <code>app/risk.py</code> <code>raksha-risk-v1</code> weighted scoring &#8212; bounded numbers in, strict shape out, no free text and no LLM key</div>
+      </div>
+      <div class="cell out">
+        <div class="ch">Output printed in 5.4.8</div>
+        <div class="cb">Real response from the running service: <code>{"riskScore":100,"riskLevel":"CRITICAL","modelVersion":"raksha-risk-v1"}</code> with the five weighted input factors echoed back</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="bar"></div><div class="lbl">Mongoose scoped <code>find</code> / <code>save</code> &#183; compound indexes</div></div>
+
+  <div class="tier b4">
+    <div class="thead"><span class="n">4. DATABASE</span><span class="t">MongoDB 8 on Atlas</span><span class="p">db.state = 1</span></div>
+    <div class="cells">
+      <div class="cell">
+        <div class="ch">Source code &#8212; section 5.4.5</div>
+        <div class="cb"><code>models/Incident.ts</code> IncidentType / IncidentPriority / IncidentStatus enums plus four indexes &#183; <code>models/User.ts</code> UserRole &#183; <code>models/EmergencyContact.ts</code></div>
+      </div>
+      <div class="cell out">
+        <div class="ch">Records verified live and by tests</div>
+        <div class="cb">Incident <code>6abc1ca4f003df137b5b08ce</code> written during the recorded run &#183; 127 unit and 67 integration assertions executed against a real <code>mongod</code> in section 5.6</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="li"><span class="sw" style="background:#1d4ed8"></span>Presentation</div>
+    <div class="li"><span class="sw" style="background:#0f766e"></span>Application</div>
+    <div class="li"><span class="sw" style="background:#6d28d9"></span>Analysis</div>
+    <div class="li"><span class="sw" style="background:#b45309"></span>Persistence</div>
+    <div class="note">Each arrow is the HTTP call issued by the tier above;<br/>its response is the output printed in the tier below.</div>
+  </div>
+
+</div>
+</body>
+</html>
