@@ -94,7 +94,10 @@ export function AdminIncidentsPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void loadSummary(controller.signal)
+    async function initialLoad(): Promise<void> {
+      await loadSummary(controller.signal)
+    }
+    void initialLoad()
     return () => controller.abort()
   }, [loadSummary])
 

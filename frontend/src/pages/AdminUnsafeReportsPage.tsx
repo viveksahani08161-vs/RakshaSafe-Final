@@ -212,7 +212,10 @@ export function AdminUnsafeReportsPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void loadCounts(controller.signal)
+    async function initialLoad(): Promise<void> {
+      await loadCounts(controller.signal)
+    }
+    void initialLoad()
     return () => controller.abort()
   }, [loadCounts])
 

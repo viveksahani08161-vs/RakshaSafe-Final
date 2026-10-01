@@ -30,7 +30,7 @@ const GROUP_ORDER: {
  * records fall into Safety / Rescue Teams — grouping never invents a
  * category.
  */
-export function groupOf(resource: NearbyResource): GroupId {
+function groupOf(resource: NearbyResource): GroupId {
   if (resource.kind === 'team') return 'teams'
   switch (resource.category) {
     case 'hospital':

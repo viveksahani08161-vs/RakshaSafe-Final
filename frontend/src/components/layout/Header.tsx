@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { cn } from '../../lib/cn'
 import { useI18n } from '../../lib/i18n'
-import { useTheme } from '../../lib/theme'
+import { useTheme } from '../../lib/useTheme'
 import { BellIcon, MenuIcon, MoonIcon, SunIcon } from '../ui/icons'
 import { Logo, type LogoVariant } from '../ui/Logo'
 import { LanguageSelector } from './LanguageSelector'

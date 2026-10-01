@@ -72,7 +72,7 @@ function formatDate(value: string): string {
 
 /** Normalize phone for tel: links — strips spaces, dashes, parens, keeps digits and leading +. */
 function normalizePhoneForTel(phone: string): string {
-  return phone.replace(/[\s\-\(\)]/g, '')
+  return phone.replace(/[\s()-]/g, '')
 }
 
 export function AdminUsersPage() {
@@ -143,7 +143,7 @@ export function AdminUsersPage() {
   }, [load])
 
   function handleViewUser(userId: string): void {
-    window.location.href = `#/admin/users/${userId}`
+    window.location.assign(`#/admin/users/${userId}`)
   }
 
   function openEditModal(user: AuthUser): void {

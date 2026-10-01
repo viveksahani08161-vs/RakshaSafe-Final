@@ -13,7 +13,8 @@ import { useAuth } from './lib/auth-context'
 import { AuthProvider } from './lib/AuthProvider'
 import { ThemeProvider } from './lib/theme'
 import { navigateTo, parseHash, useHashRoute, type AppRoute } from './lib/hash-route'
-import { I18nProvider, useI18n } from './lib/i18n'
+import { useI18n } from './lib/i18n'
+import { I18nProvider } from './lib/i18n/I18nProvider'
 import { getLastSeen, isUnread, type NotificationItem } from './lib/notifications'
 import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage'
 import { AdminEmergencyContactsPage } from './pages/AdminEmergencyContactsPage'
@@ -138,8 +139,13 @@ function Shell() {
     }
   }
 
+  // The landing/login screen ships its own full-page navbar and footer, so the
+  // app chrome is skipped there. Every other route keeps the existing layout.
+  const isLanding = route === '/login'
+
   return (
     <div className="min-h-svh">
+      {!isLanding && (
       <Header
         nav={<Navbar items={items} />}
         showNotifications={false}
@@ -184,8 +190,9 @@ function Shell() {
           )
         }
       />
+      )}
 
-      <main className={route === '/login' ? 'min-h-[calc(100svh-4rem)]' : 'mx-auto w-full max-w-7xl px-4 py-10 sm:px-6'}>
+      <main className={isLanding ? 'min-h-svh' : 'mx-auto w-full max-w-7xl px-4 py-10 sm:px-6'}>
         {initializing ? (
           <div className="flex justify-center py-20" role="status" aria-label={t('common.loading')}>
             <Spinner size="lg" />
@@ -195,6 +202,7 @@ function Shell() {
         )}
       </main>
 
+      {!isLanding && (
       <footer className="border-t border-ink-200 bg-cream-50 py-6 text-center text-sm text-ink-400">
         <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4">
           <Logo size="sm" withWordmark={false} />
@@ -203,6 +211,7 @@ function Shell() {
           <span>Developed by Vivek &amp; Vaibhav</span>
         </span>
       </footer>
+      )}
     </div>
   )
 }

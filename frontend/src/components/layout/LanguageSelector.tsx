@@ -1,5 +1,6 @@
 import { cn } from '../../lib/cn'
-import { LANGS, useI18n } from '../../lib/i18n'
+import { useI18n } from '../../lib/i18n'
+import { LANGS } from '../../lib/i18n/dictionary'
 
 export function LanguageSelector() {
   const { lang, setLang, t } = useI18n()

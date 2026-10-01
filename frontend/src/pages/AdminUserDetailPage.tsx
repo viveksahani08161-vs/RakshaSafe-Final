@@ -348,8 +348,11 @@ export function AdminUserDetailPage() {
     async function initialLoad(): Promise<void> {
       await load(controller.signal)
     }
+    async function initialLoadContacts(): Promise<void> {
+      await loadContacts(controller.signal)
+    }
     void initialLoad()
-    void loadContacts(controller.signal)
+    void initialLoadContacts()
     return () => controller.abort()
   }, [load, loadContacts])
 

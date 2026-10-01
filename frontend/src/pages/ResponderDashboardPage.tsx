@@ -84,8 +84,14 @@ export function ResponderDashboardPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void load(controller.signal)
-    void loadNotifs(controller.signal)
+    async function initialLoad(): Promise<void> {
+      await load(controller.signal)
+    }
+    async function initialLoadNotifs(): Promise<void> {
+      await loadNotifs(controller.signal)
+    }
+    void initialLoad()
+    void initialLoadNotifs()
     return () => controller.abort()
   }, [load, loadNotifs])
 

@@ -272,7 +272,10 @@ export function IncidentDetailPage() {
   useEffect(() => {
     if (loading || failed || notFound || !incident || !location) return
     const controller = new AbortController()
-    void loadNearby(controller.signal)
+    async function initialLoad(): Promise<void> {
+      await loadNearby(controller.signal)
+    }
+    void initialLoad()
     return () => controller.abort()
   }, [loading, failed, notFound, incident, location, loadNearby])
 

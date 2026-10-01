@@ -57,7 +57,7 @@ export const en = {
   'pagination.summary': 'Page {current} of {totalPages}',
   'language.label': 'Language',
   'language.english': 'English',
-  'language.hindi': 'हिंदी',
+  'language.hindi': 'हिन्दी',
   'theme.toggleToDark': 'Switch to dark mode',
   'theme.toggleToLight': 'Switch to light mode',
   'dashboard.helplines.title': 'Emergency Helplines',
@@ -1255,6 +1255,211 @@ export const en = {
   'weather.condition.unknown': 'Unknown',
   'map.attribution': '© OpenStreetMap contributors',
   'sos.enriching': 'Location services are being updated.',
+  'landing.brand.subtitle': 'Women Safety & Disaster Management',
+  'landing.nav.label': 'Landing page navigation',
+  'landing.nav.home': 'Home',
+  'landing.nav.about': 'About',
+  'landing.nav.services': 'Services',
+  'landing.nav.resources': 'Resources',
+  'landing.nav.help': 'Help & Support',
+  'landing.nav.contact': 'Contact',
+  'landing.hero.system': 'Women Safety & Disaster Management System',
+  'landing.feature.womenSafety': 'Women Safety',
+  'landing.feature.womenSafetyDesc': 'One-tap SOS alerts that share your live location with trusted contacts.',
+  'landing.feature.disasterResponse': 'Disaster Response',
+  'landing.feature.disasterResponseDesc': 'Coordinated help when disaster strikes your area.',
+  'landing.feature.liveLocation': 'Live Location & Alerts',
+  'landing.feature.liveLocationDesc': 'Share live coordinates and receive emergency alerts.',
+  'landing.feature.rescueTeams': 'Rescue Teams',
+  'landing.feature.rescueTeamsDesc': 'Police, hospital and rescue help around you.',
+  'landing.login.welcome': 'Welcome Back 👋',
+  'landing.login.subtitle': 'Login to your Raksha account',
+  'landing.login.identifier': 'Email ID / Mobile Number',
+  'landing.login.or': 'OR',
+  'landing.login.register': 'Register Now',
+  'landing.login.registerHint': 'Create a new account',
+  'landing.login.security': 'This is a secure Raksha portal. Your data is protected.',
+  'landing.login.forgotTitle': 'Forgot password',
+  'landing.footer.about':
+    'RakshaSafe is a women safety and disaster management platform for SOS alerts, live location sharing and nearby rescue help.',
+  'landing.footer.legal': 'Legal',
+  'landing.footer.accessibility': 'Accessibility',
+  'landing.footer.sitemap': 'Sitemap',
+  'landing.footer.accessibilityTitle': 'Accessibility',
+  'landing.footer.accessibilityP1':
+    'RakshaSafe is built to work with a keyboard, a screen reader and mobile assistive technology.',
+  'landing.footer.accessibilityP2':
+    'Every form control has a visible label, and every action can be reached with Tab and activated with Enter or Space.',
+  'landing.footer.accessibilityP3':
+    'Colour is never the only signal: errors are announced in text, and motion is reduced whenever your device asks for it.',
+  'landing.footer.accessibilityP4':
+    'Found a barrier to using RakshaSafe? Tell your administrator so it can be fixed.',
+  'landing.footer.sitemapTitle': 'Sitemap',
+  'landing.footer.sitemapPublic': 'Public pages',
+  'landing.footer.sitemapSignedIn':
+    'After signing in you also have access to your dashboard, SOS, emergency contacts, nearby resources and notifications.',
+  'landing.footer.rights': 'All rights reserved.',
+  'landing.footer.developed': 'Developed by Vivek & Vaibhav',
+  'landing.footer.copyright': '© 2026 RakshaSafe. All rights reserved.',
+  'landing.footer.legalLinks': 'Legal and site information',
+  'landing.nav.language': 'Change language',
+  'landing.nav.theme': 'Switch between light and dark theme',
+  'landing.info.home.title': 'RakshaSafe',
+  'landing.info.home.subtitle': 'Women safety and disaster response coordination',
+  'landing.info.home.intro':
+    'RakshaSafe is a web platform where a person in danger can raise an SOS alert, share where they are, and find nearby police, hospital and rescue help. Responders and administrators follow the alert inside the app and assign the nearest available help. It moves information from the person who needs it to the people who can act on it. It does not replace official emergency services.',
+  'landing.info.home.safety.title': 'Women safety',
+  'landing.info.home.safety.desc':
+    'Any signed-in member can raise an SOS, share live coordinates, and keep their own emergency contacts listed for a real emergency.',
+  'landing.info.home.disaster.title': 'Disaster response',
+  'landing.info.home.disaster.desc':
+    'During floods and other disasters, SOS alerts plus stored facility records help responders see who needs help and where the nearest shelters are.',
+  'landing.info.home.sos.title': 'Emergency SOS',
+  'landing.info.home.sos.desc':
+    'An SOS creates an incident with a full status history, so you and the responder can follow exactly what happened.',
+  'landing.info.home.location.title': 'Live location',
+  'landing.info.home.location.desc':
+    'Coordinates are captured only when you allow location access, and they are attached only to the incident you raise.',
+  'landing.info.home.contacts.title': 'Emergency contacts',
+  'landing.info.home.contacts.desc':
+    'Add the people you trust. They are listed for your own use, and are not contacted automatically by this app.',
+  'landing.info.home.resources.title': 'Nearby help',
+  'landing.info.home.resources.desc':
+    'Search hospitals, shelters, police stations and registered rescue teams near you, then call or open directions in one tap.',
+  'landing.info.home.weather.title': 'Weather context',
+  'landing.info.home.weather.desc':
+    'Current conditions are shown as background context while an SOS is raised or followed. They are not an official warning.',
+  'landing.info.home.accounts.title': 'Roles and accounts',
+  'landing.info.home.accounts.desc':
+    'Members raise alerts, responders handle the incidents assigned to them, and administrators review users, incidents and unsafe-area reports.',
+  'landing.info.about.title': 'About RakshaSafe',
+  'landing.info.about.subtitle': 'What this platform is built for',
+  'landing.info.about.intro':
+    'RakshaSafe exists to shorten the gap between something going wrong and someone actually arriving to help. It was built as a full-stack project that covers the member, responder and administrator workflows inside one deployment.',
+  'landing.info.about.mission.title': 'Our mission',
+  'landing.info.about.mission.desc':
+    'Make it fast and safe for someone in danger to ask for help, and make it equally fast for a responder to see the request and act on it.',
+  'landing.info.about.how.title': 'How it works',
+  'landing.info.about.how.desc':
+    'A member raises an SOS with an optional description and location. The alert enters the responder queue, is accepted by an available responder, and then moves through assignment, progress updates and resolution.',
+  'landing.info.about.scope.title': 'Who it is for',
+  'landing.info.about.scope.desc':
+    'Members who want emergency tools, responders who coordinate incidents, and administrators who maintain user accounts, facilities and rescue-team records.',
+  'landing.info.about.not.title': 'What RakshaSafe is not',
+  'landing.info.about.not.desc':
+    'It is not a government agency, not a police service, and not a substitute for calling official emergency numbers. It coordinates information; it does not command anyone.',
+  'landing.info.about.stack.title': 'How it is built',
+  'landing.info.about.stack.desc':
+    'A React single-page app served together with an Express and MongoDB API, using OpenStreetMap for maps and nearby places.',
+  'landing.info.services.title': 'Services',
+  'landing.info.services.subtitle': 'What you can actually do in RakshaSafe',
+  'landing.info.services.intro':
+    'Every item below is implemented and reachable once you sign in. There are no placeholder features.',
+  'landing.info.services.sos.title': 'Raise and track SOS incidents',
+  'landing.info.services.sos.desc':
+    'Create an emergency incident, add details, follow its status, and read the complete history of what happened.',
+  'landing.info.services.responder.title': 'Responder console',
+  'landing.info.services.responder.desc':
+    'Accepted responders see the incident queue for their area, accept an alert, update its progress, and resolve it.',
+  'landing.info.services.admin.title': 'Administrator console',
+  'landing.info.services.admin.desc':
+    'Administrators review members and responders, manage facility and rescue-team records, and triage incident and unsafe-area reports.',
+  'landing.info.services.location.title': 'Live and manual location',
+  'landing.info.services.location.desc':
+    'Use device GPS, or enter coordinates manually when location access is denied. Manual entries are always labelled as manual, never as GPS.',
+  'landing.info.services.contacts.title': 'Emergency contacts',
+  'landing.info.services.contacts.desc':
+    'Add, edit and remove the people you want to reach in an emergency.',
+  'landing.info.services.nearby.title': 'Nearby and stored resources',
+  'landing.info.services.nearby.desc':
+    'Discover mapped emergency places around you, and browse the hospitals, shelters, stations and registered rescue teams stored in RakshaSafe.',
+  'landing.info.services.reports.title': 'Unsafe-area reporting',
+  'landing.info.services.reports.desc':
+    'Flag a location you believe is unsafe, add context, and send it to administrators for review.',
+  'landing.info.services.notifications.title': 'Notifications',
+  'landing.info.services.notifications.desc':
+    'Follow-up messages about incidents and reports are collected in one place inside the app.',
+  'landing.info.resources.title': 'Resources',
+  'landing.info.resources.subtitle': 'Help and reference material in RakshaSafe',
+  'landing.info.resources.intro':
+    'Practical guidance and reference records that support the emergency tools.',
+  'landing.info.resources.help.title': 'Help and support',
+  'landing.info.resources.help.desc':
+    'Step-by-step guidance for signing in, raising an SOS, sharing location, and using the responder and administrator tools.',
+  'landing.info.resources.faq.title': 'Frequently asked questions',
+  'landing.info.resources.faq.desc':
+    'Straight answers about accounts, SOS incidents, location, permissions, and what this platform deliberately does not do.',
+  'landing.info.resources.facilities.title': 'Facility and team records',
+  'landing.info.resources.facilities.desc':
+    'The hospitals, shelters, police stations and registered rescue teams available in the resources directory.',
+  'landing.info.resources.safety.title': 'Safety information',
+  'landing.info.resources.safety.desc':
+    'What to do in an emergency, who to contact first, and how to be ready before an SOS is needed.',
+  'landing.info.help.title': 'Help and support',
+  'landing.info.help.subtitle': 'Answers and guidance',
+  'landing.info.help.intro':
+    'The most common questions about signing in, raising an SOS, and getting your account back.',
+  'landing.info.help.signin.title': 'Signing in',
+  'landing.info.help.signin.desc':
+    'Use the email address or mobile number you registered with, together with your password. New here? Create an account instead.',
+  'landing.info.help.password.title': 'If you cannot sign in',
+  'landing.info.help.password.desc':
+    'Use the Forgot password link on this screen. This deployment has no email service connected, so it cannot send a reset link. The dialog there shows the recovery steps that do work.',
+  'landing.info.help.sos.title': 'Raising an SOS',
+  'landing.info.help.sos.desc':
+    'Sign in, open your dashboard, and activate SOS. Allow location access so responders know where you are, and add a short description if you can.',
+  'landing.info.help.location.title': 'Location and permissions',
+  'landing.info.help.location.desc':
+    'RakshaSafe asks your browser for location only when you trigger it. If you decline, you can still raise an SOS and enter coordinates manually.',
+  'landing.info.help.safety.title': 'In an emergency',
+  'landing.info.help.safety.desc':
+    'Contact official emergency services first, such as 112 in India. RakshaSafe runs alongside them and never replaces them.',
+  'landing.info.help.contact.title': 'Still stuck?',
+  'landing.info.help.contact.desc':
+    'Ask the administrator who manages this deployment. They control account access and can restore it for you.',
+  'landing.info.contact.title': 'Contact',
+  'landing.info.contact.subtitle': 'How to reach the right place',
+  'landing.info.contact.intro':
+    'This deployment has no public support inbox, so use the route that matches what you need.',
+  'landing.info.contact.emergency.title': 'Danger right now',
+  'landing.info.contact.emergency.desc':
+    'Call your official emergency number immediately, such as 112 in India. Do not wait for anyone inside this app.',
+  'landing.info.contact.account.title': 'Account and access problems',
+  'landing.info.contact.account.desc':
+    'Contact the administrator of this RakshaSafe deployment. They manage accounts, responder roles and stored records.',
+  'landing.info.contact.correction.title': 'Incorrect facility or team details',
+  'landing.info.contact.correction.desc':
+    'Report it to the administrator, who maintains the facility, shelter and rescue-team records used in the resources directory.',
+  'terms.p8':
+    'Accepting an SOS and assigning a responder are coordination steps inside RakshaSafe. They do not create an official police complaint or FIR, and they do not order any police, ambulance, fire or rescue unit to act.',
+  'terms.p9':
+    'RakshaSafe is provided as-is for safety coordination. The availability of any responder, facility or team, and any arrival time, can change without notice.',
+  'privacy.p7':
+    'Notifications: messages generated by the incidents and reports you submit or are assigned to are stored, so you, responders and administrators can follow them.',
+  'privacy.p8':
+    'Administrator access: administrators can review member details, incident history and unsafe-area reports in order to operate the platform. That access is limited to the coordination purpose described here.',
+  'privacy.p9':
+    'Protection: your password is stored as a one-way hash that cannot be read back, and an access token is issued when you sign in. Data should travel over HTTPS in a production deployment, but RakshaSafe does not claim military-grade encryption or complete secrecy from its infrastructure provider.',
+  'login.recovery.title': 'Account recovery',
+  'login.recovery.intro':
+    'Enter the email address or mobile number on your account so we can confirm what this deployment can actually do for you.',
+  'login.recovery.identifierLabel': 'Email address or mobile number',
+  'login.recovery.identifierPlaceholder': 'you@example.com or 98765 43210',
+  'login.recovery.check': 'Check recovery options',
+  'login.recovery.checking': 'Checking...',
+  'login.recovery.backToLogin': 'Back to sign in',
+  'login.recovery.invalid': 'Enter a valid email address or a 10-digit mobile number.',
+  'login.recovery.noEmail':
+    'This deployment has no outbound email service connected, so RakshaSafe cannot email you a password reset link.',
+  'login.recovery.stepsTitle': 'What actually works right now',
+  'login.recovery.step1':
+    'Ask the administrator of this RakshaSafe deployment to reset your access. Only they can change account credentials.',
+  'login.recovery.step2':
+    'If you can still sign in, change your password from your profile after signing in.',
+  'login.recovery.step3':
+    'If you have lost the email address or mobile number on the account, only the administrator can restore your access to it.',
+  'login.recovery.note':
+    'Nothing was sent and your account was not changed while viewing this screen.',
 } as const
 
 export type DictKey = keyof typeof en
@@ -1825,7 +2030,7 @@ export const hi: Record<DictKey, string> = {
   'incidentDetail.resolved': 'हल किया गया',
   'incidentDetail.type': 'प्रकार',
   'language.english': 'English',
-  'language.hindi': 'हिंदी',
+  'language.hindi': 'हिन्दी',
   'language.label': 'भाषा',
   'theme.toggleToDark': 'डार्क मोड पर स्विच करें',
   'theme.toggleToLight': 'लाइट मोड पर स्विच करें',
@@ -2513,6 +2718,211 @@ export const hi: Record<DictKey, string> = {
   'weather.condition.unknown': 'अज्ञात',
   'map.attribution': '© OpenStreetMap contributors',
   'sos.enriching': 'स्थान सेवाएं अपडेट की जा रही हैं।',
+  'landing.brand.subtitle': 'महिला सुरक्षा एवं आपदा प्रबंधन',
+  'landing.nav.label': 'लैंडिंग पेज नेविगेशन',
+  'landing.nav.home': 'होम',
+  'landing.nav.about': 'हमारे बारे में',
+  'landing.nav.services': 'सेवाएँ',
+  'landing.nav.resources': 'संसाधन',
+  'landing.nav.help': 'सहायता एवं समर्थन',
+  'landing.nav.contact': 'संपर्क',
+  'landing.hero.system': 'महिला सुरक्षा एवं आपदा प्रबंधन प्रणाली',
+  'landing.feature.womenSafety': 'महिला सुरक्षा',
+  'landing.feature.womenSafetyDesc': 'एक टैप SOS अलर्ट जो आपकी लाइव लोकेशन भरोसेमंद संपर्कों के साथ साझा करता है।',
+  'landing.feature.disasterResponse': 'आपदा प्रतिक्रिया',
+  'landing.feature.disasterResponseDesc': 'आपदा आने पर समन्वित सहायता, सही समय पर।',
+  'landing.feature.liveLocation': 'लाइव लोकेशन एवं अलर्ट',
+  'landing.feature.liveLocationDesc': 'अपना लाइव स्थान साझा करें और आपातकालीन अलर्ट पाएँ।',
+  'landing.feature.rescueTeams': 'बचाव दल',
+  'landing.feature.rescueTeamsDesc': 'आपके आसपास पुलिस, अस्पताल और बचाव सहायता उपलब्ध।',
+  'landing.login.welcome': 'वापसी पर स्वागत है 👋',
+  'landing.login.subtitle': 'अपने Raksha खाते में लॉग इन करें',
+  'landing.login.identifier': 'ईमेल आईडी / मोबाइल नंबर',
+  'landing.login.or': 'या',
+  'landing.login.register': 'अभी रजिस्टर करें',
+  'landing.login.registerHint': 'नया खाता बनाएँ',
+  'landing.login.security': 'यह एक सुरक्षित Raksha पोर्टल है। आपका डेटा सुरक्षित रखा जाता है।',
+  'landing.login.forgotTitle': 'पासवर्ड भूल गए',
+  'landing.footer.about':
+    'RakshaSafe महिला सुरक्षा एवं आपदा प्रबंधन प्लेटफ़ॉर्म है — SOS अलर्ट, लाइव लोकेशन और आसपास बचाव सहायता के लिए।',
+  'landing.footer.legal': 'कानूनी',
+  'landing.footer.accessibility': 'सुगम्यता',
+  'landing.footer.sitemap': 'साइटमैप',
+  'landing.footer.accessibilityTitle': 'सुगम्यता',
+  'landing.footer.accessibilityP1':
+    'RakshaSafe को कीबोर्ड, स्क्रीन रीडर तथा मोबाइल सहायक तकनीक के साथ उपयोग करने योग्य बनाया गया है।',
+  'landing.footer.accessibilityP2':
+    'हर फ़ॉर्म नियंत्रण का स्पष्ट लेबल है, और हर क्रिया Tab से पहुँची तथा Enter या Space से सक्रिय होती है।',
+  'landing.footer.accessibilityP3':
+    'रंग कभी एकमात्र संकेत नहीं होता: त्रुटियाँ पाठ में सूचित होती हैं, और डिवाइस के कहने पर गति कम कर दी जाती है।',
+  'landing.footer.accessibilityP4':
+    'RakshaSafe का उपयोग करने में कोई बाधा मिले? इसे ठीक करने के लिए अपने प्रशासक को बताएँ।',
+  'landing.footer.sitemapTitle': 'साइटमैप',
+  'landing.footer.sitemapPublic': 'सार्वजनिक पेज',
+  'landing.footer.sitemapSignedIn':
+    'साइन इन करने के बाद आपके डैशबोर्ड, SOS, आपात संपर्क, नज़दीकी संसाधन और नोटिफ़िकेशन भी उपलब्ध होते हैं।',
+  'landing.footer.rights': 'सर्वाधिकार सुरक्षित।',
+  'landing.footer.developed': 'विवेक एवं वैभव द्वारा विकसित',
+  'landing.footer.copyright': '© 2026 RakshaSafe. सर्वाधिकार सुरक्षित।',
+  'landing.footer.legalLinks': 'कानूनी एवं साइट जानकारी',
+  'landing.nav.language': 'भाषा बदलें',
+  'landing.nav.theme': 'हल्के एवं गहरे थीम के बीच बदलें',
+  'landing.info.home.title': 'RakshaSafe',
+  'landing.info.home.subtitle': 'महिला सुरक्षा एवं आपदा प्रतिक्रिया समन्वय',
+  'landing.info.home.intro':
+    'RakshaSafe एक वेब प्लेटफ़ॉर्म है जहाँ ख़तरे में कोई व्यक्ति SOS अलर्ट भेज सकता है, अपना स्थान साझा कर सकता है, और आस-पास पुलिस, अस्पताल तथा बचाव सहायता खोज सकता है। रिस्पॉन्डर और प्रशासक ऐप के अंदर उसी अलर्ट पर काम करते हैं और उपलब्ध सबसे निकट सहायता सौंपते हैं। यह जानकारी उस व्यक्ति तक पहुँचाता है जिसे उसकी ज़रूरत है, उन तक जो कार्रवाई कर सकते हैं। यह आधिकारिक आपातकालीन सेवाओं का विकल्प नहीं है।',
+  'landing.info.home.safety.title': 'महिला सुरक्षा',
+  'landing.info.home.safety.desc':
+    'साइन इन कोई भी सदस्य SOS भेज सकता है, लाइव निर्देशांक साझा कर सकता है, और अपने आपात संपर्क यहाँ सुरक्षित रख सकता है।',
+  'landing.info.home.disaster.title': 'आपदा प्रतिक्रिया',
+  'landing.info.home.disaster.desc':
+    'बाढ़ और अन्य आपदाओं में, SOS अलर्ट और सहेजी गई सुविधा रिकॉर्ड मिलकर रिस्पॉन्डर को दिखाते हैं कि किसे मदद चाहिए और निकले सबसे पास के शरण स्थल कहाँ हैं।',
+  'landing.info.home.sos.title': 'आपातकालीन SOS',
+  'landing.info.home.sos.desc':
+    'SOS एक इंसिडेंट बनाता है जिसका पूरा स्थिति इतिहास रहता है, ताकि आप और रिस्पॉन्डर दोनों को पता रहे कि क्या हुआ।',
+  'landing.info.home.location.title': 'लाइव लोकेशन',
+  'landing.info.home.location.desc':
+    'निर्देशांक केवल तब लिए जाते हैं जब आप लोकेशन की अनुमति देते हैं, और केवल आपके द्वारा बनाए गए इंसिडेंट से जुड़े होते हैं।',
+  'landing.info.home.contacts.title': 'आपात संपर्क',
+  'landing.info.home.contacts.desc':
+    'अपने भरोसेमंद लोगों को जोड़ें। वे आपके अपने उपयोग के लिए सूचीबद्ध हैं, और यह ऐप उन्हें अपने आप संपर्क नहीं करता।',
+  'landing.info.home.resources.title': 'आस-पास सहायता',
+  'landing.info.home.resources.desc':
+    'अस्पताल, शरण स्थल, पुलिस थाने और पंजीकृत बचाव दलों को खोजें, फिर एक टैप में कॉल करें या दिशा खोलें।',
+  'landing.info.home.weather.title': 'मौसम की जानकारी',
+  'landing.info.home.weather.desc':
+    'SOS भेजते या उसका पीछा करते समय मौसम की वर्तमान स्थिति केवल पृष्ठभूमि संदर्भ के रूप में दिखाई जाती है। यह आधिकारिक चेतावनी नहीं है।',
+  'landing.info.home.accounts.title': 'भूमिकाएँ एवं खाते',
+  'landing.info.home.accounts.desc':
+    'सदस्य अलर्ट भेजते हैं, रिस्पॉन्डर अपने सौंपे गए इंसिडेंट संभालते हैं, और प्रशासक उपयोगकर्ता, इंसिडेंट तथा असुरक्षित क्षेत्र रिपोर्ट की समीक्षा करते हैं।',
+  'landing.info.about.title': 'RakshaSafe के बारे में',
+  'landing.info.about.subtitle': 'यह प्लेटफ़ॉर्म किसके लिए बनाया गया है',
+  'landing.info.about.intro':
+    'RakshaSafe का उद्देश्य है कि कुछ गड़बड़ होने और किसी के मदद के लिए सचमुच पहुँचने के बीच का अंतर कम करना। इसे एक फ़ुल-स्टैक प्रोजेक्ट के रूप में बनाया गया है, जिसमें सदस्य, रिस्पॉन्डर और प्रशासक — तीनों वर्कफ़्लो एक ही डिप्लॉयमेंट में हैं।',
+  'landing.info.about.mission.title': 'हमारा उद्देश्य',
+  'landing.info.about.mission.desc':
+    'ख़तरे में किसी को मदद माँगना उतना ही तेज़ और सुरक्षित बनाना, जितना यह सुनिश्चित करना कि कोई रिस्पॉन्डर उस अनुरोध को देखकर कार्रवाई कर सके।',
+  'landing.info.about.how.title': 'यह कैसे काम करता है',
+  'landing.info.about.how.desc':
+    'सदस्य वैकल्पिक विवरण और स्थान के साथ SOS भेजता है। अलर्ट रिस्पॉन्डर कतार में जाता है, उपलब्ध रिस्पॉन्डर उसे स्वीकार करता है, फिर सौंपे जाने, प्रगति अपडेट और समाप्ति के चरणों से गुजरता है।',
+  'landing.info.about.scope.title': 'यह किसके लिए है',
+  'landing.info.about.scope.desc':
+    'उन सदस्यों के लिए जिन्हें आपातकालीन सुविधाएँ चाहिए, उन रिस्पॉन्डर के लिए जो इंसिडेंट समन्वित करते हैं, और उन प्रशासकों के लिए जो खाते, सुविधाएँ और बचाव दल रिकॉर्ड संभालते हैं।',
+  'landing.info.about.not.title': 'RakshaSafe क्या नहीं है',
+  'landing.info.about.not.desc':
+    'यह कोई सरकारी संस्था नहीं है, पुलिस सेवा नहीं है, और आधिकारिक आपातकालीन नंबर कॉल करने का विकल्प नहीं है। यह जानकारी का समन्वय करता है; यह किसी को आदेश नहीं देता।',
+  'landing.info.about.stack.title': 'यह कैसे बनाया गया है',
+  'landing.info.about.stack.desc':
+    'एक React सिंगल-पेज ऐप, Express और MongoDB API के साथ, तथा मैप और आस-पास की जगहों के लिए OpenStreetMap के साथ।',
+  'landing.info.services.title': 'सेवाएँ',
+  'landing.info.services.subtitle': 'RakshaSafe में आप वास्तव में क्या कर सकते हैं',
+  'landing.info.services.intro':
+    'नीचे दी गई हर सुविधा वास्तव में लागू है और साइन इन करने के बाद उपलब्ध है। कोई नकली या आने वाली सुविधा नहीं है।',
+  'landing.info.services.sos.title': 'SOS इंसिडेंट बनाना और ट्रैक करना',
+  'landing.info.services.sos.desc':
+    'आपातकालीन इंसिडेंट बनाएँ, विवरण जोड़ें, उसकी स्थिति देखें, और जो हुआ उसका पूरा इतिहास पढ़ें।',
+  'landing.info.services.responder.title': 'रिस्पॉन्डर कंसोल',
+  'landing.info.services.responder.desc':
+    'स्वीकृत रिस्पॉन्डर अपने क्षेत्र की इंसिडेंट कतार देखते हैं, अलर्ट स्वीकार करते हैं, प्रगति अपडेट करते हैं, और उसे समाप्त करते हैं।',
+  'landing.info.services.admin.title': 'प्रशासक कंसोल',
+  'landing.info.services.admin.desc':
+    'प्रशासक सदस्यों और रिस्पॉन्डरों की समीक्षा करते हैं, सुविधा तथा बचाव दल रिकॉर्ड संभालते हैं, और इंसिडेंट व असुरक्षित क्षेत्र रिपोर्ट को देखते हैं।',
+  'landing.info.services.location.title': 'लाइव एवं मैन्युअल लोकेशन',
+  'landing.info.services.location.desc':
+    'डिवाइस GPS का उपयोग करें, या लोकेशन की अनुमति न होने पर निर्देशांक स्वयं दर्ज करें। मैन्युअल प्रवेश सदैव मैन्युअल के रूप में दिखाया जाता है, GPS के रूप में कभी नहीं।',
+  'landing.info.services.contacts.title': 'आपात संपर्क',
+  'landing.info.services.contacts.desc':
+    'उन लोगों को जोड़ें, संपादित करें और हटाएँ जिन्हें आप आपातकाल में संपर्क करना चाहते हैं।',
+  'landing.info.services.nearby.title': 'आस-पास एवं सहेजे गए संसाधन',
+  'landing.info.services.nearby.desc':
+    'अपने आस-पास मैप किए गए आपातकालीन स्थान देखें, और RakshaSafe में सहेजे गए अस्पताल, शरण स्थल, थाने तथा पंजीकृत बचाव दल देखें।',
+  'landing.info.services.reports.title': 'असुरक्षित क्षेत्र रिपोर्ट',
+  'landing.info.services.reports.desc':
+    'किसी ऐसे स्थान को चिह्नित करें जिसे आप असुरक्षित मानते हैं, उसकी जानकारी दें, और प्रशासकों की समीक्षा तक भेजें।',
+  'landing.info.services.notifications.title': 'नोटिफ़िकेशन',
+  'landing.info.services.notifications.desc':
+    'इंसिडेंट और रिपोर्ट से जुड़े आगे के संदेश ऐप के अंदर एक ही जगह इकट्ठे दिखते हैं।',
+  'landing.info.resources.title': 'संसाधन',
+  'landing.info.resources.subtitle': 'RakshaSafe में सहायता एवं संदर्भ सामग्री',
+  'landing.info.resources.intro':
+    'आपातकालीन सुविधाओं का समर्थन करने वाला व्यावहारिक मार्गदर्शन और संदर्भ रिकॉर्ड।',
+  'landing.info.resources.help.title': 'सहायता एवं समर्थन',
+  'landing.info.resources.help.desc':
+    'साइन इन करने, SOS भेजने, लोकेशन साझा करने, तथा रिस्पॉन्डर और प्रशासक सुविधाओं का उपयोग करने के लिए चरण-दर-चरण मार्गदर्शन।',
+  'landing.info.resources.faq.title': 'अक्सर पूछे जाने वाले प्रश्न',
+  'landing.info.resources.faq.desc':
+    'खातों, SOS इंसिडेंट, लोकेशन, अनुमतियों, और इस प्लेटफ़ॉर्म की जानबूझकर सीमाओं पर सीधे उत्तर।',
+  'landing.info.resources.facilities.title': 'सुविधा एवं दल रिकॉर्ड',
+  'landing.info.resources.facilities.desc':
+    'संसाधन निर्देशिका में उपलब्ध अस्पताल, शरण स्थल, पुलिस थाने और पंजीकृत बचाव दल।',
+  'landing.info.resources.safety.title': 'सुरक्षा जानकारी',
+  'landing.info.resources.safety.desc':
+    'आपातकाल में क्या करें, सबसे पहले किससे संपर्क करें, और SOS से पहले कैसे तैयार रहें।',
+  'landing.info.help.title': 'सहायता एवं समर्थन',
+  'landing.info.help.subtitle': 'उत्तर एवं मार्गदर्शन',
+  'landing.info.help.intro':
+    'साइन इन, SOS भेजने, और अपने खाते तक पहुँच बहाल करने से जुड़े सबसे आम प्रश्न।',
+  'landing.info.help.signin.title': 'साइन इन करना',
+  'landing.info.help.signin.desc':
+    'पंजीकरण के समय दिया गया ईमेल या मोबाइल नंबर अपने पासवर्ड के साथ उपयोग करें। नए हैं? इसके बजाय खाता बनाएँ।',
+  'landing.info.help.password.title': 'यदि साइन इन न हो पाए',
+  'landing.info.help.password.desc':
+    'इस स्क्रीन पर "पासवर्ड भूल गए" लिंक का उपयोग करें। इस डिप्लॉयमेंट में कोई ईमेल सेवा जुड़ी नहीं है, इसलिए रीसेट लिंक भेजा नहीं जा सकता। वहाँ दिखाए गए चरण वास्तव में काम करते हैं।',
+  'landing.info.help.sos.title': 'SOS भेजना',
+  'landing.info.help.sos.desc':
+    'साइन इन करें, अपना डैशबोर्ड खोलें, और SOS सक्रिय करें। लोकेशन की अनुमति दें ताकि रिस्पॉन्डर को पता चले आप कहाँ हैं, और हो सके तो संक्षिप्त विवरण जोड़ें।',
+  'landing.info.help.location.title': 'लोकेशन एवं अनुमतियाँ',
+  'landing.info.help.location.desc':
+    'RakshaSafe आपके ब्राउज़र से लोकेशन केवल तब माँगता है जब आप इसे चालू करते हैं। आप अस्वीकार करें, तब भी आप SOS भेज सकते हैं और निर्देशांक स्वयं दर्ज कर सकते हैं।',
+  'landing.info.help.safety.title': 'आपातकाल में',
+  'landing.info.help.safety.desc':
+    'सबसे पहले आधिकारिक आपातकालीन सेवाओं से संपर्क करें, जैसे भारत में 112। RakshaSafe उनके साथ चलता है, उनकी जगह नहीं लेता।',
+  'landing.info.help.contact.title': 'फिर भी समस्या है?',
+  'landing.info.help.contact.desc':
+    'इस डिप्लॉयमेंट को संभालने वाले प्रशासक से पूछें। खाते तक पहुँच उनके नियंत्रण में है और वे उसे बहाल कर सकते हैं।',
+  'landing.info.contact.title': 'संपर्क',
+  'landing.info.contact.subtitle': 'सही जगह तक कैसे पहुँचें',
+  'landing.info.contact.intro':
+    'इस डिप्लॉयमेंट में कोई सार्वजनिक सहायता इनबॉक्स नहीं है, इसलिए अपनी ज़रूरत के अनुसार सही मार्ग चुनें।',
+  'landing.info.contact.emergency.title': 'अभी ख़तरा है',
+  'landing.info.contact.emergency.desc':
+    'तुरंत अपना आधिकारिक आपातकालीन नंबर कॉल करें, जैसे भारत में 112। इस ऐप में किसी की प्रतीक्षा न करें।',
+  'landing.info.contact.account.title': 'खाता एवं पहुँच की समस्याएँ',
+  'landing.info.contact.account.desc':
+    'इस RakshaSafe डिप्लॉयमेंट के प्रशासक से संपर्क करें। वे खाते, रिस्पॉन्डर भूमिकाएँ और सहेजे गए रिकॉर्ड संभालते हैं।',
+  'landing.info.contact.correction.title': 'गलत सुविधा या दल की जानकारी',
+  'landing.info.contact.correction.desc':
+    'इसकी सूचना प्रशासक को दें, क्योंकि संसाधन निर्देशिका में उपयोग होने वाले सुविधा, शरण स्थल और बचाव दल रिकॉर्ड वे ही संभालते हैं।',
+  'terms.p8':
+    'SOS स्वीकार करना और रिस्पॉन्डर सौंपना RakshaSafe के अंदर समन्वय के चरण हैं। इनसे कोई आधिकारिक पुलिस शिकायत या FIR दर्ज नहीं होती, और न ही इनसे किसी पुलिस, एम्बुलेंस, दमकल या बचाव दल को कार्रवाई का आदेश मिलता है।',
+  'terms.p9':
+    'RakshaSafe सुरक्षा समन्वय के लिए जैसा है वैसा उपलब्ध कराया जाता है। किसी भी रिस्पॉन्डर, सुविधा या दल की उपलब्धता, तथा कोई भी पहुँचने का समय, बिना सूचना बदल सकता है।',
+  'privacy.p7':
+    'नोटिफ़िकेशन: आपके द्वारा दर्ज किए गए या आपको सौंपे गए इंसिडेंट और रिपोर्ट से बने संदेश सहेजे जाते हैं, ताकि आप, रिस्पॉन्डर और प्रशासक उनका पीछा कर सकें।',
+  'privacy.p8':
+    'प्रशासक पहुँच: प्रशासक प्लेटफ़ॉर्म चलाने के लिए सदस्य विवरण, इंसिडेंट इतिहास और असुरक्षित क्षेत्र रिपोर्ट देख सकते हैं। यह पहुँच केवल यहाँ बताए गए समन्वय उद्देश्य तक सीमित है।',
+  'privacy.p9':
+    'सुरक्षा: आपका पासवर्ड एकतरफ़ा हैश के रूप में सहेजा जाता है जिसे वापस पढ़ा नहीं जा सकता, और साइन इन करने पर एक एक्सेस टोकन जारी होता है। प्रोडक्शन डिप्लॉयमेंट में डेटा HTTPS के माध्यम से भेजा जाना चाहिए, पर RakshaSafe सैन्य-स्तरीय एन्क्रिप्शन या अपने इंफ़्रास्ट्रक्चर प्रदाता से पूर्ण गोपनीयता का दावा नहीं करता।',
+  'login.recovery.title': 'खाता पुनर्प्राप्ति',
+  'login.recovery.intro':
+    'अपने खाते से जुड़ा ईमेल या मोबाइल नंबर दर्ज करें ताकि हम यह पुष्टि कर सकें कि यह डिप्लॉयमेंट आपके लिए वास्तव में क्या कर सकता है।',
+  'login.recovery.identifierLabel': 'ईमेल पता या मोबाइल नंबर',
+  'login.recovery.identifierPlaceholder': 'you@example.com या 98765 43210',
+  'login.recovery.check': 'पुनर्प्राप्ति विकल्प देखें',
+  'login.recovery.checking': 'जाँच हो रही है...',
+  'login.recovery.backToLogin': 'साइन इन पर वापस',
+  'login.recovery.invalid': 'एक मान्य ईमेल पता या 10 अंकों का मोबाइल नंबर दर्ज करें।',
+  'login.recovery.noEmail':
+    'इस डिप्लॉयमेंट में कोई आउटबाउंड ईमेल सेवा जुड़ी नहीं है, इसलिए RakshaSafe आपको पासवर्ड रीसेट लिंक ईमेल नहीं कर सकता।',
+  'login.recovery.stepsTitle': 'अभी जो वास्तव में काम करता है',
+  'login.recovery.step1':
+    'इस RakshaSafe डिप्लॉयमेंट के प्रशासक से अपनी पहुँच बहाल करने का अनुरोध करें। खाते का पासवर्ड केवल वही बदल सकता है।',
+  'login.recovery.step2':
+    'यदि आप अभी भी साइन इन कर सकते हैं, तो साइन इन करने के बाद अपनी प्रोफ़ाइल से पासवर्ड बदलें।',
+  'login.recovery.step3':
+    'यदि खाते से जुड़ा ईमेल या मोबाइल नंबर भी खो गया है, तो केवल प्रशासक ही आपकी पहुँच बहाल कर सकता है।',
+  'login.recovery.note':
+    'यह स्क्रीन देखते समय कुछ भी नहीं भेजा गया और आपका खाता नहीं बदला गया।',
 }
 
 export const dictionaries: Record<Lang, Record<DictKey, string>> = { en, hi }

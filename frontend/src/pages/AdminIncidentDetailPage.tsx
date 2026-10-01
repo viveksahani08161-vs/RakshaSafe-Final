@@ -179,7 +179,10 @@ export function AdminIncidentDetailPage() {
   useEffect(() => {
     if (loading || failure || notFound || !detail?.location) return
     const controller = new AbortController()
-    void loadNearby(controller.signal)
+    async function initialLoad(): Promise<void> {
+      await loadNearby(controller.signal)
+    }
+    void initialLoad()
     return () => controller.abort()
   }, [loading, failure, notFound, detail, loadNearby])
 
