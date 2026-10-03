@@ -68,8 +68,8 @@ export async function getWeather(
     const params = new URLSearchParams({
       latitude: String(latitude),
       longitude: String(longitude),
-      current: 'temperature_2,relative_humidity_2m,precipitation,weather_code,wind_speed_10m',
-      daily: 'temperature_2_max,temperature_2_min,precipitation_probability_max',
+      current: 'temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m',
+      daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
       timezone: 'auto',
       forecast_days: '1',
     })
@@ -87,7 +87,7 @@ export async function getWeather(
     const first = <T>(v: T[] | undefined): T | null => (Array.isArray(v) && v.length > 0 ? v[0] : null)
     const report: WeatherReport = {
       current: {
-        temperatureC: finiteOrNull(current.temperature_2),
+        temperatureC: finiteOrNull(current.temperature_2m),
         humidityPct: finiteOrNull(current.relative_humidity_2m),
         precipitationMm: finiteOrNull(current.precipitation),
         windKph: finiteOrNull(current.wind_speed_10m),
@@ -95,8 +95,8 @@ export async function getWeather(
       },
       today: {
         date: typeof first(daily.time) === 'string' ? (first(daily.time) as string) : null,
-        maxC: finiteOrNull(first(daily.temperature_2_max as number[] | undefined)),
-        minC: finiteOrNull(first(daily.temperature_2_min as number[] | undefined)),
+        maxC: finiteOrNull(first(daily.temperature_2m_max as number[] | undefined)),
+        minC: finiteOrNull(first(daily.temperature_2m_min as number[] | undefined)),
         precipitationProbMax: finiteOrNull(first(daily.precipitation_probability_max as number[] | undefined)),
       },
     }
