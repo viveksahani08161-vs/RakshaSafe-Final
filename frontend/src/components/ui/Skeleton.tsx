@@ -12,7 +12,7 @@ export function Skeleton({ lines = 1, lastLineWidth = '60%', className, style, .
       {Array.from({ length: lines }, (_, i) => (
         <div
           key={i}
-          className="animate-pulse rounded-md bg-ink-200/70"
+          className="animate-pulse h-4 rounded-md bg-ink-200/70"
           style={{
             width: i === lines - 1 && lines > 1 ? lastLineWidth : '100%',
             ...style,

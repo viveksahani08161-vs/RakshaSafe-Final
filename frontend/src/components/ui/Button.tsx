@@ -56,7 +56,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex select-none items-center justify-center rounded-xl font-semibold transition-colors duration-150',
+        'inline-flex cursor-pointer select-none items-center justify-center rounded-xl font-semibold transition-colors duration-150',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500',
         'disabled:cursor-not-allowed',
         variantClasses[variant],

@@ -36,29 +36,36 @@ export function Header({
       )}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 shrink items-center gap-3">
           <button
             type="button"
             aria-label={t('aria.toggleMenu')}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex size-10 items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100 lg:hidden"
+            className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100 lg:hidden"
           >
             <MenuIcon className="size-5" />
           </button>
-          <Logo size="sm" variant={brandVariant} />
+          {/* Below `sm` the wordmark is dropped so the brand, theme toggle and
+              auth actions always fit a 390px phone; the logo mark alone still
+              identifies the app and nothing is hidden from `sm` upwards. */}
+          <Logo
+            size="sm"
+            variant={brandVariant}
+            className="min-w-0 [&>span]:hidden sm:[&>span]:inline"
+          />
         </div>
 
         <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">{nav}</div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={toggleTheme}
             aria-label={isDark ? t('theme.toggleToLight') : t('theme.toggleToDark')}
             title={isDark ? t('theme.toggleToLight') : t('theme.toggleToDark')}
             aria-pressed={isDark}
-            className="inline-flex size-10 items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100"
+            className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100"
           >
             {isDark ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
           </button>
@@ -70,7 +77,7 @@ export function Header({
             <button
               type="button"
               aria-label={t('nav.notifications')}
-              className="relative inline-flex size-10 items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100"
+              className="relative inline-flex size-10 cursor-pointer items-center justify-center rounded-xl text-ink-700 transition-colors hover:bg-ink-100"
             >
               <BellIcon className="size-5" />
               {notificationCount > 0 && (

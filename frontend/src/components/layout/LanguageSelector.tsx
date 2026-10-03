@@ -18,7 +18,7 @@ export function LanguageSelector() {
           aria-pressed={lang === value}
           onClick={() => setLang(value)}
           className={cn(
-            'rounded-[10px] px-2.5 py-1.5 text-xs font-semibold transition-colors',
+            'cursor-pointer rounded-[10px] px-2.5 py-1.5 text-xs font-semibold transition-colors',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500',
             lang === value
               ? 'bg-gold-500 text-white shadow-sm'

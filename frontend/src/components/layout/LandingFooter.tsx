@@ -59,7 +59,7 @@ export function LandingFooter() {
                 <button
                   type="button"
                   onClick={() => setLegalModal(link.key)}
-                  className="rounded text-xs font-semibold text-sky-200 underline-offset-4 transition-colors hover:text-gold-300 hover:underline"
+                  className="cursor-pointer rounded text-xs font-semibold text-sky-200 underline-offset-4 transition-colors hover:text-gold-300 hover:underline"
                 >
                   {t(link.label)}
                 </button>

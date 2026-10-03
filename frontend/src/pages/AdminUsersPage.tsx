@@ -254,7 +254,7 @@ export function AdminUsersPage() {
 
   return (
     <div className="mx-auto grid w-full max-w-5xl gap-6">
-      <Card>
+      <Card className="min-w-0">
         <CardHeader
           title={t('admin.users.title')}
           description={t('admin.users.description')}

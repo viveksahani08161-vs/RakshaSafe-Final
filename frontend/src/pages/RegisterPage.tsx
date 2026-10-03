@@ -10,6 +10,7 @@ import { Checkbox } from '../components/ui/Checkbox'
 import { AuthBrand } from '../components/auth/AuthBrand'
 import { Form } from '../components/ui/Form'
 import { Input } from '../components/ui/Input'
+import { useToast } from '../components/ui/toast-context'
 import { EyeIcon, EyeOffIcon, ShieldIcon } from '../components/ui/icons'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -65,6 +66,7 @@ type LegalModalKind = 'terms' | 'privacy' | null
 export function RegisterPage() {
   const { register, busy, error, clearError } = useAuth()
   const { t } = useI18n()
+  const { notify } = useToast()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -105,6 +107,11 @@ export function RegisterPage() {
         phone: normalizedPhone,
         password,
       })
+      notify({
+        title: t('register.success.title'),
+        description: t('register.success.description'),
+        variant: 'success',
+      })
       navigateTo('/dashboard')
     } catch {
       /* error is surfaced through context */
@@ -127,6 +134,7 @@ export function RegisterPage() {
         onClick={onToggle}
         aria-label={t(visible ? 'auth.hidePassword' : 'auth.showPassword')}
         aria-pressed={visible}
+        className="cursor-pointer rounded-lg p-1 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500"
       >
         {visible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
       </button>

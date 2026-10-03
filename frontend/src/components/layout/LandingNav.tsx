@@ -69,7 +69,7 @@ export function LandingNav({ items, className, onSelect }: LandingNavProps) {
         <button
           type="button"
           onClick={() => goTo(items[0])}
-          className="flex min-w-0 shrink items-center gap-2.5 rounded-xl text-left"
+          className="flex min-w-0 shrink cursor-pointer items-center gap-2.5 rounded-xl text-left"
         >
           <span className="[&_img]:h-10 [&_img]:max-w-[6.5rem] sm:[&_img]:h-12 sm:[&_img]:max-w-[8.5rem]">
             <AuthBrand size="sm" />
@@ -99,7 +99,7 @@ export function LandingNav({ items, className, onSelect }: LandingNavProps) {
                     }}
                     aria-current={active ? 'true' : undefined}
                     className={cn(
-                      'inline-flex min-h-10 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors',
+                      'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors',
                       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500',
                       active
                         ? 'bg-gold-500 text-white shadow-sm shadow-gold-500/25'
@@ -125,7 +125,7 @@ export function LandingNav({ items, className, onSelect }: LandingNavProps) {
             aria-label={isDark ? t('theme.toggleToLight') : t('theme.toggleToDark')}
             title={isDark ? t('theme.toggleToLight') : t('theme.toggleToDark')}
             aria-pressed={isDark}
-            className="inline-flex size-10 items-center justify-center rounded-xl border border-ink-200 bg-white/70 text-ink-700 transition-colors hover:border-gold-400 hover:text-gold-700"
+            className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-ink-200 bg-white/70 text-ink-700 transition-colors hover:border-gold-400 hover:text-gold-700"
           >
             {isDark ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
           </button>
@@ -137,7 +137,7 @@ export function LandingNav({ items, className, onSelect }: LandingNavProps) {
             onClick={() => setOpen((value) => !value)}
             aria-label={t('aria.toggleMenu')}
             aria-expanded={open}
-            className="inline-flex size-10 items-center justify-center rounded-xl border border-ink-200 bg-white/70 text-ink-700 transition-colors hover:border-gold-400 hover:text-gold-700 lg:hidden"
+            className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-ink-200 bg-white/70 text-ink-700 transition-colors hover:border-gold-400 hover:text-gold-700 lg:hidden"
           >
             {open ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
           </button>
@@ -165,7 +165,7 @@ export function LandingNav({ items, className, onSelect }: LandingNavProps) {
                     }}
                     aria-current={active ? 'true' : undefined}
                     className={cn(
-                      'inline-flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
+                      'inline-flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
                       active
                         ? 'bg-gold-500 text-white shadow-sm shadow-gold-500/25'
                         : 'text-ink-700 hover:bg-gold-100 hover:text-gold-800',

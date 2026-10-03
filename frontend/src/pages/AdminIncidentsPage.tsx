@@ -152,7 +152,7 @@ export function AdminIncidentsPage() {
         </div>
       )}
 
-      <Card>
+      <Card className="min-w-0">
         <CardHeader title="Incident management" description="Review SOS records, acknowledge them, and update their status." />
         <CardBody>
           <div className="space-y-4">

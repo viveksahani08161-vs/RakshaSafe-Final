@@ -327,7 +327,7 @@ export function AdminFacilitiesPage() {
       </Card>
 
       {/* Filters & Table */}
-      <Card>
+      <Card className="min-w-0">
         <CardBody className="space-y-4">
           <FilterBar
             search={

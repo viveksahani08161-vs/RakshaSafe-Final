@@ -74,8 +74,8 @@ export function NotificationsPage() {
   const unreadCount = items.filter((n) => isUnread(n, cursor)).length
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-6">
-      <Card>
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6">
+      <Card className="min-w-0">
         <CardHeader
           title={t('notifications.title')}
           description={t('notifications.description')}

@@ -180,9 +180,9 @@ export function ResourcesPage() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6">
       {/* SECTION 1: NEARBY EMERGENCY FACILITIES (OSM/Overpass - GPS-based) */}
-      <Card>
+      <Card className="min-w-0">
         <CardHeader
           title={t('resources.nearbyFacilities.title')}
           description={t('resources.nearbyFacilities.description')}
@@ -255,7 +255,7 @@ export function ResourcesPage() {
       </Card>
 
       {/* SECTION 2: REGISTERED RESCUE TEAMS (MongoDB RescueTeam collection only) */}
-      <Card>
+      <Card className="min-w-0">
         <CardHeader
           title={t('resources.registeredTeams.title')}
           description={t('resources.registeredTeams.description')}
@@ -313,7 +313,7 @@ export function ResourcesPage() {
             <EmptyState title={t('resources.registeredTeams.emptyTitle')} description={t('resources.registeredTeams.emptyDescription')} />
           )}
           {!teamsLoading && !teamsError && teamItems.length > 0 && (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {teamItems.map((team) => {
                 const mapsUrl = team.location
                   ? buildDirectionsUrl(team.location.latitude, team.location.longitude)
@@ -405,7 +405,7 @@ export function ResourcesPage() {
       </Card>
 
       {/* SECTION 3: STORED EMERGENCY FACILITIES (MongoDB Facility collection - admin managed) */}
-      <Card>
+      <Card className="min-w-0">
         <CardHeader
           title={t('resources.storedFacilities.title')}
           description={t('resources.storedFacilities.description')}
@@ -463,7 +463,7 @@ export function ResourcesPage() {
             <EmptyState title={t('resources.storedFacilities.emptyTitle')} description={t('resources.storedFacilities.emptyDescription')} />
           )}
           {!facilitiesLoading && !facilitiesError && facilityItems.length > 0 && (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {facilityItems.map((f) => (
                 <li key={f.id} className="flex flex-col gap-2 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">

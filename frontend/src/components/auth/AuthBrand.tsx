@@ -17,7 +17,7 @@ export interface AuthBrandProps {
 }
 
 const sizeClasses: Record<AuthBrandSize, string> = {
-  sm: 'h-12 w-auto max-w-[9rem]',
+  sm: 'h-14 w-auto max-w-[9rem]',
   md: 'h-16 w-auto max-w-[13rem]',
   lg: 'h-24 w-auto max-w-[18rem]',
   hero: 'h-auto w-full max-w-[40rem]',

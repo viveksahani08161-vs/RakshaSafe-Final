@@ -272,6 +272,7 @@ export function LoginPage() {
                         aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                         title={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                         aria-pressed={showPassword}
+                        className="cursor-pointer rounded-lg p-1 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500"
                       >
                         {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
@@ -317,9 +318,13 @@ export function LoginPage() {
                   >
                     {t('landing.login.register')}
                   </Button>
-                  <p className="-mt-2 text-center text-xs text-ink-500 dark:text-sky-400">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('/register')}
+                    className="-mt-2 block w-full cursor-pointer rounded-lg text-center text-xs font-semibold text-gold-700 underline-offset-4 transition-colors hover:text-gold-800 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500 dark:text-gold-400 dark:hover:text-gold-300"
+                  >
                     {t('landing.login.registerHint')}
-                  </p>
+                  </button>
                 </form>
 
                 <p className="flex items-start gap-2 rounded-xl bg-sky-50 p-3 text-xs leading-relaxed text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">
