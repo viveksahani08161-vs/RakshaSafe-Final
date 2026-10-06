@@ -11,6 +11,17 @@ export interface RiskAssessment {
   createdAt: string
 }
 
+/**
+ * Assistive explanation attached to a freshly completed assessment.
+ * Ephemeral (never stored): `gemini` = model-generated summary of the
+ * canonical result, `fallback` = deterministic standard summary.
+ * Neither carries a score — the stored assessment stays canonical.
+ */
+export interface RiskExplanation {
+  text: string
+  source: 'gemini' | 'fallback'
+}
+
 export function riskLevelVariant(level: string): BadgeVariant {
   switch (level) {
     case 'LOW':

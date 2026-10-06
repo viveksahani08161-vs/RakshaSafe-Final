@@ -5,6 +5,7 @@ import { requestDeviceLocation, type LocationOutcome } from '../lib/geolocation'
 import {
   FACILITY_TYPES,
   TEAM_TYPES,
+  describeStoredArea,
   formatCoords,
   getOsmNearby,
   buildTelHref,
@@ -84,22 +85,27 @@ export function ResourcesPage() {
   // /api/nearby searches progressively (1 → 2.5 → 5 km); this value only
   // feeds the honest empty-state copy when even 5 km finds nothing.
   const osmSearchRadiusKm = 5
+  // Sequence guard: only the latest OSM request may write state, so a slow
+  // earlier response can never overwrite fresher results.
+  const osmSeq = useRef(0)
 
   const loadOsmNearby = useCallback(
     async (latitude: number, longitude: number, signal?: AbortSignal) => {
       setOsmLoading(true)
       setOsmError(null)
+      osmSeq.current += 1
+      const seq = osmSeq.current
       try {
         const res = await getOsmNearby(latitude, longitude, undefined, signal)
-        if (!signal?.aborted) setOsmFacilities(res.facilities)
+        if (!signal?.aborted && osmSeq.current === seq) setOsmFacilities(res.facilities)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        if (!signal?.aborted) {
+        if (!signal?.aborted && osmSeq.current === seq) {
           setOsmFacilities([])
           setOsmError(err instanceof ApiError ? err.message : t('nearby.loadError'))
         }
       } finally {
-        if (!signal?.aborted) setOsmLoading(false)
+        if (!signal?.aborted && osmSeq.current === seq) setOsmLoading(false)
       }
     },
     [t],
@@ -270,10 +276,10 @@ export function ResourcesPage() {
                 onClear={() => setTeamSearch('')}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Select
                 aria-label={t('resources.registeredTeams.filterAria')}
-                className="w-40"
+                className="w-full sm:w-40"
                 value={teamType}
                 onChange={(e) => {
                   setTeamType(e.target.value)
@@ -319,7 +325,7 @@ export function ResourcesPage() {
                   ? buildDirectionsUrl(team.location.latitude, team.location.longitude)
                   : null
                 const cityLine = team.location
-                  ? [team.location.city, team.location.state, team.location.country].filter(Boolean).join(', ')
+                  ? [team.location.city, team.location.district, team.location.state, team.location.country].filter(Boolean).join(', ')
                   : ''
                 return (
                   <li key={team.id} className="flex flex-col gap-3 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
@@ -327,6 +333,9 @@ export function ResourcesPage() {
                       <div className="min-w-0">
                         <p className="break-words text-base font-bold text-ink-900">{team.name}</p>
                         <Badge variant="secondary" className="mt-1.5">{team.teamType}</Badge>
+                        <p className="mt-1 text-xs text-ink-400">
+                          {t('admin.teams.memberCount', { count: team.members.length })}
+                        </p>
                       </div>
                       <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700 dark:bg-gold-500/15 dark:text-gold-300" aria-hidden="true">
                         <UsersIcon className="size-5" />
@@ -420,10 +429,10 @@ export function ResourcesPage() {
                 onClear={() => setFacilitySearch('')}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Select
                 aria-label={t('resources.storedFacilities.filterAria')}
-                className="w-40"
+                className="w-full sm:w-40"
                 value={facilityType}
                 onChange={(e) => {
                   setFacilityType(e.target.value)
@@ -464,7 +473,12 @@ export function ResourcesPage() {
           )}
           {!facilitiesLoading && !facilitiesError && facilityItems.length > 0 && (
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {facilityItems.map((f) => (
+              {facilityItems.map((f) => {
+                const area = f.location ? describeStoredArea(f.location) : null
+                const mapsUrl = f.location
+                  ? buildDirectionsUrl(f.location.latitude, f.location.longitude)
+                  : null
+                return (
                 <li key={f.id} className="flex flex-col gap-2 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -486,8 +500,16 @@ export function ResourcesPage() {
                     )}
                   </p>
                   {f.location && (
+                    <p className="flex items-start gap-1.5 text-sm text-ink-500">
+                      <MapPinIcon className="mt-0.5 size-4 shrink-0 text-ink-400" aria-hidden="true" />
+                      <span className="min-w-0 break-words">
+                        {area ?? t('nearby.addressUnavailable')}
+                      </span>
+                    </p>
+                  )}
+                  {f.location && (
                     <p className="flex items-center gap-1.5 text-sm text-ink-500">
-                      <MapPinIcon className="size-4 shrink-0 text-ink-400" />
+                      <MapPinIcon className="size-4 shrink-0 text-ink-400" aria-hidden="true" />
                       {formatCoords(f.location.latitude, f.location.longitude, f.location.accuracy)}
                     </p>
                   )}
@@ -495,8 +517,20 @@ export function ResourcesPage() {
                     {f.capacity !== undefined && <Badge variant="neutral">Capacity {f.capacity}</Badge>}
                     {f.operatingHours && <Badge variant="outline">{f.operatingHours}</Badge>}
                   </div>
+                  {mapsUrl ? (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/20"
+                    >
+                      <ExternalLinkIcon className="size-4" aria-hidden="true" />
+                      {t('nearby.directions')}
+                    </a>
+                  ) : null}
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
           <Alert variant="info" title={t('resources.storedFacilities.aboutTitle')}>

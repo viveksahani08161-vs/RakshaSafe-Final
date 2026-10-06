@@ -207,8 +207,6 @@ function Shell() {
         <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4">
           <Logo size="sm" withWordmark={false} />
           <span>RakshaSafe · Women Safety &amp; Disaster Management System</span>
-          <span aria-hidden="true">·</span>
-          <span>Developed by Vivek &amp; Vaibhav</span>
         </span>
       </footer>
       )}

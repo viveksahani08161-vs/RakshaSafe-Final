@@ -53,8 +53,8 @@ export async function listEmergencyContactsAdmin(req: Request, res: Response, ne
  */
 export async function listAllEmergencyContactsAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const page = Math.max(1, parseInt(typeof req.query.page === 'string' ? req.query.page : '1', 10))
-    const limit = Math.min(50, Math.max(1, parseInt(typeof req.query.limit === 'string' ? req.query.limit : '20', 10)))
+    const page = Math.max(1, parseInt(typeof req.query.page === 'string' ? req.query.page : '1', 10) || 1)
+    const limit = Math.min(50, Math.max(1, parseInt(typeof req.query.limit === 'string' ? req.query.limit : '20', 10) || 20))
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
     const skip = (page - 1) * limit
 

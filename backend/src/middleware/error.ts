@@ -40,8 +40,15 @@ export function errorHandler(
   err: Error,
   _req: Request,
   res: Response,
-  _next: NextFunction,
+  next: NextFunction,
 ): void {
+  // Headers already on the wire (e.g. a file export that failed mid-send):
+  // writing JSON now would throw ERR_HTTP_HEADERS_SENT, so delegate to the
+  // default handler to close the connection instead of crashing the request.
+  if (res.headersSent) {
+    next(err)
+    return
+  }
   if (err instanceof HttpError) {
     res.status(err.statusCode).json({
       success: false,

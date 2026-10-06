@@ -9,6 +9,8 @@ export interface PaginationProps {
   siblingCount?: number
   className?: string
   showSummary?: boolean
+  /** Disables every page button while a page request is in flight. */
+  disabled?: boolean
 }
 
 function getPageItems(current: number, total: number, siblings: number): (number | '…')[] {
@@ -33,6 +35,7 @@ export function Pagination({
   siblingCount = 1,
   className,
   showSummary = true,
+  disabled = false,
 }: PaginationProps) {
   const items = useMemo(
     () => getPageItems(current, totalPages, siblingCount),
@@ -55,7 +58,7 @@ export function Pagination({
         <button
           type="button"
           aria-label="Previous page"
-          disabled={current <= 1}
+          disabled={current <= 1 || disabled}
           onClick={() => onPageChange(current - 1)}
           className={cn(
             base,
@@ -75,6 +78,7 @@ export function Pagination({
               key={item}
               type="button"
               aria-current={item === current ? 'page' : undefined}
+              disabled={disabled}
               onClick={() => onPageChange(item)}
               className={cn(
                 base,
@@ -91,7 +95,7 @@ export function Pagination({
         <button
           type="button"
           aria-label="Next page"
-          disabled={current >= totalPages}
+          disabled={current >= totalPages || disabled}
           onClick={() => onPageChange(current + 1)}
           className={cn(
             base,

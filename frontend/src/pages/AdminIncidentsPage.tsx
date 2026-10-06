@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '../lib/api'
 import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
@@ -57,6 +57,8 @@ export function AdminIncidentsPage() {
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<RequestFailureKind | null>(null)
   const [failureDetail, setFailureDetail] = useState<string | null>(null)
+  // Sequence guard: only the latest in-flight list request may write state.
+  const loadSeq = useRef(0)
 
   const loadSummary = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -72,6 +74,8 @@ export function AdminIncidentsPage() {
       setLoading(true)
       setFailure(null)
       setFailureDetail(null)
+      loadSeq.current += 1
+      const seq = loadSeq.current
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (status) params.set('status', status)
@@ -79,14 +83,16 @@ export function AdminIncidentsPage() {
         if (type) params.set('type', type)
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/incidents?${params.toString()}`, signal ? { signal } : {})
+        if (signal?.aborted || loadSeq.current !== seq) return
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
+        if (signal?.aborted || loadSeq.current !== seq) return
         setFailure(toRequestFailureKind(err))
         setFailureDetail(err instanceof ApiError ? err.message : null)
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
       }
     },
     [status, priority, type, debouncedSearch],
@@ -251,7 +257,7 @@ export function AdminIncidentsPage() {
                     ))}
                 </TableBody>
               </Table>
-              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} disabled={loading} onPageChange={(p) => void load(p)} />
               </div>
             )}
             {!loading && !failed && data && data.incidents.length > 0 && (

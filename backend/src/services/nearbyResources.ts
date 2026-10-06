@@ -3,9 +3,6 @@ import { Facility } from '../models/Facility.js'
 import { Location } from '../models/Location.js'
 import { RescueTeam } from '../models/RescueTeam.js'
 
-/** Maximum resources returned by any nearby query. */
-export const NEARBY_RESOURCE_LIMIT = 10
-
 export type NearbyResourceSource = 'RAKSHASAFE' | 'GOOGLE_PLACES' | 'OSM'
 
 export interface NearbyResource {
@@ -120,7 +117,7 @@ export function sortNearbyResources(items: NearbyResource[]): NearbyResource[] {
  * - out-of-radius located records are dropped, never shown with a fake distance
  * - records without coordinates get distanceKm: null (never 0, never guessed)
  * - no availability, ETA, beds, or dispatch state is invented
- * - at most NEARBY_RESOURCE_LIMIT records are returned
+ * - all in-radius records are returned, nearest first (no result cap)
  * - external failure degrades to DB-only; it never throws
  */
 export async function findNearbyResources(
@@ -216,5 +213,5 @@ export async function findNearbyResources(
     console.warn('[nearby-external] provider failed, serving database resources only.')
   }
 
-  return { resources: sortNearbyResources(out).slice(0, NEARBY_RESOURCE_LIMIT), external }
+  return { resources: sortNearbyResources(out), external }
 }

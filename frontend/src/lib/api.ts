@@ -53,6 +53,8 @@ interface ApiOptions {
   body?: unknown
   token?: string | null
   signal?: AbortSignal
+  /** Override the default request timeout (ms). Defaults to DEFAULT_TIMEOUT_MS. */
+  timeoutMs?: number
 }
 
 interface ApiEnvelope<T> {
@@ -76,9 +78,15 @@ export function onUnauthorized(handler: UnauthorizedHandler | null): void {
   unauthorizedHandler = handler
 }
 
+/** Default budget for any API request. Guarantees no request — and therefore no
+ * loading spinner — can remain pending forever when the network stalls. */
+const DEFAULT_TIMEOUT_MS = 30000
+
 /** Typed fetch wrapper for the RakshaSafe REST API. Throws ApiError on failure. */
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const token = options.token === undefined ? getStoredToken() : options.token
+  const timeout = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
+  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
   let res: Response
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -88,13 +96,20 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
-      ...(options.signal ? { signal: options.signal } : {}),
+      signal,
     })
   } catch (err) {
     // Re-throw cancellations untouched so every caller's AbortError guard
     // works; otherwise a stale aborted request would surface as a failure
-    // and mask successfully loaded data with an error panel.
-    if (err instanceof DOMException && err.name === 'AbortError') throw err
+    // and mask successfully loaded data with an error panel. A timeout is
+    // NOT a cancellation: it surfaces as a real error so loading stops and
+    // the user sees what happened instead of an infinite spinner.
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      if (timeout.aborted && !(options.signal?.aborted ?? false)) {
+        throw new ApiError(0, 'Request timed out. Please try again.')
+      }
+      throw err
+    }
     throw new ApiError(0, 'Cannot reach the server. Check your connection and try again.')
   }
 

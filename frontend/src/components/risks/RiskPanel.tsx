@@ -1,4 +1,4 @@
-import { formatDateTime, riskLevelVariant, type RiskAssessment } from '../../lib/risks'
+import { formatDateTime, riskLevelVariant, type RiskAssessment, type RiskExplanation } from '../../lib/risks'
 import { Alert } from '../ui/Alert'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -15,6 +15,12 @@ interface RiskPanelProps {
   noLocation: boolean
   onAssess: () => void
   onDismissError: () => void
+  /**
+   * Explanation for the latest assessment, from the assessment response.
+   * Ephemeral: shown only for the just-completed run (history reloads do not
+   * carry it). Null = none yet.
+   */
+  explanation?: RiskExplanation | null
   /** Empty-state copy. Defaults suit the incident owner; the admin view passes its own wording. */
   emptyTitle?: string
   emptyDescription?: string
@@ -50,6 +56,7 @@ export function RiskPanel({
   noLocation,
   onAssess,
   onDismissError,
+  explanation = null,
   emptyTitle = 'Risk assessment has not been performed yet.',
   emptyDescription = 'Run an assistive risk assessment for this incident\u2019s location.',
 }: RiskPanelProps) {
@@ -148,6 +155,17 @@ export function RiskPanel({
                 <p className="mt-2 text-xs leading-relaxed text-ink-500">
                   Risk level is calculated from the incident priority, incident type and
                   verified safety information available around the reported location.
+                </p>
+              </div>
+            )}
+            {explanation && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-ink-400">What this means</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-600">{explanation.text}</p>
+                <p className="mt-1 text-xs text-ink-400">
+                  {explanation.source === 'gemini'
+                    ? 'AI-generated explanation of the stored score — the score itself is unchanged.'
+                    : 'Standard summary of the stored score.'}
                 </p>
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { useI18n } from '../lib/i18n'
@@ -111,31 +111,38 @@ export function AdminTeamsPage() {
   const [memberBusy, setMemberBusy] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null)
+  // Sequence guards: only the latest in-flight request may write state, so a
+  // slow earlier response can never overwrite fresher data.
+  const loadSeq = useRef(0)
+  const viewSeq = useRef(0)
+  const membersSeq = useRef(0)
 
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
       setFailed(false)
       setDenied(false)
+      loadSeq.current += 1
+      const seq = loadSeq.current
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (typeFilter) params.set('teamType', typeFilter)
         if (statusFilter) params.set('isActive', statusFilter)
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/rescue-teams?${params.toString()}`, signal ? { signal } : {})
-        if (signal?.aborted) return
+        if (signal?.aborted || loadSeq.current !== seq) return
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        if (signal?.aborted) return
+        if (signal?.aborted || loadSeq.current !== seq) return
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           setDenied(true)
         } else {
           setFailed(true)
         }
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
       }
     },
     [typeFilter, statusFilter, debouncedSearch],
@@ -304,10 +311,14 @@ export function AdminTeamsPage() {
     setViewTeam(team)
     setViewDetail(null)
     setViewLoading(true)
+    viewSeq.current += 1
+    const seq = viewSeq.current
     try {
       const res = await api<{ team: RescueTeam }>(`/admin/rescue-teams/${team.id}`)
+      if (viewSeq.current !== seq) return
       setViewDetail(res.team)
     } catch (err) {
+      if (viewSeq.current !== seq) return
       notify({
         title: t('admin.teams.detail.loadFailed'),
         description: err instanceof ApiError ? err.message : t('admin.teams.serverUnreachable'),
@@ -315,7 +326,7 @@ export function AdminTeamsPage() {
       })
       setViewTeam(null)
     } finally {
-      setViewLoading(false)
+      if (viewSeq.current === seq) setViewLoading(false)
     }
   }
 
@@ -326,32 +337,38 @@ export function AdminTeamsPage() {
     setMemberUserId('')
     setMemberFieldError(null)
     setMembersLoading(true)
+    membersSeq.current += 1
+    const seq = membersSeq.current
     try {
       const res = await api<{ members: TeamMember[] }>(`/admin/rescue-teams/${team.id}/members`)
+      if (membersSeq.current !== seq) return
       setMembers(res.members)
     } catch (err) {
+      if (membersSeq.current !== seq) return
       setMembersError(err instanceof ApiError ? err.message : t('admin.teams.membersLoadFailed'))
     } finally {
-      setMembersLoading(false)
+      if (membersSeq.current === seq) setMembersLoading(false)
     }
   }
 
   async function onAddMember(e: FormEvent): Promise<void> {
     e.preventDefault()
     if (!membersTeam || memberBusy) return
+    const teamId = membersTeam.id
+    const teamName = membersTeam.name
     setMemberBusy(true)
     setMemberFieldError(null)
     setMembersError(null)
     try {
-      const res = await api<{ team: RescueTeam }>(`/admin/rescue-teams/${membersTeam.id}/members`, {
+      const res = await api<{ team: RescueTeam }>(`/admin/rescue-teams/${teamId}/members`, {
         method: 'POST',
         body: { userId: memberUserId.trim() },
       })
-      notify({ title: t('admin.teams.linked'), description: membersTeam.name, variant: 'success' })
+      notify({ title: t('admin.teams.linked'), description: teamName, variant: 'success' })
       setMemberUserId('')
       setMembersTeam(res.team)
       const refreshed = await api<{ members: TeamMember[] }>(
-        `/admin/rescue-teams/${membersTeam.id}/members`,
+        `/admin/rescue-teams/${teamId}/members`,
       )
       setMembers(refreshed.members)
       await load(page)
@@ -521,13 +538,13 @@ export function AdminTeamsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1.5">
-                            <Button size="sm" variant="outline" onClick={() => void openView(team)}>
+                            <Button size="sm" variant="outline" disabled={memberBusy} onClick={() => void openView(team)}>
                               {t('admin.teams.view')}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => openEdit(team)}>
                               {t('admin.teams.edit')}
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => void openMembers(team)}>
+                            <Button size="sm" variant="outline" disabled={memberBusy} onClick={() => void openMembers(team)}>
                               {t('admin.teams.members')}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => setToggleTarget(team)}>
@@ -540,7 +557,7 @@ export function AdminTeamsPage() {
                   </TableBody>
                 </Table>
                 </div>
-                <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+                <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} disabled={loading} onPageChange={(p) => void load(p)} />
               </div>
             )}
           </div>
@@ -601,7 +618,7 @@ export function AdminTeamsPage() {
             <Button type="submit" loading={saving} disabled={saving}>
               {modal?.mode === 'edit' ? t('admin.teams.save') : t('admin.teams.addSubmit')}
             </Button>
-            <Button variant="ghost" onClick={() => setModal(null)}>
+            <Button variant="ghost" disabled={saving} onClick={() => setModal(null)}>
               {t('admin.teams.cancel')}
             </Button>
           </div>
@@ -631,7 +648,9 @@ export function AdminTeamsPage() {
 
       <Modal
         open={membersTeam !== null}
-        onClose={() => setMembersTeam(null)}
+        onClose={() => {
+          if (!memberBusy) setMembersTeam(null)
+        }}
         title={membersTeam ? t('admin.teams.membersTitle', { name: membersTeam.name }) : t('admin.teams.membersFallback')}
         description={t('admin.teams.membersDesc')}
       >
@@ -663,7 +682,7 @@ export function AdminTeamsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={removingId === m.id}
+                  disabled={removingId !== null}
                   onClick={() => setRemoveTarget(m)}
                   aria-label={`${t('admin.teams.remove')}: ${m.name}`}
                 >

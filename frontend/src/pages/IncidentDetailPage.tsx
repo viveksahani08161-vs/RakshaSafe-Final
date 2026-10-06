@@ -12,7 +12,7 @@ import {
 } from '../lib/incidents'
 import { getIncidentNearbyResources, buildTelHref, type NearbyResource } from '../lib/resources'
 import { useEnrichment } from '../lib/useEnrichment'
-import type { RiskAssessment } from '../lib/risks'
+import type { RiskAssessment, RiskExplanation } from '../lib/risks'
 import { LocationEnrichment } from '../components/enrichment/LocationEnrichment'
 import { LocationDetail } from '../components/location/LocationDetail'
 import { NearbyResourcesSection } from '../components/resources/NearbyResourcesSection'
@@ -69,6 +69,9 @@ export function IncidentDetailPage() {
   const [riskLoading, setRiskLoading] = useState(true)
   const [assessing, setAssessing] = useState(false)
   const [assessError, setAssessError] = useState<string | null>(null)
+  // Explanation for the just-completed assessment (ephemeral: history reloads
+  // do not carry it). Cleared whenever a new run starts.
+  const [explanation, setExplanation] = useState<RiskExplanation | null>(null)
   const [updates, setUpdates] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
@@ -165,11 +168,16 @@ export function IncidentDetailPage() {
   )
 
   async function onAssess(): Promise<void> {
-    if (!incidentId) return
+    if (!incidentId || assessing) return
     setAssessing(true)
     setAssessError(null)
+    setExplanation(null)
     try {
-      await api(`/incidents/${incidentId}/risk`, { method: 'POST' })
+      const res = await api<{ assessment: RiskAssessment; explanation: RiskExplanation }>(
+        `/incidents/${incidentId}/risk`,
+        { method: 'POST' },
+      )
+      setExplanation(res.explanation)
       await loadRisk()
     } catch (err) {
       setAssessError(err instanceof ApiError ? err.message : 'Assessment failed. Please try again.')
@@ -251,12 +259,12 @@ export function IncidentDetailPage() {
     setDeleteError(null)
     try {
       await api<{ deleted: boolean }>(`/incidents/${incidentId}`, { method: 'DELETE' })
-      setDeleteLoading(false)
       notify({ title: t('incident.deleteSuccess'), variant: 'success' })
       navigateTo('/dashboard')
     } catch (err) {
-      setDeleteLoading(false)
       setDeleteError(err instanceof ApiError ? err.message : t('incident.deleteError'))
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -415,6 +423,7 @@ export function IncidentDetailPage() {
             noLocation={!loading && location === null}
             onAssess={() => void onAssess()}
             onDismissError={() => setAssessError(null)}
+            explanation={explanation}
           />
 
           {assignments.length > 0 && (

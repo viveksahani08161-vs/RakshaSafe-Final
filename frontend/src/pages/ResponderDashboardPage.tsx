@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { useI18n, type DictKey } from '../lib/i18n'
@@ -40,6 +40,8 @@ export function ResponderDashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [rowError, setRowError] = useState<Record<string, string>>({})
+  // Sync guard against same-tick double clicks (state updates lag one render).
+  const busyRef = useRef<Record<string, boolean>>({})
   const [openId, setOpenId] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, ResponderDetail>>({})
   const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({})
@@ -102,6 +104,10 @@ export function ResponderDashboardPage() {
   }
 
   async function updateStatus(a: ResponderAssignment, next: string): Promise<void> {
+    // Ref guard (not just state): two clicks in the same tick would both pass
+    // a `saving[a.id]` state check before React re-renders.
+    if (busyRef.current[a.id]) return
+    busyRef.current[a.id] = true
     setSaving((prev) => ({ ...prev, [a.id]: true }))
     setRowError((prev) => {
       const copy = { ...prev }
@@ -118,6 +124,7 @@ export function ResponderDashboardPage() {
         [a.id]: err instanceof ApiError ? err.message : t('responder.updateError'),
       }))
     } finally {
+      busyRef.current[a.id] = false
       setSaving((prev) => ({ ...prev, [a.id]: false }))
     }
   }
@@ -193,7 +200,7 @@ export function ResponderDashboardPage() {
           title={t('responder.notifications.title')}
           description={t('responder.notifications.description')}
           action={
-            !notifsLoading && !notifsError && notifs.length > 0 ? (
+            !notifsLoading && !notifsError ? (
               <Button size="sm" variant="ghost" onClick={() => void loadNotifs()}>
                 {t('responder.notifications.refresh')}
               </Button>
@@ -258,7 +265,7 @@ export function ResponderDashboardPage() {
           title={t('responder.assignments.title')}
           description={t('responder.assignments.description')}
           action={
-            !loading && !loadError && items.length > 0 ? (
+            !loading && !loadError ? (
               <Button size="sm" variant="ghost" onClick={() => void load()}>
                 {t('responder.assignments.refresh')}
               </Button>
@@ -331,6 +338,7 @@ export function ResponderDashboardPage() {
                             key={act.status}
                             size="sm"
                             variant={act.variant}
+                            loading={saving[a.id] ?? false}
                             disabled={saving[a.id] ?? false}
                             onClick={() => void updateStatus(a, act.status)}
                           >
@@ -376,7 +384,7 @@ export function ResponderDashboardPage() {
                             {detailError[a.id]}{' '}
                             <button
                               type="button"
-                              className="font-bold underline"
+                              className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 font-bold underline"
                               onClick={() => void loadDetails(a)}
                             >
                               {t('responder.retry')}
@@ -390,12 +398,14 @@ export function ResponderDashboardPage() {
                                 {t('responder.detail.location')}
                               </p>
                               {details[a.id].location ? (
-                                <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-800">
+                                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-ink-800">
                                   <MapPinIcon className="size-4 shrink-0 text-ink-400" />
-                                  {details[a.id].location!.latitude.toFixed(6)},{' '}
-                                  {details[a.id].location!.longitude.toFixed(6)}
-                                  {details[a.id].location!.accuracy !== undefined &&
-                                    ` (±${Math.round(details[a.id].location!.accuracy as number)} m)`}
+                                  <span className="min-w-0 break-words">
+                                    {details[a.id].location!.latitude.toFixed(6)},{' '}
+                                    {details[a.id].location!.longitude.toFixed(6)}
+                                    {details[a.id].location!.accuracy !== undefined &&
+                                      ` (±${Math.round(details[a.id].location!.accuracy as number)} m)`}
+                                  </span>
                                 </p>
                               ) : (
                                 <p className="mt-0.5 text-sm text-ink-500">
@@ -408,9 +418,11 @@ export function ResponderDashboardPage() {
                                 {t('responder.detail.reporter')}
                               </p>
                               {details[a.id].reporter ? (
-                                <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-800">
+                                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-ink-800">
                                   <PhoneIcon className="size-4 shrink-0 text-ink-400" />
-                                  {details[a.id].reporter!.name} · {details[a.id].reporter!.phone}
+                                  <span className="min-w-0 break-words">
+                                    {details[a.id].reporter!.name} · {details[a.id].reporter!.phone}
+                                  </span>
                                 </p>
                               ) : (
                                 <p className="mt-0.5 text-sm text-ink-500">
@@ -445,9 +457,7 @@ export function ResponderDashboardPage() {
             </ul>
           )}
           {!loading && !loadError && items.length > 0 && (
-            <Alert variant="info" title={t('responder.alert.respondHonestly')}>
-              {t('responder.alert.respondHonestly')}
-            </Alert>
+            <Alert variant="info" title={t('responder.alert.respondHonestly')} />
           )}
         </CardBody>
       </Card>

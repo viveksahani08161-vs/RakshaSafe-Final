@@ -41,7 +41,10 @@ export function nextActionsFor(status: string): { status: string; labelKey: stri
         { status: 'CANCELLED', labelKey: 'responder.action.cancel', variant: 'ghost' },
       ]
     case 'ON_SCENE':
-      return [{ status: 'COMPLETED', labelKey: 'responder.action.markResolved', variant: 'primary' }]
+      return [
+        { status: 'COMPLETED', labelKey: 'responder.action.markResolved', variant: 'primary' },
+        { status: 'CANCELLED', labelKey: 'responder.action.cancel', variant: 'ghost' },
+      ]
     default:
       return []
   }

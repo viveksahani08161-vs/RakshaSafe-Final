@@ -60,4 +60,14 @@ export const env = {
   nearbyExternalEnabled: required('NEARBY_EXTERNAL_ENABLED', 'false').trim().toLowerCase() === 'true',
   nearbyExternalTimeoutMs: positiveNumber('NEARBY_EXTERNAL_TIMEOUT_MS', 8000),
   nearbyRadiusKm: positiveNumber('NEARBY_RADIUS_KM', 25),
+  /**
+   * OPTIONAL assistive explanation layer (Gemini). Server-side only — the key
+   * is never sent to the browser, never returned in API responses and never
+   * logged. Empty by default: the deterministic raksha-risk-v1 engine stays
+   * fully functional alone and a deterministic fallback summary is used.
+   */
+  geminiApiKey: required('GEMINI_API_KEY', ''),
+  geminiModel: required('GEMINI_MODEL', 'gemini-3.5-flash'),
+  geminiTimeoutMs: positiveNumber('GEMINI_TIMEOUT_MS', 8000),
+  geminiApiUrl: required('GEMINI_API_URL', 'https://generativelanguage.googleapis.com'),
 } as const

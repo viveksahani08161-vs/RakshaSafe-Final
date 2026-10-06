@@ -780,6 +780,7 @@ export const en = {
   'admin.reports.error.denied': 'Administrator access required.',
   'admin.reports.error.generate': 'Generation failed',
   'admin.reports.error.generateGeneric': 'Could not generate the report. Please try again.',
+  'admin.reports.error.exportTimeout': 'Export timed out. Please try again.',
   'admin.reports.preview.filters': 'Filters used',
   'admin.reports.preview.noFilters': 'No filters',
   'admin.reports.preview.generatedAt': 'Generated (UTC)',
@@ -1301,7 +1302,6 @@ export const en = {
   'landing.footer.sitemapSignedIn':
     'After signing in you also have access to your dashboard, SOS, emergency contacts, nearby resources and notifications.',
   'landing.footer.rights': 'All rights reserved.',
-  'landing.footer.developed': 'Developed by Vivek & Vaibhav',
   'landing.footer.copyright': '© 2026 RakshaSafe. All rights reserved.',
   'landing.footer.legalLinks': 'Legal and site information',
   'landing.nav.language': 'Change language',
@@ -1617,6 +1617,7 @@ export const hi: Record<DictKey, string> = {
   'admin.reports.error.denied': 'प्रशासक पहुंच आवश्यक है।',
   'admin.reports.error.generate': 'बनाना विफल रहा',
   'admin.reports.error.generateGeneric': 'रिपोर्ट नहीं बनाई जा सकी। कृपया पुनः प्रयास करें।',
+  'admin.reports.error.exportTimeout': 'एक्सपोर्ट का समय समाप्त हो गया। कृपया पुनः प्रयास करें।',
   'admin.reports.preview.filters': 'उपयोग किए गए फ़िल्टर',
   'admin.reports.preview.noFilters': 'कोई फ़िल्टर नहीं',
   'admin.reports.preview.generatedAt': 'बनाई गई (UTC)',
@@ -2766,7 +2767,6 @@ export const hi: Record<DictKey, string> = {
   'landing.footer.sitemapSignedIn':
     'साइन इन करने के बाद आपके डैशबोर्ड, SOS, आपात संपर्क, नज़दीकी संसाधन और नोटिफ़िकेशन भी उपलब्ध होते हैं।',
   'landing.footer.rights': 'सर्वाधिकार सुरक्षित।',
-  'landing.footer.developed': 'विवेक एवं वैभव द्वारा विकसित',
   'landing.footer.copyright': '© 2026 RakshaSafe. सर्वाधिकार सुरक्षित।',
   'landing.footer.legalLinks': 'कानूनी एवं साइट जानकारी',
   'landing.nav.language': 'भाषा बदलें',

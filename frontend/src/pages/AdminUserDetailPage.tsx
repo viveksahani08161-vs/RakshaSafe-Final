@@ -270,16 +270,17 @@ export function AdminUserDetailPage() {
   const [contactsError, setContactsError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'incidents' | 'assignments' | 'history' | 'risk' | 'notifications' | 'unsafeReports'>('incidents')
 
-  const [editModal, setEditModal] = useState<{ user: AdminUserDetail | null }>({ user: null })
-  const [deleteModal, setDeleteModal] = useState<{ user: AdminUserDetail | null }>({ user: null })
+  const [editModal, setEditModal] = useState<{ user: AdminUserDetail } | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ user: AdminUserDetail } | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', phone: '', language: '', role: '', isActive: true })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const [contactEditModal, setContactEditModal] = useState<{ contact: AdminUserEmergencyContact | null }>({ contact: null })
-  const [contactDeleteModal, setContactDeleteModal] = useState<{ contact: AdminUserEmergencyContact | null }>({ contact: null })
+  const [contactEditModal, setContactEditModal] = useState<{ contact: AdminUserEmergencyContact } | null>(null)
+  const [contactDeleteModal, setContactDeleteModal] = useState<{ contact: AdminUserEmergencyContact } | null>(null)
   const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', relationship: '', notifyViaSms: false, notifyViaEmail: false })
   const [contactFieldErrors, setContactFieldErrors] = useState<Record<string, string>>({})
   const [contactFormError, setContactFormError] = useState<string | null>(null)
@@ -377,7 +378,10 @@ export function AdminUserDetailPage() {
   }
 
   function openDeleteModal(): void {
-    if (user) setDeleteModal({ user })
+    if (user) {
+      setDeleteError(null)
+      setDeleteModal({ user })
+    }
   }
 
   function parseRole(role: string): 'USER' | 'ADMIN' | 'RESPONDER' {
@@ -386,7 +390,8 @@ export function AdminUserDetailPage() {
 
   async function onEditSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!editModal?.user) return
+    if (!editModal?.user || saving) return
+    const target = editModal.user
     setSaving(true)
     setFieldErrors({})
     setFormError(null)
@@ -399,9 +404,9 @@ export function AdminUserDetailPage() {
         isActive: form.isActive,
       }
       if (form.language.trim() !== '') body.language = form.language.trim()
-      await api(`/admin/users/${editModal.user.id}`, { method: 'PATCH', body })
+      await api(`/admin/users/${target.id}`, { method: 'PATCH', body })
       notify({ title: t('admin.users.updateSuccess'), description: form.name.trim(), variant: 'success' })
-      setEditModal({ user: null })
+      setEditModal(null)
       await load()
     } catch (err) {
       if (err instanceof ApiError) {
@@ -428,30 +433,33 @@ export function AdminUserDetailPage() {
   }
 
   async function onConfirmDelete(): Promise<void> {
-    if (!deleteModal?.user) return
+    if (!deleteModal?.user || deleting) return
+    const target = deleteModal.user
     setDeleting(true)
+    setDeleteError(null)
     try {
-      await api(`/admin/users/${deleteModal.user.id}`, { method: 'DELETE' })
-      notify({ title: t('admin.users.deleteSuccess'), description: deleteModal.user.name, variant: 'success' })
-      setDeleteModal({ user: null })
+      await api(`/admin/users/${target.id}`, { method: 'DELETE' })
+      notify({ title: t('admin.users.deleteSuccess'), description: target.name, variant: 'success' })
+      setDeleteModal(null)
       setUser(null)
       navigateTo('/admin/users')
     } catch (err) {
+      let message = t('admin.users.deleteError')
       if (err instanceof ApiError) {
         if (err.status === 400 && err.message.includes('your own administrator account')) {
-          notify({ title: t('admin.users.deleteError'), description: t('admin.users.cannotDeleteSelf'), variant: 'danger' })
+          message = t('admin.users.cannotDeleteSelf')
         } else if (err.status === 400 && err.message.includes('last active administrator')) {
-          notify({ title: t('admin.users.deleteError'), description: t('admin.users.lastAdmin'), variant: 'danger' })
+          message = t('admin.users.lastAdmin')
         } else if (err.status === 403) {
-          notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteForbidden'), variant: 'danger' })
+          message = t('admin.users.deleteForbidden')
         } else if (err.status === 404) {
-          notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteNotFound'), variant: 'danger' })
+          message = t('admin.users.deleteNotFound')
         } else {
-          notify({ title: t('admin.users.deleteError'), description: err.message, variant: 'danger' })
+          message = err.message
         }
-      } else {
-        notify({ title: t('admin.users.deleteError'), description: t('admin.users.deleteError'), variant: 'danger' })
       }
+      notify({ title: t('admin.users.deleteError'), description: message, variant: 'danger' })
+      setDeleteError(message)
     } finally {
       setDeleting(false)
     }
@@ -473,7 +481,8 @@ export function AdminUserDetailPage() {
 
   async function onSubmitContactEdit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!contactEditModal?.contact) return
+    if (!contactEditModal?.contact || contactSaving) return
+    const contactTarget = contactEditModal.contact
     setContactSaving(true)
     setContactFieldErrors({})
     setContactFormError(null)
@@ -486,9 +495,9 @@ export function AdminUserDetailPage() {
         notifyViaSms: contactForm.notifyViaSms,
         notifyViaEmail: contactForm.notifyViaEmail,
       }
-      await api(`/admin/emergency-contacts/${contactEditModal.contact.id}`, { method: 'PATCH', body })
+      await api(`/admin/emergency-contacts/${contactTarget.id}`, { method: 'PATCH', body })
       notify({ title: t('admin.users.emergencyContactEditSuccess'), description: body.name, variant: 'success' })
-      setContactEditModal({ contact: null })
+      setContactEditModal(null)
       await loadContacts()
     } catch (err) {
       if (err instanceof ApiError) {
@@ -507,12 +516,13 @@ export function AdminUserDetailPage() {
   }
 
   async function onConfirmDeleteContact(): Promise<void> {
-    if (!contactDeleteModal?.contact) return
+    if (!contactDeleteModal?.contact || contactDeleting) return
+    const contactTarget = contactDeleteModal.contact
     setContactDeleting(true)
     try {
-      await api(`/admin/emergency-contacts/${contactDeleteModal.contact.id}`, { method: 'DELETE' })
-      notify({ title: t('admin.users.emergencyContactDeleteSuccess'), description: contactDeleteModal.contact.name, variant: 'success' })
-      setContactDeleteModal({ contact: null })
+      await api(`/admin/emergency-contacts/${contactTarget.id}`, { method: 'DELETE' })
+      notify({ title: t('admin.users.emergencyContactDeleteSuccess'), description: contactTarget.name, variant: 'success' })
+      setContactDeleteModal(null)
       await loadContacts()
     } catch (err) {
       notify({ title: t('admin.users.emergencyContactDeleteError'), description: err instanceof ApiError ? err.message : t('admin.users.emergencyContactDeleteError'), variant: 'danger' })
@@ -1275,7 +1285,9 @@ export function AdminUserDetailPage() {
 
     <Modal
       open={editModal !== null}
-      onClose={() => setEditModal({ user: null })}
+      onClose={() => {
+        if (!saving) setEditModal(null)
+      }}
       title={t('admin.users.editTitle')}
       description={t('admin.users.description')}
     >
@@ -1307,7 +1319,7 @@ export function AdminUserDetailPage() {
           <Button type="submit" loading={saving} disabled={saving}>
             {t('admin.users.save')}
           </Button>
-          <Button variant="ghost" onClick={() => setEditModal({ user: null })}>
+          <Button variant="ghost" disabled={saving} onClick={() => setEditModal(null)}>
             {t('admin.users.cancel')}
           </Button>
         </div>
@@ -1316,7 +1328,9 @@ export function AdminUserDetailPage() {
 
     <Dialog
       open={deleteModal !== null}
-      onClose={() => setDeleteModal({ user: null })}
+      onClose={() => {
+        if (!deleting) setDeleteModal(null)
+      }}
       variant="danger"
       title={t('admin.users.deleteTitle')}
       confirmLabel={t('admin.users.deleteConfirm')}
@@ -1324,6 +1338,11 @@ export function AdminUserDetailPage() {
       confirmLoading={deleting}
       onConfirm={() => void onConfirmDelete()}
     >
+      {deleteError && (
+        <Alert variant="danger" onClose={() => setDeleteError(null)}>
+          {deleteError}
+        </Alert>
+      )}
       {t('admin.users.deleteConfirmBody', {
         name: deleteModal?.user?.name ?? '',
         email: deleteModal?.user?.email ?? '',
@@ -1336,7 +1355,9 @@ export function AdminUserDetailPage() {
 
     <Modal
       open={contactEditModal !== null}
-      onClose={() => setContactEditModal({ contact: null })}
+      onClose={() => {
+        if (!contactSaving) setContactEditModal(null)
+      }}
       title={t('contacts.modal.editTitle')}
     >
       <Form onSubmit={(e: FormEvent) => void onSubmitContactEdit(e)}>
@@ -1402,7 +1423,7 @@ export function AdminUserDetailPage() {
           <Button type="submit" loading={contactSaving} disabled={contactSaving}>
             {t('contacts.form.saveChanges')}
           </Button>
-          <Button variant="ghost" onClick={() => setContactEditModal({ contact: null })}>
+          <Button variant="ghost" disabled={contactSaving} onClick={() => setContactEditModal(null)}>
             {t('contacts.form.cancel')}
           </Button>
         </div>
@@ -1412,7 +1433,7 @@ export function AdminUserDetailPage() {
     <Dialog
       open={contactDeleteModal !== null}
       onClose={() => {
-        if (!contactDeleting) setContactDeleteModal({ contact: null })
+        if (!contactDeleting) setContactDeleteModal(null)
       }}
       variant="danger"
       title={t('admin.users.emergencyContactDeleteTitle')}

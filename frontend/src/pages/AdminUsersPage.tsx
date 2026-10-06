@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import type { AuthUser } from '../lib/auth-context'
 import { Alert } from '../components/ui/Alert'
@@ -93,11 +93,15 @@ export function AdminUsersPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Sequence guard: only the latest in-flight list request may write state.
+  const loadSeq = useRef(0)
 
   const load = useCallback(async (targetPage: number, signal?: AbortSignal, searchText = '') => {
     setLoading(true)
     setFailed(false)
     setDenied(false)
+    loadSeq.current += 1
+    const seq = loadSeq.current
     try {
       const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
       if (searchText.trim() !== '') params.set('search', searchText.trim())
@@ -105,18 +109,21 @@ export function AdminUsersPage() {
         `/admin/users?${params.toString()}`,
         signal ? { signal } : {},
       )
+      if (signal?.aborted || loadSeq.current !== seq) return
       setData(res)
       setPage(res.pagination.page)
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
+        if (loadSeq.current !== seq) return
         setDenied(true)
       } else if (err instanceof DOMException && err.name === 'AbortError') {
         /* request superseded — ignore */
       } else {
+        if (signal?.aborted || loadSeq.current !== seq) return
         setFailed(true)
       }
     } finally {
-      if (!signal?.aborted) setLoading(false)
+      if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
     }
   }, [])
 
@@ -178,7 +185,8 @@ export function AdminUsersPage() {
 
   async function onEditSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!editModal?.user) return
+    if (!editModal?.user || saving) return
+    const targetId = editModal.user.id
     setSaving(true)
     setFieldErrors({})
     setFormError(null)
@@ -191,7 +199,7 @@ export function AdminUsersPage() {
         isActive: form.isActive,
       }
       if (form.language.trim() !== '') body.language = form.language.trim()
-      await api(`/admin/users/${editModal.user.id}`, { method: 'PATCH', body })
+      await api(`/admin/users/${targetId}`, { method: 'PATCH', body })
       notify({ title: t('admin.users.updateSuccess'), description: form.name.trim(), variant: 'success' })
       setEditModal(null)
       await load(page)
@@ -220,7 +228,7 @@ export function AdminUsersPage() {
   }
 
   async function onConfirmDelete(): Promise<void> {
-    if (!deleteModal?.user) return
+    if (!deleteModal?.user || deleting) return
     const deletedUserId = deleteModal.user.id
     setDeleting(true)
     try {
@@ -260,7 +268,7 @@ export function AdminUsersPage() {
           description={t('admin.users.description')}
         />
         <CardBody>
-          {!loading && !denied && !failed && (
+          {!loading && !denied && (
             <div className="mb-4 flex flex-col gap-3 sm:flex-row">
               <div className="min-w-0 flex-1">
                 <SearchInput
@@ -299,7 +307,7 @@ export function AdminUsersPage() {
             <ErrorState
               title={t('admin.users.loadError')}
               description={t('admin.users.serverUnreachable')}
-              onRetry={() => void load(page)}
+              onRetry={() => void load(page, undefined, appliedSearch)}
             />
           )}
           {!loading && !denied && !failed && data && data.users.length === 0 && (
@@ -410,6 +418,7 @@ export function AdminUsersPage() {
               <Pagination
                 current={data.pagination.page}
                 totalPages={data.pagination.totalPages}
+                disabled={loading}
                 onPageChange={(p) => void load(p, undefined, appliedSearch)}
               />
             </div>
@@ -451,7 +460,7 @@ export function AdminUsersPage() {
             <Button type="submit" loading={saving} disabled={saving}>
               {t('admin.users.save')}
             </Button>
-            <Button variant="ghost" onClick={closeEditModal}>
+            <Button variant="ghost" disabled={saving} onClick={closeEditModal}>
               {t('admin.users.cancel')}
             </Button>
           </div>

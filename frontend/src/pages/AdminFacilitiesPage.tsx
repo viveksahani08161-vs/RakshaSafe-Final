@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
@@ -114,26 +114,32 @@ export function AdminFacilitiesPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [toggling, setToggling] = useState(false)
+  // Sequence guard: only the latest in-flight list request may write state.
+  const loadSeq = useRef(0)
 
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
       setFailure(null)
       setFailureDetail(null)
+      loadSeq.current += 1
+      const seq = loadSeq.current
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (typeFilter) params.set('facilityType', typeFilter)
         if (statusFilter) params.set('isOperational', statusFilter)
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/facilities?${params.toString()}`, signal ? { signal } : {})
+        if (signal?.aborted || loadSeq.current !== seq) return
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
+        if (signal?.aborted || loadSeq.current !== seq) return
         setFailure(toRequestFailureKind(err))
         setFailureDetail(err instanceof ApiError ? err.message : null)
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
       }
     },
     [typeFilter, statusFilter, debouncedSearch],
@@ -156,6 +162,7 @@ export function AdminFacilitiesPage() {
   }
 
   function openCreate(): void {
+    if (saving) return
     setForm(EMPTY_FORM)
     setFieldErrors({})
     setFormError(null)
@@ -163,6 +170,7 @@ export function AdminFacilitiesPage() {
   }
 
   function openEdit(facility: Facility): void {
+    if (saving) return
     const loc = facility.location
     setForm({
       name: facility.name,
@@ -201,6 +209,7 @@ export function AdminFacilitiesPage() {
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
     if (!modal || saving) return
+    const targetModal = modal
     setSaving(true)
     setFieldErrors({})
     setFormError(null)
@@ -216,7 +225,7 @@ export function AdminFacilitiesPage() {
       if (form.capacity.trim() !== '') body.capacity = Number(form.capacity)
       if (form.operatingHours.trim() !== '') body.operatingHours = form.operatingHours.trim()
       const wantLocation =
-        modal.mode === 'create' || (modal.facility !== undefined && locationChanged(modal.facility))
+        targetModal.mode === 'create' || (targetModal.facility !== undefined && locationChanged(targetModal.facility))
       if (wantLocation) {
         body.location = {
           latitude: lat,
@@ -228,11 +237,11 @@ export function AdminFacilitiesPage() {
           ...(form.country.trim() !== '' ? { country: form.country.trim() } : {}),
         }
       }
-      if (modal.mode === 'create') {
+      if (targetModal.mode === 'create') {
         await api('/admin/facilities', { method: 'POST', body })
         notify({ title: t('admin.facilities.createSuccess'), description: form.name.trim(), variant: 'success' })
-      } else if (modal.facility) {
-        await api(`/admin/facilities/${modal.facility.id}`, { method: 'PATCH', body })
+      } else if (targetModal.facility) {
+        await api(`/admin/facilities/${targetModal.facility.id}`, { method: 'PATCH', body })
         notify({ title: t('admin.facilities.updateSuccess'), variant: 'success' })
       }
       setModal(null)
@@ -440,7 +449,7 @@ export function AdminFacilitiesPage() {
                   </TableBody>
                 </Table>
               </div>
-              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} disabled={loading} onPageChange={(p) => void load(p)} />
             </div>
           )}
         </CardBody>
@@ -574,9 +583,9 @@ export function AdminFacilitiesPage() {
             <Button type="submit" loading={saving} disabled={saving}>
               {modal?.mode === 'edit' ? t('admin.facilities.save') : t('admin.facilities.add')}
             </Button>
-            <Button variant="ghost" onClick={() => setModal(null)}>
-              {t('admin.facilities.cancel')}
-            </Button>
+          <Button variant="ghost" disabled={saving} onClick={() => setModal(null)}>
+            {t('admin.facilities.cancel')}
+          </Button>
           </div>
         </Form>
       </Modal>

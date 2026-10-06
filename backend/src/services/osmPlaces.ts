@@ -31,7 +31,9 @@ const OVERPASS_BASE = 'https://overpass-api.de/api/interpreter'
 const USER_AGENT = 'RakshaSafe/1.0 (contact@rakshasafe.local)'
 const TIMEOUT_MS = 20000
 const CACHE_TTL_MS = 10 * 60 * 1000
-const MAX_RESULTS = 15
+/** Per-query element cap. Provider-supported: Overpass accepts far higher
+ * `out center <n>` values; 50 keeps responses fast while covering dense areas. */
+const MAX_RESULTS = 50
 
 const cache = new TtlCache<OsmFacility[]>(CACHE_TTL_MS, 200)
 const inflight = new Map<string, Promise<OsmFacility[]>>()

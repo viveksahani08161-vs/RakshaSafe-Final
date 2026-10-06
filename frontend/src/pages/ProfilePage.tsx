@@ -117,7 +117,7 @@ export function ProfilePage() {
                 <Button type="submit" loading={busy} disabled={busy}>
                   {t('profile.saveChanges')}
                 </Button>
-                <Button variant="ghost" onClick={() => setEditing(false)}>
+                <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>
                   {t('profile.cancel')}
                 </Button>
               </div>

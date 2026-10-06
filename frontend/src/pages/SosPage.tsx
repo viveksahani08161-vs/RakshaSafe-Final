@@ -6,7 +6,6 @@ import { INCIDENT_CATEGORIES, formatDateTime, statusBadgeVariant, type Incident 
 import {
   DEFAULT_NEARBY_RADIUS_KM,
   getNearbyEnvelope,
-  getNearbyResources,
   type NearbyResource,
 } from '../lib/resources'
 import { useEnrichment } from '../lib/useEnrichment'
@@ -545,9 +544,11 @@ export function SosPage() {
             onRetry={() => {
               setNearbyLoading(true)
               setNearbyError(null)
-              getNearbyResources(coords.latitude, coords.longitude, DEFAULT_NEARBY_RADIUS_KM)
-                .then((items) => {
-                  setNearby(items)
+              setDoneExternalNotice(null)
+              getNearbyEnvelope(coords.latitude, coords.longitude, DEFAULT_NEARBY_RADIUS_KM)
+                .then((res) => {
+                  setNearby(res.resources)
+                  setDoneExternalNotice(externalNoticeFor(res.external))
                   setNearbyLoading(false)
                 })
                 .catch((err: unknown) => {

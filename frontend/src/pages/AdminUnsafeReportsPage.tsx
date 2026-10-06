@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import {
@@ -160,6 +160,11 @@ export function AdminUnsafeReportsPage() {
   const [editFormError, setEditFormError] = useState<string | null>(null)
   const [editSaving, setEditSaving] = useState(false)
   const [deleteSaving, setDeleteSaving] = useState(false)
+  // Sequence guards: only the latest in-flight request may write state, so a
+  // slow earlier response can never overwrite fresher data or clear loading
+  // while a newer request is still pending.
+  const loadSeq = useRef(0)
+  const detailSeq = useRef(0)
 
   const loadCounts = useCallback(async (signal?: AbortSignal) => {
     const opts = signal ? { signal } : {}
@@ -186,25 +191,27 @@ export function AdminUnsafeReportsPage() {
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
       setFailure(null)
+      loadSeq.current += 1
+      const seq = loadSeq.current
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (statusFilter) params.set('isVerified', statusFilter)
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const opts = signal ? { signal } : {}
         const res = await api<ListResponse>(`/admin/unsafe-reports?${params.toString()}`, opts)
-        if (signal?.aborted) return
+        if (signal?.aborted || loadSeq.current !== seq) return
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        if (signal?.aborted) return
+        if (signal?.aborted || loadSeq.current !== seq) return
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           setFailure('denied')
         } else {
           setFailure('unreachable')
         }
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
       }
     },
     [statusFilter, debouncedSearch],
@@ -232,10 +239,14 @@ export function AdminUnsafeReportsPage() {
     setViewTarget(report)
     setDetail(null)
     setDetailLoading(true)
+    detailSeq.current += 1
+    const seq = detailSeq.current
     try {
       const res = await api<DetailResponse>(`/admin/unsafe-reports/${report.id}`)
+      if (detailSeq.current !== seq) return
       setDetail(res)
     } catch (err) {
+      if (detailSeq.current !== seq) return
       notify({
         title: t('admin.unsafeReports.couldNotLoadDetails'),
         description: err instanceof ApiError ? err.message : t('common.tryAgain'),
@@ -243,7 +254,7 @@ export function AdminUnsafeReportsPage() {
       })
       setViewTarget(null)
     } finally {
-      setDetailLoading(false)
+      if (detailSeq.current === seq) setDetailLoading(false)
     }
   }
 
@@ -261,7 +272,6 @@ export function AdminUnsafeReportsPage() {
       setConfirmTarget(null)
       setViewTarget(null)
       setDetail(null)
-      await Promise.all([load(page), loadCounts()])
     } catch (err) {
       notify({
         title: t('admin.unsafeReports.reviewActionFailed'),
@@ -271,6 +281,10 @@ export function AdminUnsafeReportsPage() {
     } finally {
       setVerifying(false)
     }
+    // Reload outside the verifying window: the verify buttons and the view
+    // modal must unlock the moment the decision is stored, even if the
+    // follow-up list refresh is slow. load()/loadCounts() own their errors.
+    await Promise.all([load(page), loadCounts()])
   }
 
   function openEdit(report: UnsafeReport): void {
@@ -409,7 +423,7 @@ export function AdminUnsafeReportsPage() {
   const editSeverityOptions = severityOptions.some((option) => option.value === editSeverity)
     ? severityOptions
     : [...severityOptions, { label: editSeverity, value: editSeverity }]
-  const shown = detail?.report ?? viewTarget
+  const shown = detail?.report && viewTarget && detail.report.id === viewTarget.id ? detail.report : viewTarget
   const shownLocation = shown?.location ?? null
   const shownArea = shownLocation ? formatArea(shownLocation) : null
 
@@ -555,7 +569,7 @@ export function AdminUnsafeReportsPage() {
                     </TableBody>
                   </Table>
                 </div>
-                <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+                <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} disabled={loading} onPageChange={(p) => void load(p)} />
               </div>
             )}
           </div>
@@ -792,7 +806,7 @@ export function AdminUnsafeReportsPage() {
               </Button>
             )}
             {editOutcome && editOutcome.state !== 'available' && (
-              <Button variant="outline" onClick={() => void acquireEditLocation()}>
+              <Button variant="outline" disabled={editAcquiring} onClick={() => void acquireEditLocation()}>
                 {t('unsafeReports.location.retry')}
               </Button>
             )}

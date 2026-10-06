@@ -16,7 +16,9 @@ const FIELD_MASK = [
   'places.googleMapsUri',
 ].join(',')
 
-export const EXTERNAL_MAX_PER_CATEGORY = 10
+/** Per-category result count. Provider maximum is 20; requesting the maximum so
+ * no available place is hidden when the operator enables this provider. */
+export const EXTERNAL_MAX_PER_CATEGORY = 20
 
 export interface PlacesCategory {
   includedType: string
@@ -126,6 +128,10 @@ export async function searchGooglePlaces(
             if (place) mapped.push(place)
           }
           return { places: mapped, status: 'ok' as const, code: res.status }
+        } catch {
+          // One category failing (timeout or network) must not discard the
+          // other categories' successful results.
+          return { places: [] as ExternalPlace[], status: 'error' as const, code: 0 }
         } finally {
           clearTimeout(timer)
         }

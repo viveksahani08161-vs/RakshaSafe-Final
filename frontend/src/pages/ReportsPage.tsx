@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, api, getStoredToken } from '../lib/api'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../components/ui/toast-context'
@@ -130,7 +130,7 @@ export function ReportsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [viewTarget, setViewTarget] = useState<ReportDetail | null>(null)
-  const [viewLoading, setViewLoading] = useState(false)
+  const [viewLoadingId, setViewLoadingId] = useState<string | null>(null)
   const [downloading, setDownloading] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ReportMeta | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -152,17 +152,22 @@ export function ReportsPage() {
     [t],
   )
 
+  // Sequence guard: only the latest in-flight list request may write state.
+  const loadSeq = useRef(0)
+
   const load = useCallback(async (targetPage: number, signal?: AbortSignal) => {
     setLoading(true)
     setFailure(null)
+    loadSeq.current += 1
+    const seq = loadSeq.current
     try {
       const res = await api<ListResponse>(`/admin/reports?page=${targetPage}&limit=10`, signal ? { signal } : {})
-      if (signal?.aborted) return
+      if (signal?.aborted || loadSeq.current !== seq) return
       setData(res)
       setPage(res.pagination.page)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
-      if (signal?.aborted) return
+      if (signal?.aborted || loadSeq.current !== seq) return
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setFailure('denied')
       } else if (err instanceof ApiError && err.status === 0) {
@@ -171,7 +176,7 @@ export function ReportsPage() {
         setFailure('failed')
       }
     } finally {
-      if (!signal?.aborted) setLoading(false)
+      if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
     }
   }, [])
 
@@ -227,7 +232,8 @@ export function ReportsPage() {
   }
 
   async function openDetail(id: string): Promise<void> {
-    setViewLoading(true)
+    if (viewLoadingId !== null) return
+    setViewLoadingId(id)
     try {
       const res = await api<{ report: ReportDetail }>(`/admin/reports/${id}`)
       setViewTarget(res.report)
@@ -238,16 +244,18 @@ export function ReportsPage() {
         variant: 'danger',
       })
     } finally {
-      setViewLoading(false)
+      setViewLoadingId(null)
     }
   }
 
   async function download(report: ReportMeta): Promise<void> {
+    if (downloading !== null) return
     setDownloading(report.id)
     try {
       const token = getStoredToken()
       const res = await fetch(`${API_BASE}/admin/reports/${report.id}/export`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: AbortSignal.timeout(60000),
       })
       if (!res.ok) {
         throw new Error(`Export failed (${res.status}).`)
@@ -255,18 +263,22 @@ export function ReportsPage() {
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
+      a.style.display = 'none'
       a.href = url
       const ext = report.format.toLowerCase()
       a.download = `rakshasafe-${report.reportType}-${report.id.slice(0, 8)}.${ext}`
       document.body.appendChild(a)
       a.click()
       a.remove()
-      window.URL.revokeObjectURL(url)
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 5000)
       notify({ title: t('admin.reports.toast.downloaded'), description: report.title, variant: 'success' })
     } catch (err) {
+      const timedOut = err instanceof DOMException && err.name === 'AbortError'
       notify({
         title: t('admin.reports.toast.downloadFailed'),
-        description: err instanceof Error ? err.message : t('admin.reports.error.generateGeneric'),
+        description: timedOut
+          ? t('admin.reports.error.exportTimeout')
+          : err instanceof Error ? err.message : t('admin.reports.error.generateGeneric'),
         variant: 'danger',
       })
     } finally {
@@ -472,13 +484,14 @@ export function ReportsPage() {
                         <TableCell className="whitespace-nowrap text-ink-500">{formatDateTime(r.createdAt)}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1.5">
-                            <Button size="sm" variant="outline" onClick={() => void openDetail(r.id)} disabled={viewLoading}>
+                            <Button size="sm" variant="outline" loading={viewLoadingId === r.id} disabled={viewLoadingId !== null} onClick={() => void openDetail(r.id)}>
                               {t('admin.reports.list.view')}
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               loading={downloading === r.id}
+                              disabled={downloading !== null}
                               onClick={() => void download(r)}
                             >
                               {downloading === r.id
@@ -524,8 +537,9 @@ export function ReportsPage() {
                         size="sm"
                         variant="outline"
                         fullWidth
+                        loading={viewLoadingId === r.id}
+                        disabled={viewLoadingId !== null}
                         onClick={() => void openDetail(r.id)}
-                        disabled={viewLoading}
                       >
                         {t('admin.reports.list.view')}
                       </Button>
@@ -534,6 +548,7 @@ export function ReportsPage() {
                         variant="ghost"
                         fullWidth
                         loading={downloading === r.id}
+                        disabled={downloading !== null}
                         onClick={() => void download(r)}
                       >
                         {downloading === r.id
@@ -556,7 +571,7 @@ export function ReportsPage() {
                   </article>
                 ))}
               </div>
-              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} disabled={loading} onPageChange={(p) => void load(p)} />
             </div>
           )}
         </CardBody>

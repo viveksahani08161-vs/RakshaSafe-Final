@@ -3,6 +3,7 @@ import { Incident } from '../models/Incident.js'
 import { Location } from '../models/Location.js'
 import { RiskAssessment, type IRiskAssessment } from '../models/RiskAssessment.js'
 import { assessIncident } from '../services/riskAssessment.js'
+import { getExplanation, type RiskExplanation } from '../services/geminiExplanation.js'
 import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
 
@@ -67,7 +68,20 @@ export async function assessRisk(req: Request, res: Response, next: NextFunction
     }
 
     const doc = await assessIncident(incident, location)
-    res.status(201).json({ success: true, data: { assessment: toSafeAssessment(doc) } })
+    // Assistive explanation only, computed AFTER the canonical assessment is
+    // stored. getExplanation never throws and never alters score/level: with
+    // no (or a failing) Gemini key it returns the deterministic fallback, so
+    // the assessment stays usable either way. The explanation is ephemeral —
+    // only validated canonical fields are persisted.
+    const explanation: RiskExplanation = await getExplanation(
+      doc.riskScore,
+      doc.riskLevel,
+      doc.inputFactors ?? [],
+    )
+    res.status(201).json({
+      success: true,
+      data: { assessment: toSafeAssessment(doc), explanation },
+    })
   } catch (err) {
     next(err)
   }

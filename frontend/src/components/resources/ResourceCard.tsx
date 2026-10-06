@@ -27,10 +27,10 @@ export function ResourceCard({ resource, showCoordinates = false }: ResourceCard
   const distance = describeDistance(resource.distanceKm)
 
   return (
-    <li className="flex flex-col gap-2 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
+    <li className="flex min-w-0 flex-col gap-2 rounded-2xl border border-ink-200/70 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-base font-bold text-ink-900">{resource.name}</p>
+          <p className="break-words text-base font-bold text-ink-900" title={resource.name}>{resource.name}</p>
           <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-ink-400">
             {resource.resourceType}
           </p>
@@ -61,7 +61,7 @@ export function ResourceCard({ resource, showCoordinates = false }: ResourceCard
       )}
       <p className="flex items-start gap-1.5 text-sm text-ink-800">
         <MapPinIcon className="mt-0.5 size-4 shrink-0 text-ink-400" />
-        <span>
+        <span className="min-w-0 break-words">
           <span className="font-semibold">{t('nearby.address')}: </span>
           {resource.address ?? t('nearby.addressUnavailable')}
         </span>

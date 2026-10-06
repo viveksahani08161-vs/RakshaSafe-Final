@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, api } from '../lib/api'
 import { toRequestFailureKind, type RequestFailureKind } from '../lib/request-error'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
@@ -108,24 +108,30 @@ export function AdminEmergencyContactsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Sequence guard: only the latest in-flight list request may write state.
+  const loadSeq = useRef(0)
 
   const load = useCallback(
     async (targetPage: number, signal?: AbortSignal) => {
       setLoading(true)
       setFailure(null)
       setFailureDetail(null)
+      loadSeq.current += 1
+      const seq = loadSeq.current
       try {
         const params = new URLSearchParams({ page: String(targetPage), limit: '10' })
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         const res = await api<ListResponse>(`/admin/emergency-contacts?${params.toString()}`, signal ? { signal } : {})
+        if (signal?.aborted || loadSeq.current !== seq) return
         setData(res)
         setPage(res.pagination.page)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
+        if (signal?.aborted || loadSeq.current !== seq) return
         setFailure(toRequestFailureKind(err))
         setFailureDetail(err instanceof ApiError ? err.message : null)
       } finally {
-        if (!signal?.aborted) setLoading(false)
+        if (!signal?.aborted && loadSeq.current === seq) setLoading(false)
       }
     },
     [debouncedSearch],
@@ -156,13 +162,20 @@ export function AdminEmergencyContactsPage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!form || !editTarget) return
-    if (form.name.trim() === '' || form.phone.trim() === '') return
+    if (!form || !editTarget || saving) return
+    const targetId = editTarget.id
+    const validationErrors: Record<string, string> = {}
+    if (form.name.trim() === '') validationErrors.name = t('validation.required')
+    if (form.phone.trim() === '') validationErrors.phone = t('validation.required')
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors)
+      return
+    }
     setSaving(true)
     setFormError(null)
     setFieldErrors({})
     try {
-      await api(`/admin/emergency-contacts/${editTarget.id}`, {
+      await api(`/admin/emergency-contacts/${targetId}`, {
         method: 'PATCH',
         body: {
           name: form.name.trim(),
@@ -194,13 +207,15 @@ export function AdminEmergencyContactsPage() {
   }
 
   async function onConfirmDelete(): Promise<void> {
-    if (!deleteTarget) return
+    if (!deleteTarget || deleting) return
+    const targetId = deleteTarget.id
+    const targetName = deleteTarget.name
     setDeleting(true)
     try {
-      await api(`/admin/emergency-contacts/${deleteTarget.id}`, { method: 'DELETE' })
+      await api(`/admin/emergency-contacts/${targetId}`, { method: 'DELETE' })
       notify({
         title: t('admin.emergencyContacts.deleteSuccess'),
-        description: deleteTarget.name,
+        description: targetName,
         variant: 'success',
       })
       setDeleteTarget(null)
@@ -408,7 +423,7 @@ export function AdminEmergencyContactsPage() {
                 ))}
               </ul>
 
-              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={(p) => void load(p)} />
+              <Pagination current={data.pagination.page} totalPages={data.pagination.totalPages} disabled={loading} onPageChange={(p) => void load(p)} />
             </div>
           )}
         </CardBody>

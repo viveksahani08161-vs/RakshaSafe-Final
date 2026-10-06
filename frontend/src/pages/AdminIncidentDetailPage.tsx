@@ -188,7 +188,7 @@ export function AdminIncidentDetailPage() {
 
   async function onStatusSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!incidentId) return
+    if (!incidentId || saving) return
     setSaving(true)
     setFormError(null)
     try {
@@ -227,7 +227,7 @@ export function AdminIncidentDetailPage() {
 
   async function onAssignSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    if (!incidentId) return
+    if (!incidentId || assigning) return
     setAssigning(true)
     setAssignError(null)
     setAssignFieldErrors({})
@@ -260,6 +260,7 @@ export function AdminIncidentDetailPage() {
   }
 
   async function onRowStatusSave(a: Assignment): Promise<void> {
+    if (rowSaving[a.id]) return
     const next = rowStatus[a.id] ?? a.status
     setRowSaving((prev) => ({ ...prev, [a.id]: true }))
     setRowErrors((prev) => {

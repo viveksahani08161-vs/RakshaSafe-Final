@@ -157,10 +157,10 @@ export function UnsafeReportsPage() {
         setGeocoding(true)
         const area = await reverseGeocode(result.coords.latitude, result.coords.longitude)
         setAreaName(area)
-        setGeocoding(false)
       }
     } finally {
       setAcquiring(false)
+      setGeocoding(false)
     }
   }
 
@@ -279,7 +279,7 @@ export function UnsafeReportsPage() {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault()
-    setSubmitting(true)
+    if (submitting) return
     setFieldErrors({})
     setFormError(null)
     setCreatedRef(null)
@@ -295,10 +295,10 @@ export function UnsafeReportsPage() {
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
-      setSubmitting(false)
       return
     }
 
+    setSubmitting(true)
     try {
       const res = await api<{ report: UnsafeReport }>('/unsafe-reports', {
         method: 'POST',
