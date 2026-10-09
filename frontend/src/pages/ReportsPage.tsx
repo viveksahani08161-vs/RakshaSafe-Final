@@ -210,6 +210,8 @@ export function ReportsPage() {
 
   // Sequence guard: only the latest in-flight list request may write state.
   const loadSeq = useRef(0)
+  // Sequence guard: only the records for the currently selected user may be applied.
+  const userRecordsSeq = useRef(0)
 
   const load = useCallback(async (targetPage: number, signal?: AbortSignal) => {
     setLoading(true)
@@ -267,14 +269,18 @@ export function ReportsPage() {
   }
 
   async function loadUserRecords(userId: string, forType: string): Promise<void> {
+    userRecordsSeq.current += 1
+    const seq = userRecordsSeq.current
     setRecordsLoading(true)
     setRecordsError(null)
     setRecords([])
+    setRecordId('')
     try {
       if (forType === 'unsafe-area-record') {
         const res = await api<{ reports: { id: string; category: string; severity: string; isVerified: boolean; createdAt: string }[] }>(
           `/admin/unsafe-reports?userId=${encodeURIComponent(userId)}&limit=50`,
         )
+        if (userRecordsSeq.current !== seq) return
         setRecords(
           (res.reports ?? []).map((r) => ({
             id: String(r.id),
@@ -286,6 +292,7 @@ export function ReportsPage() {
         const res = await api<{ incidents: { id: string; category: string; type: string; priority: string; status: string; createdAt: string }[] }>(
           `/admin/incidents?userId=${encodeURIComponent(userId)}&limit=50`,
         )
+        if (userRecordsSeq.current !== seq) return
         setRecords(
           (res.incidents ?? []).map((i) => ({
             id: String(i.id),
@@ -295,9 +302,10 @@ export function ReportsPage() {
         )
       }
     } catch (err) {
+      if (userRecordsSeq.current !== seq) return
       setRecordsError(err instanceof ApiError ? err.message : t('admin.reports.error.unreachable'))
     } finally {
-      setRecordsLoading(false)
+      if (userRecordsSeq.current === seq) setRecordsLoading(false)
     }
   }
 
