@@ -47,6 +47,54 @@ describe('validateReportRequest', () => {
   })
 
   it('documents every report type it accepts', () => {
-    assert.deepEqual(REPORT_TYPES, ['incident-summary', 'resource-summary', 'safety-overview'])
+    assert.deepEqual(REPORT_TYPES, [
+      'incident-summary',
+      'resource-summary',
+      'safety-overview',
+      'user-incident-summary',
+      'incident-record',
+      'unsafe-area-record',
+    ])
+  })
+
+  it('requires a user for user-scoped types', () => {
+    const { issues } = validateReportRequest({ reportType: 'user-incident-summary', format: 'PDF' })
+    assert.ok(issues?.some((i) => i.field === 'filters.userId'))
+  })
+
+  it('requires the matching record for single-record types', () => {
+    const uid = '6ac4c1b9ea7bf0fd69e58e0c'
+    const a = validateReportRequest({ reportType: 'incident-record', format: 'PDF', filters: { userId: uid } })
+    assert.ok(a.issues?.some((i) => i.field === 'filters.incidentId'))
+    const b = validateReportRequest({ reportType: 'unsafe-area-record', format: 'PDF', filters: { userId: uid } })
+    assert.ok(b.issues?.some((i) => i.field === 'filters.unsafeReportId'))
+  })
+
+  it('rejects cross-type record selectors and malformed ids', () => {
+    const uid = '6ac4c1b9ea7bf0fd69e58e0c'
+    const a = validateReportRequest({
+      reportType: 'incident-record', format: 'PDF', filters: { userId: uid, unsafeReportId: uid },
+    })
+    assert.ok(a.issues?.some((i) => i.field === 'filters.unsafeReportId'))
+    const b = validateReportRequest({
+      reportType: 'incident-summary', format: 'PDF', filters: { userId: uid },
+    })
+    assert.ok(b.issues?.some((i) => i.field === 'filters.userId'))
+    const c = validateReportRequest({
+      reportType: 'incident-record', format: 'PDF', filters: { userId: 'not-an-id', incidentId: uid },
+    })
+    assert.ok(c.issues?.some((i) => i.field === 'filters.userId'))
+  })
+
+  it('accepts a complete user-scoped request', () => {
+    const uid = '6ac4c1b9ea7bf0fd69e58e0c'
+    const { issues, filters } = validateReportRequest({
+      reportType: 'incident-record',
+      format: 'PDF',
+      title: 'Rahul Report',
+      filters: { userId: uid, incidentId: uid },
+    })
+    assert.equal(issues, undefined)
+    assert.deepEqual(filters, { userId: uid, incidentId: uid })
   })
 })

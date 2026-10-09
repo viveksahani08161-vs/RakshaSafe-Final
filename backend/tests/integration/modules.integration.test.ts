@@ -667,6 +667,17 @@ test('RakshaSafe all-module integration suite (real mongod + local AI stub)', as
     const list = await request(app).get('/api/admin/users?search=Module').set(auth(adminToken))
     assert.equal(list.status, 200)
     assert.ok(list.body.data.users.some((u: { id: string }) => u.id === userBId))
+    assert.equal(list.body.data.pagination.page, 1)
+    assert.ok(list.body.data.pagination.total >= 2)
+
+    // Searching by the full user id (ObjectId) and by an id substring both resolve the user.
+    const byId = await request(app).get(`/api/admin/users?search=${userBId}`).set(auth(adminToken))
+    assert.equal(byId.status, 200)
+    assert.ok(byId.body.data.users.some((u: { id: string }) => u.id === userBId))
+
+    const byIdPrefix = await request(app).get(`/api/admin/users?search=${userBId.slice(0, 6)}`).set(auth(adminToken))
+    assert.equal(byIdPrefix.status, 200)
+    assert.ok(byIdPrefix.body.data.users.some((u: { id: string }) => u.id === userBId))
 
     const rename = await request(app).patch(`/api/admin/users/${userBId}`).set(auth(adminToken)).send({ name: 'Module User B (renamed)' })
     assert.equal(rename.status, 200)

@@ -7,6 +7,10 @@ export function snapshotToRows(snapshot: Record<string, unknown>): string[][] {
       rows.push([section, path, ''])
     } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       rows.push([section, path, String(value)])
+    } else if (value instanceof Date) {
+      // Dates arrive as real Date objects from the stored snapshot; without
+      // this branch they have no enumerable keys and would export as blank.
+      rows.push([section, path, value.toISOString()])
     } else if (Array.isArray(value)) {
       if (value.length === 0) {
         rows.push([section, path, ''])
@@ -24,7 +28,13 @@ export function snapshotToRows(snapshot: Record<string, unknown>): string[][] {
   }
 
   for (const [section, value] of Object.entries(snapshot)) {
-    if (section === 'generatedAtUtc' || section === 'filters') continue
+    if (section === 'filters') continue
+    // The report's own generation time is grouped with the report envelope
+    // (serial, generator) instead of being dropped.
+    if (section === 'generatedAtUtc') {
+      walk('report', 'generatedAtUtc', value, 0)
+      continue
+    }
     walk(section, '', value, 0)
   }
   return rows

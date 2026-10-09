@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { snapshotToRows, toCsv, toPdf } from '../../src/utils/export.js'
 
 describe('snapshotToRows', () => {
-  it('skips metadata keys and flattens nested objects and arrays', () => {
+  it('drops filters, groups generatedAtUtc with the report, and flattens nested objects and arrays', () => {
     const rows = snapshotToRows({
       generatedAtUtc: '2026-09-28T00:00:00Z',
       filters: { status: 'REPORTED' },
@@ -11,11 +11,22 @@ describe('snapshotToRows', () => {
       teams: ['Alpha', 'Beta'],
     })
     const joined = rows.map((r) => r.join('/'))
-    assert.equal(joined.some((r) => r.includes('generatedAtUtc')), false)
-    assert.equal(joined.some((r) => r.includes('filters')), false)
+    assert.equal(joined.some((r) => r.startsWith('filters/')), false)
+    assert.equal(joined.some((r) => r === 'report/generatedAtUtc/2026-09-28T00:00:00Z'), true)
     assert.equal(joined.some((r) => r === 'incidents/total/2'), true)
     assert.equal(joined.some((r) => r === 'incidents/priorities.HIGH/1'), true)
     assert.equal(joined.some((r) => r === 'teams/[0]/Alpha'), true)
+  })
+
+  it('serializes Date values instead of exporting them as blank', () => {
+    const rows = snapshotToRows({
+      record: { id: 'abc', createdAt: new Date('2026-10-09T11:00:00.000Z') },
+      notifications: [{ lastAttemptAt: new Date('2026-10-09T11:01:00.000Z') }],
+    })
+    const joined = rows.map((r) => r.join('/'))
+    assert.equal(joined.some((r) => r === 'record/createdAt/2026-10-09T11:00:00.000Z'), true)
+    assert.equal(joined.some((r) => r === 'notifications/[0].lastAttemptAt/2026-10-09T11:01:00.000Z'), true)
+    assert.equal(joined.some((r) => r.endsWith('createdAt/')), false)
   })
 })
 

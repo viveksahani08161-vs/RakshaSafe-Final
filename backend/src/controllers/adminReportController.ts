@@ -4,7 +4,7 @@ import { Report, ReportFormat } from '../models/Report.js'
 import { badRequest, notFoundError, unauthorized } from '../utils/errors.js'
 import { toCsv, toPdf } from '../utils/export.js'
 import { isValidObjectId } from '../validators/emergencyContact.js'
-import { buildSnapshot, defaultTitle, validateReportRequest } from '../services/reports.js'
+import { buildSnapshot, defaultTitle, nextReportSerial, reportEnvelope, validateReportRequest } from '../services/reports.js'
 
 const MAX_LIMIT = 50
 
@@ -39,13 +39,16 @@ export async function generateReport(req: Request, res: Response, next: NextFunc
       return
     }
 
+    const serialNo = await nextReportSerial()
     const snapshot = await buildSnapshot(reportType, filters ?? {})
+    const envelope = await reportEnvelope(adminId, serialNo, reportType)
     const doc = await Report.create({
       generatedBy: adminId,
+      serialNo,
       title: title ?? defaultTitle(reportType),
       reportType,
       filters: filters ?? {},
-      dataSnapshot: snapshot,
+      dataSnapshot: { ...snapshot, report: envelope },
       format: format as ReportFormat,
     })
     await AdminLog.create({
@@ -62,6 +65,7 @@ export async function generateReport(req: Request, res: Response, next: NextFunc
       data: {
         report: {
           id: String(doc._id),
+          serialNo: doc.serialNo ?? null,
           title: doc.title,
           reportType: doc.reportType,
           filters: doc.filters ?? {},
@@ -76,8 +80,38 @@ export async function generateReport(req: Request, res: Response, next: NextFunc
   }
 }
 
-/** GET /api/admin/reports — generated reports, newest first (no snapshots in list). */
-export async function listReports(req: Request, res: Response, next: NextFunction): Promise<void> {
+/**
+ * POST /api/admin/reports/preview — validate the request and build the exact
+ * snapshot generation would store, WITHOUT storing anything and WITHOUT
+ * consuming a serial number. Ownership and type checks are identical to
+ * generation, so a clean preview guarantees the generate call behaves the
+ * same way.
+ */
+export async function previewReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    requireAdminId(req)
+    const { reportType, format, title, filters, issues } = validateReportRequest(req.body)
+    if (!reportType || !format || issues) {
+      next(badRequest('Invalid report request.', issues))
+      return
+    }
+    const snapshot = await buildSnapshot(reportType, filters ?? {})
+    res.json({
+      success: true,
+      data: {
+        reportType,
+        format,
+        title: title ?? defaultTitle(reportType),
+        filters: filters ?? {},
+        dataSnapshot: snapshot,
+      },
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/** GET /api/admin/reports — generated reports, newest first (no snapshots in list). */export async function listReports(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const page = Math.max(1, Number(req.query.page) || 1)
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(req.query.limit) || 20))
@@ -92,6 +126,7 @@ export async function listReports(req: Request, res: Response, next: NextFunctio
       data: {
         reports: docs.map((d) => ({
           id: String(d._id),
+          serialNo: d.serialNo ?? null,
           title: d.title,
           reportType: d.reportType,
           filters: d.filters ?? {},
@@ -125,6 +160,7 @@ export async function getReport(req: Request, res: Response, next: NextFunction)
       data: {
         report: {
           id: String(doc._id),
+          serialNo: doc.serialNo ?? null,
           title: doc.title,
           reportType: doc.reportType,
           filters: doc.filters ?? {},

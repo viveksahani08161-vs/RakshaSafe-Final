@@ -9,6 +9,8 @@ export enum ReportFormat {
 export interface IReport extends Document {
   _id: Types.ObjectId
   generatedBy: Types.ObjectId
+  /** System-generated unique serial (RPT-YYYY-NNNNNN). Absent on legacy docs. */
+  serialNo?: string
   title: string
   reportType: string
   filters?: Record<string, unknown>
@@ -21,6 +23,7 @@ export interface IReport extends Document {
 const ReportSchema = new Schema<IReport>(
   {
     generatedBy: { type: Schema.Types.ObjectId, ref: 'Users', required: true, index: true },
+    serialNo: { type: String, trim: true, unique: true, sparse: true },
     title: { type: String, required: true, trim: true },
     reportType: { type: String, required: true, trim: true },
     filters: { type: Schema.Types.Mixed },

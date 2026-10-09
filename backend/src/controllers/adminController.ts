@@ -38,8 +38,22 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
 
     const filter: Record<string, unknown> = {}
     if (typeof req.query.search === 'string' && req.query.search.trim() !== '') {
-      const rx = { $regex: escapeRegExp(req.query.search.trim().slice(0, 100)), $options: 'i' }
-      filter.$or = [{ name: rx }, { email: rx }, { phone: rx }]
+      const term = req.query.search.trim().slice(0, 100)
+      const rx = { $regex: escapeRegExp(term), $options: 'i' }
+      const or: Record<string, unknown>[] = [{ name: rx }, { email: rx }, { phone: rx }]
+      // Match the user id too: full ObjectId via the _id index, or a hex
+      // prefix/substring against the string form of _id (Mongoose casts the
+      // 24-char hex string to an ObjectId for the _id path automatically).
+      if (isValidObjectId(term)) {
+        or.push({ _id: term })
+      } else if (/^[0-9a-fA-F]{4,}$/.test(term)) {
+        or.push({
+          $expr: {
+            $regexMatch: { input: { $toString: '$_id' }, regex: escapeRegExp(term), options: 'i' },
+          },
+        })
+      }
+      filter.$or = or
     }
 
     const [users, total] = await Promise.all([

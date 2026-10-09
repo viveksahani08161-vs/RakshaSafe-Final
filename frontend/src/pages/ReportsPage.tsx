@@ -8,11 +8,14 @@ import {
   INCIDENT_TYPES,
   REPORT_FORMATS,
   REPORT_TYPES,
+  SINGLE_RECORD_REPORT_TYPES,
+  USER_SCOPED_REPORT_TYPES,
   formatDateTime,
-  isRecord,
   type ReportDetail,
   type ReportMeta,
+  type ScopedUser,
   type Snapshot,
+  type UserRecordOption,
 } from '../lib/reports'
 import { Alert } from '../components/ui/Alert'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
@@ -28,6 +31,7 @@ import { Pagination } from '../components/ui/Pagination'
 import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../components/ui/Table'
+import { UserCombobox } from '../components/ui/UserCombobox'
 
 interface ListResponse {
   reports: ReportMeta[]
@@ -58,12 +62,61 @@ function toFieldErrors(details: unknown): FieldErrors {
   return out
 }
 
-function renderValue(value: unknown): string {
+const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
+
+/** Scalar display value. ISO date-times are shown in local time; nothing is invented. */
+function renderScalar(value: unknown): string {
   if (value === null || value === undefined) return '—'
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
+  if (typeof value === 'string') {
+    return ISO_DATETIME_RE.test(value) ? formatDateTime(value) : value
   }
-  return JSON.stringify(value)
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return String(value)
+}
+
+/** Recursive renderer: nested objects/arrays become labeled blocks, never a raw JSON blob. */
+function ValueTree({ value }: { value: unknown }) {
+  if (value === null || value === undefined) return <span className="text-ink-400">—</span>
+  if (typeof value !== 'object') return <span className="break-words">{renderScalar(value)}</span>
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-ink-400">—</span>
+    if (value.every((v) => v === null || typeof v !== 'object')) {
+      return <span className="break-words">{value.map((v) => renderScalar(v)).join(', ')}</span>
+    }
+    return (
+      <div className="space-y-2">
+        {value.map((item, i) => (
+          <div key={i} className="rounded-lg border border-ink-200/70 bg-cream-50/60 p-2.5">
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-ink-400">#{i + 1}</p>
+            <ValueTree value={item} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+  if (entries.length === 0) return <span className="text-ink-400">—</span>
+  return (
+    <dl className="space-y-1.5">
+      {entries.map(([metric, v]) => {
+        const complex = v !== null && typeof v === 'object'
+        return (
+          <div key={metric} className={complex ? 'text-sm' : 'flex items-baseline justify-between gap-3 text-sm'}>
+            <dt className="min-w-0 text-ink-500">{humanizeKey(metric)}</dt>
+            <dd
+              className={
+                complex
+                  ? 'mt-1 border-l-2 border-ink-200/70 pl-3 text-ink-900'
+                  : 'min-w-0 break-words text-right font-bold text-ink-900'
+              }
+            >
+              <ValueTree value={v} />
+            </dd>
+          </div>
+        )
+      })}
+    </dl>
+  )
 }
 
 /** Presentation-only label for stored snapshot keys (camelCase → words). Values are never altered. */
@@ -83,7 +136,7 @@ function formatVariant(format: string): BadgeVariant {
   }
 }
 
-/** Generic snapshot viewer: sections with key/value rows from the stored record. */
+/** Generic snapshot viewer: readable sections, nested objects and arrays. */
 function SnapshotView({ snapshot, emptyLabel }: { snapshot: Snapshot; emptyLabel: string }) {
   const sections = Object.entries(snapshot).filter(([k]) => k !== 'generatedAtUtc' && k !== 'filters')
   if (sections.length === 0) {
@@ -94,18 +147,7 @@ function SnapshotView({ snapshot, emptyLabel }: { snapshot: Snapshot; emptyLabel
       {sections.map(([section, value]) => (
         <div key={section}>
           <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-400">{humanizeKey(section)}</p>
-          {!isRecord(value) ? (
-            <p className="text-sm text-ink-700">{renderValue(value)}</p>
-          ) : (
-            <dl className="space-y-1.5">
-              {Object.entries(value).map(([metric, v]) => (
-                <div key={metric} className="flex items-baseline justify-between gap-3 text-sm">
-                  <dt className="min-w-0 truncate text-ink-500">{humanizeKey(metric)}</dt>
-                  <dd className="shrink-0 font-bold text-ink-900">{renderValue(v)}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
+          <ValueTree value={value} />
         </div>
       ))}
     </div>
@@ -119,7 +161,7 @@ export function ReportsPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<LoadFailure>(null)
-  const [reportType, setReportType] = useState('incident-summary')
+  const [reportType, setReportType] = useState('incident-record')
   const [format, setFormat] = useState('PDF')
   const [title, setTitle] = useState('')
   const [fStatus, setFStatus] = useState('')
@@ -135,6 +177,14 @@ export function ReportsPage() {
   const [deleteTarget, setDeleteTarget] = useState<ReportMeta | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // User-scoped report flow: selected user → that user's records → record.
+  const [scopedUser, setScopedUser] = useState<ScopedUser | null>(null)
+  const [records, setRecords] = useState<UserRecordOption[]>([])
+  const [recordsLoading, setRecordsLoading] = useState(false)
+  const [recordsError, setRecordsError] = useState<string | null>(null)
+  const [recordId, setRecordId] = useState('')
+  const isUserScoped = USER_SCOPED_REPORT_TYPES.includes(reportType)
+  const isSingleRecord = SINGLE_RECORD_REPORT_TYPES.includes(reportType)
 
   const typeLabel = useCallback(
     (value: string): string => {
@@ -145,6 +195,12 @@ export function ReportsPage() {
           return t('admin.reports.type.resource-summary')
         case 'safety-overview':
           return t('admin.reports.type.safety-overview')
+        case 'user-incident-summary':
+          return t('admin.reports.type.user-incident-summary')
+        case 'incident-record':
+          return t('admin.reports.type.incident-record')
+        case 'unsafe-area-record':
+          return t('admin.reports.type.unsafe-area-record')
         default:
           return value
       }
@@ -189,20 +245,116 @@ export function ReportsPage() {
     return () => controller.abort()
   }, [load])
 
-  async function onGenerate(e: FormEvent): Promise<void> {
-    e.preventDefault()
-    if (generating) return
-    setGenerating(true)
+  function resetScopedSelection(): void {
+    setScopedUser(null)
+    setRecords([])
+    setRecordsError(null)
+    setRecordId('')
+  }
+
+  function handleReportTypeChange(value: string): void {
+    setReportType(value)
+    resetScopedSelection()
     setFieldErrors({})
     setFormError(null)
+  }
+
+  function pickScopedUser(user: ScopedUser): void {
+    setScopedUser(user)
+    setRecordId('')
+    setFieldErrors({})
+    void loadUserRecords(user.id, reportType)
+  }
+
+  async function loadUserRecords(userId: string, forType: string): Promise<void> {
+    setRecordsLoading(true)
+    setRecordsError(null)
+    setRecords([])
     try {
-      const filters: Record<string, string> = {}
-      if (reportType === 'incident-summary') {
+      if (forType === 'unsafe-area-record') {
+        const res = await api<{ reports: { id: string; category: string; severity: string; isVerified: boolean; createdAt: string }[] }>(
+          `/admin/unsafe-reports?userId=${encodeURIComponent(userId)}&limit=50`,
+        )
+        setRecords(
+          (res.reports ?? []).map((r) => ({
+            id: String(r.id),
+            title: `${r.category} — ${r.isVerified ? 'verified' : 'unverified'}`,
+            detail: `${r.severity} · ${formatDateTime(r.createdAt)} · Ref ${String(r.id)}`,
+          })),
+        )
+      } else {
+        const res = await api<{ incidents: { id: string; category: string; type: string; priority: string; status: string; createdAt: string }[] }>(
+          `/admin/incidents?userId=${encodeURIComponent(userId)}&limit=50`,
+        )
+        setRecords(
+          (res.incidents ?? []).map((i) => ({
+            id: String(i.id),
+            title: `${i.category} — ${i.status}`,
+            detail: `${i.type} · ${i.priority} · ${formatDateTime(i.createdAt)} · Ref ${String(i.id)}`,
+          })),
+        )
+      }
+    } catch (err) {
+      setRecordsError(err instanceof ApiError ? err.message : t('admin.reports.error.unreachable'))
+    } finally {
+      setRecordsLoading(false)
+    }
+  }
+
+  const [previewTarget, setPreviewTarget] = useState<ReportDetail | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+
+  /** Shared completeness check so preview and generate accept identical input. */
+  function collectScopedFilters(): Record<string, string> | null {
+    const filters: Record<string, string> = {}
+    if (isUserScoped) {
+      // The backend re-validates ownership in its own queries; these
+      // client checks only stop incomplete submissions early.
+      if (!scopedUser) {
+        setFieldErrors({ 'filters.userId': t('admin.reports.generate.userRequired') })
+        return null
+      }
+      filters.userId = scopedUser.id
+      if (reportType === 'incident-record') {
+        if (!recordId) {
+          setFieldErrors({ 'filters.incidentId': t('admin.reports.generate.recordRequired') })
+          return null
+        }
+        filters.incidentId = recordId
+      } else if (reportType === 'unsafe-area-record') {
+        if (!recordId) {
+          setFieldErrors({ 'filters.unsafeReportId': t('admin.reports.generate.recordRequired') })
+          return null
+        }
+        filters.unsafeReportId = recordId
+      } else {
         if (fStatus) filters.status = fStatus
         if (fType) filters.type = fType
         if (fPriority) filters.priority = fPriority
         if (fMonth.trim()) filters.month = fMonth.trim()
       }
+    } else if (reportType === 'incident-summary') {
+      if (fStatus) filters.status = fStatus
+      if (fType) filters.type = fType
+      if (fPriority) filters.priority = fPriority
+      if (fMonth.trim()) filters.month = fMonth.trim()
+    }
+    return filters
+  }
+
+  async function onGenerate(e: FormEvent): Promise<void> {
+    e.preventDefault()
+    await runGenerate()
+  }
+
+  async function runGenerate(): Promise<void> {
+    if (generating) return
+    setGenerating(true)
+    setFieldErrors({})
+    setFormError(null)
+    try {
+      const filters = collectScopedFilters()
+      if (!filters) return
       const res = await api<{ report: ReportDetail }>('/admin/reports', {
         method: 'POST',
         body: {
@@ -228,6 +380,55 @@ export function ReportsPage() {
       }
     } finally {
       setGenerating(false)
+    }
+  }
+
+  async function onPreview(): Promise<void> {
+    if (previewing || generating) return
+    setPreviewing(true)
+    setFieldErrors({})
+    setFormError(null)
+    try {
+      const filters = collectScopedFilters()
+      if (!filters) return
+      const res = await api<{
+        reportType: string
+        format: string
+        title: string
+        filters: Record<string, string>
+        dataSnapshot: Snapshot
+      }>('/admin/reports/preview', {
+        method: 'POST',
+        body: {
+          reportType,
+          format,
+          ...(title.trim() ? { title: title.trim() } : {}),
+          ...(Object.keys(filters).length > 0 ? { filters } : {}),
+        },
+      })
+      setPreviewTarget({
+        id: '',
+        serialNo: null,
+        title: res.title,
+        reportType: res.reportType,
+        filters: res.filters,
+        format: res.format,
+        createdAt: new Date().toISOString(),
+        dataSnapshot: res.dataSnapshot,
+      })
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fields = toFieldErrors(err.details)
+        if (Object.keys(fields).length > 0) {
+          setFieldErrors(fields)
+        } else {
+          setFormError(err.message)
+        }
+      } else {
+        setFormError(t('admin.reports.error.generateGeneric'))
+      }
+    } finally {
+      setPreviewing(false)
     }
   }
 
@@ -316,20 +517,20 @@ export function ReportsPage() {
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6">
-      <Card>
+      <Card className="min-w-0">
         <CardHeader title={t('admin.reports.title')} description={t('admin.reports.description')} />
         <CardBody>
           {loading ? (
             <Skeleton lines={2} />
           ) : (
             <dl className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-ink-200/70 bg-cream-50 px-4 py-3">
+              <div className="min-w-0 rounded-xl border border-ink-200/70 bg-cream-50 px-4 py-3">
                 <dt className="text-xs font-bold uppercase tracking-widest text-ink-400">
                   {t('admin.reports.summary.total')}
                 </dt>
                 <dd className="mt-1 text-2xl font-bold text-ink-900">{failed || !data ? '—' : data.pagination.total}</dd>
               </div>
-              <div className="rounded-xl border border-ink-200/70 bg-cream-50 px-4 py-3">
+              <div className="min-w-0 rounded-xl border border-ink-200/70 bg-cream-50 px-4 py-3">
                 <dt className="text-xs font-bold uppercase tracking-widest text-ink-400">
                   {t('admin.reports.summary.latest')}
                 </dt>
@@ -347,7 +548,7 @@ export function ReportsPage() {
         </CardBody>
       </Card>
 
-      <Card id="report-generate">
+      <Card id="report-generate" className="min-w-0">
         <CardHeader title={t('admin.reports.generate.title')} description={t('admin.reports.generate.description')} />
         <CardBody>
           <Form onSubmit={(e: FormEvent) => void onGenerate(e)}>
@@ -362,7 +563,7 @@ export function ReportsPage() {
                 name="report-type"
                 value={reportType}
                 error={fieldErrors.reportType}
-                onChange={(e) => setReportType(e.target.value)}
+                onChange={(e) => handleReportTypeChange(e.target.value)}
                 options={REPORT_TYPES.map((rt) => ({ label: typeLabel(rt.value), value: rt.value }))}
               />
               <Select
@@ -383,7 +584,112 @@ export function ReportsPage() {
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
-            {reportType === 'incident-summary' && (
+            {isUserScoped && (
+              <div className="space-y-4 rounded-xl border border-ink-200/70 bg-cream-50/50 p-4">
+                {!scopedUser ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-ink-700">{t('admin.reports.generate.userLabel')}</p>
+                    <UserCombobox
+                      onSelect={(u) =>
+                        pickScopedUser({
+                          id: u.id,
+                          name: u.name,
+                          email: u.email,
+                          phone: u.phone ?? '',
+                        })
+                      }
+                    />
+                    {fieldErrors['filters.userId'] && (
+                      <p className="text-xs font-medium text-rose-600">{fieldErrors['filters.userId']}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-widest text-ink-400">
+                          {t('admin.reports.generate.selectedUser')}
+                        </p>
+                        <p className="mt-0.5 truncate text-sm font-bold text-ink-900" title={scopedUser.name}>
+                          {scopedUser.name}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs text-ink-500">
+                          ID: {scopedUser.id}
+                          <br />
+                          {scopedUser.email}
+                          {scopedUser.phone ? ` · ${scopedUser.phone}` : ''}
+                        </p>
+                      </div>
+                      <Button type="button" size="sm" variant="outline" onClick={resetScopedSelection}>
+                        {t('admin.reports.generate.changeUser')}
+                      </Button>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-ink-700">
+                        {t('admin.reports.generate.userRecords')} ({records.length})
+                      </p>
+                      {recordsLoading && <Skeleton lines={3} />}
+                      {!recordsLoading && recordsError && (
+                        <Alert
+                          variant="danger"
+                          onClose={() => setRecordsError(null)}
+                        >
+                          {recordsError}{' '}
+                          <button
+                            type="button"
+                            className="font-bold underline"
+                            onClick={() => void loadUserRecords(scopedUser.id, reportType)}
+                          >
+                            {t('admin.reports.generate.userSearch')}
+                          </button>
+                        </Alert>
+                      )}
+                      {!recordsLoading && !recordsError && records.length === 0 && (
+                        <p className="text-sm text-ink-500">{t('admin.reports.generate.noRecords')}</p>
+                      )}
+                      {!recordsLoading && !recordsError && records.length > 0 && (
+                        <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                          {records.map((r) => (
+                            <li key={r.id}>
+                              {isSingleRecord ? (
+                                <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-ink-200/70 bg-white p-3 transition-colors hover:border-gold-400">
+                                  <input
+                                    type="radio"
+                                    name="scoped-report-record"
+                                    checked={recordId === r.id}
+                                    onChange={() => setRecordId(r.id)}
+                                    className="mt-1 size-4 shrink-0 accent-gold-600"
+                                  />
+                                  <span className="min-w-0">
+                                    <span className="block truncate text-sm font-bold text-ink-900" title={r.title}>
+                                      {r.title}
+                                    </span>
+                                    <span className="mt-0.5 block break-words text-xs text-ink-500">{r.detail}</span>
+                                  </span>
+                                </label>
+                              ) : (
+                                <div className="rounded-xl border border-ink-200/70 bg-white p-3">
+                                  <p className="truncate text-sm font-bold text-ink-900" title={r.title}>
+                                    {r.title}
+                                  </p>
+                                  <p className="mt-0.5 break-words text-xs text-ink-500">{r.detail}</p>
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {(fieldErrors['filters.incidentId'] ?? fieldErrors['filters.unsafeReportId']) && (
+                        <p className="mt-1 text-xs font-medium text-rose-600">
+                          {fieldErrors['filters.incidentId'] ?? fieldErrors['filters.unsafeReportId']}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {['incident-summary', 'user-incident-summary'].includes(reportType) && (
               <div>
                 <p className="mb-2 text-sm font-semibold text-ink-700">{t('admin.reports.generate.filters')}</p>
                 <div className="grid gap-4 sm:grid-cols-4">
@@ -414,6 +720,7 @@ export function ReportsPage() {
                   <Input
                     label={t('admin.reports.generate.month')}
                     name="filter-month"
+                    type="month"
                     placeholder={t('admin.reports.generate.monthPlaceholder')}
                     value={fMonth}
                     error={fieldErrors['filters.month']}
@@ -423,14 +730,26 @@ export function ReportsPage() {
                 <p className="mt-2 text-xs text-ink-400">{t('admin.reports.generate.filtersHint')}</p>
               </div>
             )}
-            <Button type="submit" loading={generating} disabled={generating}>
-              {generating ? t('admin.reports.generate.generating') : t('admin.reports.generate.submit')}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="submit" loading={generating} disabled={generating} className="w-full sm:w-auto">
+                {generating ? t('admin.reports.generate.generating') : t('admin.reports.generate.submit')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                loading={previewing}
+                disabled={previewing || generating}
+                onClick={() => void onPreview()}
+                className="w-full sm:w-auto"
+              >
+                {t('admin.reports.generate.preview')}
+              </Button>
+            </div>
           </Form>
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="min-w-0">
         <CardHeader title={t('admin.reports.list.title')} description={t('admin.reports.list.description')} />
         <CardBody>
           {loading && <Skeleton lines={4} />}
@@ -464,6 +783,7 @@ export function ReportsPage() {
                 <Table>
                   <TableHead>
                     <TableRow>
+                      <TableHeaderCell scope="col">{t('admin.reports.list.serial')}</TableHeaderCell>
                       <TableHeaderCell scope="col">{t('admin.reports.list.colTitle')}</TableHeaderCell>
                       <TableHeaderCell scope="col">{t('admin.reports.list.colType')}</TableHeaderCell>
                       <TableHeaderCell scope="col">{t('admin.reports.list.colFormat')}</TableHeaderCell>
@@ -474,6 +794,9 @@ export function ReportsPage() {
                   <TableBody>
                     {data.reports.map((r) => (
                       <TableRow key={r.id}>
+                        <TableCell className="whitespace-nowrap text-xs font-semibold text-ink-500">
+                          {r.serialNo ?? '—'}
+                        </TableCell>
                         <TableCell>
                           <span className="font-medium text-ink-900">{r.title}</span>
                         </TableCell>
@@ -516,12 +839,12 @@ export function ReportsPage() {
                   </TableBody>
                 </Table>
               </div>
-              <div className="grid gap-3 md:hidden" role="list" aria-label={t('admin.reports.list.title')}>
+              <div className="grid min-w-0 gap-3 md:hidden" role="list" aria-label={t('admin.reports.list.title')}>
                 {data.reports.map((r) => (
                   <article
                     key={r.id}
                     role="listitem"
-                    className="rounded-2xl border border-ink-200/70 bg-white p-4 shadow-sm shadow-ink-900/5"
+                    className="min-w-0 rounded-2xl border border-ink-200/70 bg-white p-4 shadow-sm shadow-ink-900/5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="min-w-0 flex-1 truncate font-bold text-ink-900" title={r.title}>
@@ -529,6 +852,9 @@ export function ReportsPage() {
                       </p>
                       <Badge variant={formatVariant(r.format)}>{r.format}</Badge>
                     </div>
+                    <p className="mt-1 text-xs text-ink-400">
+                      {t('admin.reports.list.serial')}: {r.serialNo ?? '—'}
+                    </p>
                     <p className="mt-1 text-xs text-ink-500">
                       {typeLabel(r.reportType)} · {formatDateTime(r.createdAt)}
                     </p>
@@ -581,7 +907,18 @@ export function ReportsPage() {
         open={viewTarget !== null}
         onClose={() => setViewTarget(null)}
         title={viewTarget?.title ?? t('admin.reports.title')}
-        description={viewTarget ? `${typeLabel(viewTarget.reportType)} · ${viewTarget.format} · ${formatDateTime(viewTarget.createdAt)}` : undefined}
+        description={
+          viewTarget
+            ? [
+                viewTarget.serialNo ?? null,
+                typeLabel(viewTarget.reportType),
+                viewTarget.format,
+                formatDateTime(viewTarget.createdAt),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : undefined
+        }
         size="lg"
         footer={
           viewTarget ? (
@@ -629,6 +966,36 @@ export function ReportsPage() {
             </div>
             <SnapshotView snapshot={viewTarget.dataSnapshot} emptyLabel={t('admin.reports.preview.empty')} />
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={previewTarget !== null}
+        onClose={() => setPreviewTarget(null)}
+        title={previewTarget?.title ?? t('admin.reports.generate.preview')}
+        description={t('admin.reports.generate.previewNote')}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPreviewTarget(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              loading={generating}
+              disabled={generating}
+              onClick={() => {
+                setPreviewTarget(null)
+                void runGenerate()
+              }}
+            >
+              {t('admin.reports.generate.submit')}
+            </Button>
+          </>
+        }
+      >
+        {previewTarget && (
+          <SnapshotView snapshot={previewTarget.dataSnapshot} emptyLabel={t('admin.reports.preview.empty')} />
         )}
       </Modal>
 

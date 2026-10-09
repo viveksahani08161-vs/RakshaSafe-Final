@@ -112,7 +112,10 @@ export async function getExplanation(
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(score, level, factors) }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 300 },
+        // Generous token budget: reasoning models spend tokens on internal
+        // thought before answering; too small a cap truncates the summary
+        // mid-sentence. Still bounded so responses stay small.
+        generationConfig: { temperature: 0.2, maxOutputTokens: 1000 },
       }),
       signal: AbortSignal.timeout(env.geminiTimeoutMs),
     })

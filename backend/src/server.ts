@@ -12,8 +12,10 @@ async function start(): Promise<void> {
     console.warn('[api] Starting API anyway; /api/health will report db: connected=false')
   }
 
-  const server = app.listen(env.port, () => {
-    console.log(`[api] RakshaSafe backend listening on http://localhost:${env.port}`)
+  // Bind all interfaces explicitly: PaaS platforms (Faable/Render/Railway)
+  // route traffic to the container IP, not loopback.
+  const server = app.listen(env.port, '0.0.0.0', () => {
+    console.log(`[api] RakshaSafe backend listening on 0.0.0.0:${env.port}`)
   })
 
   const shutdown = async (signal: string) => {

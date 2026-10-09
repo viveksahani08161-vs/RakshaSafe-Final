@@ -33,6 +33,13 @@ export async function listUnsafeReportsAdmin(req: Request, res: Response, next: 
       }
       filter.isVerified = req.query.isVerified === 'true'
     }
+    if (req.query.userId !== undefined) {
+      if (typeof req.query.userId !== 'string' || !isValidObjectId(req.query.userId)) {
+        next(badRequest('Invalid user filter.', [{ field: 'userId', message: 'User ID must be a valid user id.' }]))
+        return
+      }
+      filter.reportedBy = req.query.userId
+    }
     if (typeof req.query.search === 'string' && req.query.search.trim() !== '') {
       const q = escapeRegExp(req.query.search.trim().slice(0, 100))
       filter.$or = [{ category: { $regex: q, $options: 'i' } }, { description: { $regex: q, $options: 'i' } }]

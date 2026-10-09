@@ -47,6 +47,7 @@ import {
   generateReport,
   getReport,
   listReports,
+  previewReport,
 } from '../controllers/adminReportController.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { requireDb } from '../middleware/requireDb.js'
@@ -57,6 +58,7 @@ router.use(requireAuth, requireAdmin, requireDb)
 
 router.get('/dashboard', getDashboard)
 router.post('/reports', generateReport)
+router.post('/reports/preview', previewReport)
 router.get('/reports', listReports)
 router.get('/reports/:id', getReport)
 router.get('/reports/:id/export', exportReport)

@@ -24,7 +24,7 @@ function toOutcomeError(message: string): LocationOutcome {
  * every non-available outcome is reported explicitly so the UI can
  * communicate the actual state instead of assuming a false location.
  */
-export function requestDeviceLocation(timeoutMs = 15000): Promise<LocationOutcome> {
+export function requestDeviceLocation(timeoutMs = 10000): Promise<LocationOutcome> {
   if (!isGeolocationSupported()) {
     return Promise.resolve({ state: 'unsupported' })
   }
@@ -70,7 +70,9 @@ export function requestDeviceLocation(timeoutMs = 15000): Promise<LocationOutcom
           resolve(toOutcomeError(err.message || 'Position unavailable.'))
         }
       },
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
+      // A fix up to 60s old is fine for nearby-hospital lookup and makes
+      // repeat views instant instead of waiting for a fresh satellite fix.
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 60000 },
     )
   })
 }
